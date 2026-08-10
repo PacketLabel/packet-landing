@@ -135,6 +135,29 @@
       <button class="btn" id="rsSend" style="width:100%">Send the link</button>
       <button type="button" class="link" id="rsCancel" style="margin-top:14px">Back to sign in</button>
     </div>
+
+    <!-- Setting the new password, after arriving from the email link.
+         This has to be a proper card rather than a window.prompt(). The link
+         in the email hands over a real, signed-in session before any new
+         password has been chosen, so dismissing a prompt let you straight
+         into the admin with the OLD password still live. The box below is
+         the only thing shown until the password is actually changed, and
+         cancelling signs the session out rather than releasing it. -->
+    <div id="newPassBox" style="display:none;text-align:left">
+      <p class="hint" style="margin-bottom:14px">
+        Choose a new password. It needs to be at least eight characters.
+      </p>
+      <div class="field">
+        <label for="npPass">New password</label>
+        <input type="password" id="npPass" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="npPass2">Type it again</label>
+        <input type="password" id="npPass2" autocomplete="new-password">
+      </div>
+      <button class="btn" id="npSave" style="width:100%">Save the new password</button>
+      <button type="button" class="link" id="npCancel" style="margin-top:14px">Cancel and sign out</button>
+    </div>
   </div>
 </div>
 
@@ -428,20 +451,64 @@
     });
   });
 
-  // Coming back from the email link: Supabase puts a recovery session in the
-  // URL, so ask for the new password rather than dropping them into the app.
+  // ---- Coming back from the email link ------------------------------------
+  // Supabase puts a recovery session in the URL fragment and signs the person
+  // in before they have chosen anything. That session is as good as a normal
+  // one, so the app has to be held shut until the password is genuinely
+  // changed — otherwise a link forwarded, quoted in a reply or sitting in a
+  // mailbox backup is a way in, and the old password stays valid as well.
+  //
+  // The flag is read from the fragment synchronously, at load, because
+  // detectSessionInUrl clears the fragment once it has consumed it and the
+  // getSession() call further down would otherwise win the race and let the
+  // recovery session into start().
+  var recovering  = /[#&]type=recovery/.test(window.location.hash);
+  var newPassBox  = document.getElementById('newPassBox');
+
+  function askForNewPassword() {
+    recovering = true;
+    loginForm.style.display  = 'none';
+    resetBox.style.display   = 'none';
+    newPassBox.style.display = 'block';
+    document.getElementById('npPass').focus();
+  }
+
+  if (recovering) askForNewPassword();
   db.auth.onAuthStateChange(function (event) {
-    if (event === 'PASSWORD_RECOVERY') {
-      var pw = window.prompt('Set a new password (at least 8 characters):');
-      if (!pw || pw.length < 8) {
-        note('loginMsg', 'Password not changed — it needs to be at least 8 characters.', 'err');
+    if (event === 'PASSWORD_RECOVERY') askForNewPassword();
+  });
+
+  document.getElementById('npCancel').addEventListener('click', function () {
+    // Signing out matters. Leaving the recovery session alive is exactly the
+    // hole this box exists to close.
+    db.auth.signOut().then(function () {
+      window.location.replace(window.location.pathname);
+    });
+  });
+
+  document.getElementById('npSave').addEventListener('click', function () {
+    var pw  = document.getElementById('npPass').value;
+    var pw2 = document.getElementById('npPass2').value;
+
+    if (pw.length < 8)  { note('loginMsg', 'That needs to be at least eight characters.', 'err'); return; }
+    if (pw !== pw2)     { note('loginMsg', 'The two passwords do not match.', 'err'); return; }
+
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    db.auth.updateUser({ password: pw }).then(function (r) {
+      if (r.error) {
+        btn.disabled = false; btn.textContent = 'Save the new password';
+        note('loginMsg', 'Could not set that password: ' + r.error.message, 'err');
         return;
       }
-      db.auth.updateUser({ password: pw }).then(function (r) {
-        if (r.error) { note('loginMsg', 'Could not set that password: ' + r.error.message, 'err'); return; }
-        note('loginMsg', 'Password updated. Signing you in…', 'ok');
+      // Sign out and make them use the new password. Proves it works while
+      // they are still sitting there, rather than at some later date.
+      note('loginMsg', 'Password changed. Sign in with the new one.', 'ok');
+      db.auth.signOut().then(function () {
+        window.setTimeout(function () { window.location.replace(window.location.pathname); }, 1200);
       });
-    }
+    });
   });
 
   document.getElementById('loginForm').addEventListener('submit', function (e) {
@@ -516,6 +583,8 @@
   }
 
   db.auth.getSession().then(function (res) {
+    // Never open the app on a recovery session — see askForNewPassword above.
+    if (recovering) return;
     if (res.data && res.data.session) start(res.data.session);
   });
 
