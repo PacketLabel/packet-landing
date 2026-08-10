@@ -1,15 +1,23 @@
 {
   "id": "./",
-  "name": "Packet \u2014 Admin",
+  "name": "Packet — Admin",
   "short_name": "Packet",
+  "description": "Packet admin — subscribers, assessment codes, social and traffic.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "any",
   "lang": "en-GB",
   "dir": "ltr",
   "theme_color": "#C0623F",
   "background_color": "#F6EFE6",
   "icons": [
+    {
+      "src": "./assets/packet-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
     {
       "src": "./assets/packet-badge.png",
       "type": "image/png",
@@ -17,7 +25,7 @@
       "purpose": "any"
     },
     {
-      "src": "./assets/packet-badge.png",
+      "src": "./assets/packet-maskable-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"

@@ -8,8 +8,14 @@
 <link rel="icon" href="assets/packet-badge.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#F6EFE6">
-<link rel="apple-touch-icon" href="assets/packet-badge.png">
+<!-- iOS ignores the manifest icons entirely and uses apple-touch-icon, which
+     wants a 180px square. Android reads the manifest. Both are covered. -->
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<!-- mobile-web-app-capable is the current name; the apple- one is deprecated
+     but still needed by older iOS, so both stay. -->
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Packet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -100,6 +106,21 @@
     background:var(--panel);border:1px solid var(--line);border-radius:2px;width:100%;line-height:1.5}
   textarea{resize:vertical}
   textarea:focus,select:focus{outline:none;border-color:var(--terracotta)}
+
+  /* ---------- install to home screen ---------- */
+  #installBar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;
+    background:var(--brown);color:#F6EFE6;padding:14px 18px;
+    padding-bottom:calc(14px + env(safe-area-inset-bottom));
+    font-size:.92rem;line-height:1.5;align-items:center;gap:14px;flex-wrap:wrap}
+  #installBar.show{display:flex}
+  #installBar .txt{flex:1;min-width:180px}
+  #installBar b{font-weight:600}
+  #installBar button{font:inherit;border-radius:2px;cursor:pointer;padding:8px 16px;
+    border:1px solid rgba(246,239,230,.4);background:transparent;color:#F6EFE6}
+  #installBar button.go{background:var(--terracotta);border-color:var(--terracotta);
+    color:#fff;font-weight:500}
+  #installBar .ios-step{display:inline-block;border:1px solid rgba(246,239,230,.45);
+    border-radius:2px;padding:0 5px;margin:0 2px}
 </style>
 </head>
 <body>
@@ -359,6 +380,18 @@
   </main>
 </div>
 
+<!-- ===================== INSTALL ===================== -->
+<!-- Two different worlds, so one bar with two behaviours:
+     Android/Chrome fires beforeinstallprompt, which we catch and re-fire from
+     a button of our own. iOS Safari has never fired that event and never will
+     — there is no install prompt on iPhone at all, only Share → Add to Home
+     Screen — so on iOS the bar just tells you where to tap. -->
+<div id="installBar">
+  <div class="txt" id="installText"></div>
+  <button class="go" id="installGo" style="display:none">Install</button>
+  <button id="installNo">Not now</button>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script>
@@ -534,6 +567,63 @@
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('sw.js').catch(function () {});
     });
+  }
+
+  // Already installed? Then there is nothing to offer. Covers Android
+  // (display-mode) and iOS (navigator.standalone, which only iOS sets).
+  var installed = window.matchMedia('(display-mode: standalone)').matches ||
+                  window.navigator.standalone === true;
+
+  var bar     = document.getElementById('installBar');
+  var barText = document.getElementById('installText');
+  var barGo   = document.getElementById('installGo');
+  var deferredPrompt = null;
+
+  function hideBar(remember) {
+    bar.classList.remove('show');
+    if (remember) { try { localStorage.setItem('packet_install_dismissed', '1'); } catch (e) {} }
+  }
+  function dismissed() {
+    try { return localStorage.getItem('packet_install_dismissed') === '1'; } catch (e) { return false; }
+  }
+  document.getElementById('installNo').addEventListener('click', function () { hideBar(true); });
+
+  // Android / desktop Chrome. The event is only fired when the browser has
+  // decided the app is installable, so if it never arrives, something in the
+  // manifest or the service worker is wrong — not the bar.
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installed || dismissed()) return;
+    barText.innerHTML = 'Install Packet admin on this device and it opens like an app, full screen.';
+    barGo.style.display = 'inline-block';
+    bar.classList.add('show');
+  });
+
+  barGo.addEventListener('click', function () {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function () { deferredPrompt = null; hideBar(false); });
+  });
+
+  window.addEventListener('appinstalled', function () { hideBar(false); });
+
+  // iPhone and iPad. Safari never fires beforeinstallprompt, so nothing above
+  // will ever run — the only route is the Share sheet, and people do not know
+  // that unless told. Chrome and Firefox on iOS cannot install at all (they
+  // are Safari underneath but without the Add to Home Screen item), so the
+  // bar is limited to real Safari to avoid sending anyone on a hunt for a
+  // menu item that is not there.
+  var ua       = window.navigator.userAgent;
+  var isIOS    = /iPad|iPhone|iPod/.test(ua) ||
+                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+
+  if (isIOS && isSafari && !installed && !dismissed()) {
+    barText.innerHTML = 'To keep this on your home screen: tap <b>Share</b> ' +
+      '<span class="ios-step">&#x2191;</span> at the bottom, then ' +
+      '<b>Add to Home Screen</b>.';
+    bar.classList.add('show');
   }
 
   document.getElementById('signOutBtn').addEventListener('click', function () {

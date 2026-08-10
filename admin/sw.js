@@ -19,7 +19,7 @@
    handler is the fix — keep it. (See .axrik-patterns/blueprint-pwa-install.md)
    ============================================================ */
 
-const CACHE = 'packet-admin-runtime-v1';
+const CACHE = 'packet-admin-runtime-v2';
 
 // Take control immediately on install.
 self.addEventListener('install', () => {
