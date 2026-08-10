@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unsubscribe — Packet</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/packet-badge.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:#F6EFE6;--brown:#3A2E27;--brown-soft:#6B5B50;--terracotta:#C0623F;--line:rgba(58,46,39,.16)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--cream);color:var(--brown);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-weight:300;line-height:1.7;min-height:100vh;display:flex;align-items:center;
+    justify-content:center;padding:48px 24px;text-align:center;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:440px}
+  .mark{width:180px;height:auto;margin:0 auto 34px;display:block}
+  h1{font-family:'Lora',Georgia,serif;font-weight:400;font-size:24px;margin-bottom:14px}
+  p{font-size:15px;color:var(--brown-soft);margin-bottom:16px}
+  a{color:var(--terracotta)}
+  .small{font-size:12px;color:#9C8D80;margin-top:28px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img class="mark" src="assets/packet-wordmark.png" alt="Packet">
+  <div id="state">
+    <h1>One moment&hellip;</h1>
+    <p>Taking you off the list.</p>
+  </div>
+  <p class="small">
+    Any trouble, email
+    <a href="mailto:info@packetlabel.com">info@packetlabel.com</a> and we&rsquo;ll
+    do it by hand.
+  </p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var el = document.getElementById('state');
+
+  function render(title, body) {
+    el.innerHTML = '<h1>' + title + '</h1><p>' + body + '</p>';
+  }
+
+  var token = new URLSearchParams(window.location.search).get('t');
+
+  if (!token) {
+    render('Link not recognised',
+      'This unsubscribe link looks incomplete. Please use the link at the bottom of one of our emails, or email us and we will take you off straight away.');
+    return;
+  }
+
+  var cfg = window.PACKET_CONFIG || {};
+  if (!cfg.SUPABASE_URL || cfg.SUPABASE_URL.indexOf('YOUR-PROJECT') !== -1) {
+    render('Something went wrong',
+      'We could not process that just now. Please email us and we will take you off the list by hand.');
+    return;
+  }
+
+  var db = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+
+  db.rpc('unsubscribe', { p_token: token }).then(function (res) {
+    if (res.error) {
+      console.error(res.error);
+      render('Something went wrong',
+        'We could not process that just now. Please email us and we will take you off the list by hand.');
+      return;
+    }
+    if (res.data === true) {
+      render('You&rsquo;re unsubscribed',
+        'We won&rsquo;t email you again. No hard feelings &mdash; thank you for giving us a look.');
+    } else {
+      render('Link not recognised',
+        'We could not find that address on our list, which may mean you are already off it. If you keep hearing from us, email us and we will sort it.');
+    }
+  });
+})();
+</script>
+</body>
+</html>

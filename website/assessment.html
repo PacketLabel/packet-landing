@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Packet — tell us what you buy</title>
+<meta name="description" content="Five quick questions about what you actually spend. Under a minute.">
+<link rel="icon" href="assets/packet-badge.png">
+<meta name="robots" content="noindex">
+
+<meta property="og:title" content="Packet — tell us what you buy">
+<meta property="og:description" content="Five quick questions about what you actually spend. Under a minute.">
+<meta property="og:image" content="assets/packet-badge.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --cream:#F6EFE6; --cream-deep:#EFE5D8;
+    --brown:#3A2E27; --brown-soft:#6B5B50;
+    --terracotta:#C0623F; --terracotta-dark:#A6512F;
+    --line:rgba(58,46,39,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--cream); color:var(--brown);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-weight:300; line-height:1.65; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:40px 22px 64px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:540px}
+  .mark{width:100%;max-width:190px;height:auto;margin:0 auto 34px;display:block}
+
+  .eyebrow{
+    font-size:11px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--terracotta);font-weight:500;margin-bottom:18px;text-align:center;
+  }
+  h1{
+    font-family:'Lora',Georgia,serif;font-weight:400;
+    font-size:clamp(25px,5.6vw,34px);line-height:1.28;
+    letter-spacing:-.01em;margin-bottom:16px;text-align:center;
+  }
+  h1 .dot{color:var(--terracotta)}
+  .lede{font-size:16px;color:var(--brown-soft);margin:0 auto 30px;text-align:center;max-width:440px}
+
+  .card{
+    background:#FFFCF7;border:1px solid var(--line);border-radius:3px;
+    padding:26px 24px;
+  }
+
+  /* progress */
+  .prog{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+  .prog .bar{flex:1;height:2px;background:var(--cream-deep);border-radius:2px;overflow:hidden}
+  .prog .bar span{display:block;height:100%;background:var(--terracotta);width:0;transition:width .25s ease}
+  .prog .num{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brown-soft);white-space:nowrap}
+
+  .qtext{
+    font-family:'Lora',Georgia,serif;font-size:21px;line-height:1.35;
+    margin-bottom:6px;
+  }
+  .qhint{font-size:13px;color:var(--brown-soft);margin-bottom:18px}
+
+  .opts{display:flex;flex-direction:column;gap:9px}
+  .opt{
+    display:flex;gap:12px;align-items:flex-start;
+    padding:13px 15px;border:1px solid var(--line);border-radius:2px;
+    background:var(--cream);cursor:pointer;font-size:15px;line-height:1.45;
+    transition:border-color .12s ease,background .12s ease;
+  }
+  .opt:hover{border-color:var(--terracotta)}
+  .opt.on{border-color:var(--terracotta);background:rgba(192,98,63,.07)}
+  .opt input{margin-top:4px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--terracotta);cursor:pointer}
+
+  textarea,input[type=email]{
+    width:100%;padding:14px 15px;font-family:inherit;font-size:16px;color:var(--brown);
+    background:var(--cream);border:1px solid var(--line);border-radius:2px;
+  }
+  textarea{min-height:96px;resize:vertical;line-height:1.55}
+  textarea:focus,input[type=email]:focus{outline:none;border-color:var(--terracotta)}
+  input[type=email]::placeholder,textarea::placeholder{color:#B3A497}
+
+  .nav{display:flex;gap:12px;margin-top:22px;align-items:center}
+  button{
+    padding:14px 22px;font-family:'Lora',Georgia,serif;font-size:15px;
+    color:var(--cream);background:var(--terracotta);
+    border:0;border-radius:2px;cursor:pointer;transition:background .15s ease;
+  }
+  button:hover:not(:disabled){background:var(--terracotta-dark)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.wide{width:100%}
+  button.ghost{
+    background:transparent;color:var(--brown-soft);
+    border:1px solid var(--line);padding:14px 18px;
+  }
+  button.ghost:hover:not(:disabled){background:var(--cream-deep);color:var(--brown)}
+
+  .consent{
+    display:flex;gap:11px;align-items:flex-start;
+    font-size:13px;color:var(--brown-soft);line-height:1.55;margin-top:18px;
+    padding-top:18px;border-top:1px solid var(--line);
+  }
+  .consent input{margin-top:3px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--terracotta);cursor:pointer}
+  .consent label{cursor:pointer}
+
+  .offer{
+    font-size:16.5px;line-height:1.55;margin-bottom:18px;
+    padding:15px 16px;border-radius:2px;
+    background:rgba(192,98,63,.09);border:1px solid rgba(192,98,63,.28);
+  }
+  .offer strong{font-weight:500;color:var(--terracotta-dark)}
+
+  .msg{font-size:14px;padding:13px 15px;border-radius:2px;display:none;margin-bottom:16px;line-height:1.55}
+  .msg.show{display:block}
+  .msg.err{background:rgba(150,40,30,.07);color:#8A3324;border:1px solid rgba(150,40,30,.24)}
+
+  /* result */
+  .mirror{
+    font-family:'Lora',Georgia,serif;font-size:19px;line-height:1.5;
+    padding-bottom:22px;margin-bottom:22px;border-bottom:1px solid var(--line);
+  }
+  .code{
+    text-align:center;padding:22px 16px;margin:4px 0 14px;
+    background:var(--cream);border:1px dashed var(--terracotta);border-radius:3px;
+  }
+  .code .lbl{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--brown-soft);margin-bottom:9px}
+  .code .val{
+    font-family:'Lora',Georgia,serif;font-size:clamp(24px,6vw,31px);
+    letter-spacing:.09em;color:var(--terracotta);
+  }
+  .terms{font-size:12.5px;color:var(--brown-soft);line-height:1.6;text-align:center}
+
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  .hide{display:none !important}
+
+  footer{
+    margin:38px auto 0;font-size:12px;color:var(--brown-soft);
+    text-align:center;display:flex;flex-direction:column;gap:11px;align-items:center;
+  }
+  footer a{color:var(--brown-soft);text-decoration:none;border-bottom:1px solid var(--line)}
+  footer a:hover{color:var(--terracotta);border-bottom-color:var(--terracotta)}
+  .legal{font-size:11px;color:#9C8D80;max-width:430px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<main class="wrap">
+  <a href="index.html"><img class="mark" src="assets/packet-wordmark.png" alt="Packet"></a>
+
+  <!-- ===================== INTRO ===================== -->
+  <section id="screen-intro">
+    <p class="eyebrow" id="introEyebrow">10% off your first order</p>
+    <h1>Tell us what you actually buy<span class="dot">.</span></h1>
+    <p class="lede" id="introLede">Five quick questions about what you actually spend. Under a minute.</p>
+    <div class="card">
+      <p class="offer" id="offerLine"></p>
+      <p style="font-size:15px;margin-bottom:20px">
+        No right answers, and nothing you have to think hard about. We&rsquo;re curious
+        what people are really buying rather than what the internet says they are.
+      </p>
+      <button class="wide" id="startBtn">Start &mdash; five questions</button>
+      <p class="terms" id="introTerms" style="margin-top:16px"></p>
+    </div>
+  </section>
+
+  <!-- ===================== QUESTIONS ===================== -->
+  <section id="screen-q" class="hide">
+    <div class="prog">
+      <div class="bar"><span id="progBar"></span></div>
+      <div class="num" id="progNum">1 / 8</div>
+    </div>
+    <div class="card">
+      <p class="qtext" id="qText"></p>
+      <p class="qhint" id="qHint"></p>
+      <div id="qBody"></div>
+      <div class="nav">
+        <button class="ghost" id="backBtn">Back</button>
+        <button id="nextBtn" style="flex:1">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== EMAIL ===================== -->
+  <section id="screen-email" class="hide">
+    <p class="eyebrow">Last bit</p>
+    <h1 id="emailTitle">Where shall we send your code<span class="dot">?</span></h1>
+    <div class="card">
+      <div id="emailMsg" class="msg"></div>
+
+      <p style="font-size:15px;margin-bottom:18px" id="emailWhy"></p>
+
+      <p class="terms" id="emailTerms" style="text-align:left;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--line)"></p>
+
+      <label class="qhint" for="email" style="display:block;margin-bottom:7px">Email address</label>
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+
+      <div class="hp" aria-hidden="true">
+        <label for="website">Leave this empty</label>
+        <input type="text" id="website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <!-- The tick box is OPTIONAL and separate from the code. Someone who
+           leaves it unticked still gets their code. Do not change this
+           without taking advice — see the note in assessment-schema.sql. -->
+      <div class="consent">
+        <input type="checkbox" id="consent">
+        <label for="consent" id="consentLabel">Also email me when Packet opens, plus the odd bit of news. Optional, and I can unsubscribe at any time.</label>
+      </div>
+
+      <div class="nav">
+        <button class="ghost" id="backBtn2">Back</button>
+        <button id="finishBtn" style="flex:1">Get my code</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== RESULT ===================== -->
+  <section id="screen-done" class="hide">
+    <p class="eyebrow">All done</p>
+    <h1>Thank you &mdash; genuinely<span class="dot">.</span></h1>
+    <div class="card">
+      <p class="mirror" id="mirror"></p>
+      <div class="code">
+        <div class="lbl" id="codeLbl">Your code</div>
+        <div class="val" id="codeVal">&mdash;</div>
+      </div>
+      <p class="terms" id="codeTerms"></p>
+      <p style="font-size:14.5px;color:var(--brown-soft);margin-top:20px;text-align:center">
+        Write it down somewhere. We&rsquo;ve got it on file too, so if you lose it,
+        just ask.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== CLOSED ===================== -->
+  <section id="screen-closed" class="hide">
+    <h1>Not open just yet<span class="dot">.</span></h1>
+    <p class="lede">
+      This one isn&rsquo;t running at the moment. Leave your email on the front page
+      and we&rsquo;ll let you know when it is.
+    </p>
+    <div class="card" style="text-align:center">
+      <a href="index.html" style="color:var(--terracotta);text-decoration:none">Back to the front page</a>
+    </div>
+  </section>
+
+  <footer>
+    <p><a href="privacy.html">Privacy notice</a> &nbsp;&middot;&nbsp; <a href="index.html">Packet</a></p>
+    <p class="legal">
+      Packet is a trading name of Phil Munro. We only email people who have asked
+      us to, and every email has an unsubscribe link.
+    </p>
+  </footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var cfg = window.PACKET_CONFIG || {};
+  var db  = null;
+
+  if (cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY &&
+      cfg.SUPABASE_URL.indexOf('YOUR-PROJECT') === -1) {
+    db = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+  }
+
+  var params = new URLSearchParams(window.location.search);
+  var utm = {
+    source:   params.get('utm_source'),
+    medium:   params.get('utm_medium'),
+    campaign: params.get('utm_campaign')
+  };
+
+  // Anonymous view. Same as the front page: no cookie, no localStorage, no IP.
+  // Completion rate = rows in assessments / views of this path.
+  if (db) {
+    db.rpc('log_view', {
+      p_path:         '/assessment',
+      p_referrer:     document.referrer || null,
+      p_utm_source:   utm.source,
+      p_utm_medium:   utm.medium,
+      p_utm_campaign: utm.campaign
+    }).then(function () {}, function () {});
+  }
+
+  // ------------------------------------------------------------------------
+  //
+  // Wording rule, same as the Instagram plan: ask what someone already buys,
+  // never what Packet should sell. Nothing here promises that any answer will
+  // change what ends up in the shop.
+  // ------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
+  // Five questions. Four are about what people spend and on whom; the fifth,
+  // reorder frequency, is the one that decides whether a customer is worth more
+  // than a single order on dropship margins.
+  //
+  // Wording rules, same as the Instagram plan: ask what someone already buys,
+  // never what Packet should sell, and never suggest an answer decides anything.
+  // Q1 is single-select on purpose — it anchors Q2 and Q3 to one thing, which
+  // keeps the data clean and the form short.
+  // ------------------------------------------------------------------------
+  var QS = [
+    { id:'spendSelf', type:'single', required:true,
+      q:'How much do you spend on treating yourself each month?',
+      hint:'A rough guess is fine.',
+      opts:['£0 to £25','£25 to £50','£50 to £100','£100 or more'] },
+
+    { id:'petVsSelf', type:'single', required:true,
+      q:'Do you spend more on your pet than you do on yourself?',
+      hint:'Be honest.',
+      // "I don't have a pet" has to be here. Without it, people without pets
+      // either pick at random or leave — and either way the answer is junk.
+      opts:['Yes','No','Sometimes','I don’t have a pet'] },
+
+    { id:'spendKids', type:'single', required:true,
+      q:'How much do you spend on your kids each month?',
+      hint:'',
+      opts:['£0 to £50','£50 to £100','£100 to £200','£200 or more','I don’t have kids'] },
+
+    { id:'often', type:'single', required:true,
+      q:'How often do you reorder the same thing?',
+      hint:'',
+      opts:['Every few weeks','Every couple of months','Once or twice a year','I buy it once and that’s that'] },
+
+    { id:'spoiled', type:'single', required:true,
+      q:'Who gets spoiled the most in your household?',
+      hint:'There is always one.',
+      opts:['Me','My pet','My kids','All of us','Nobody, we are very sensible'] }
+  ];
+
+  var answers = {};
+  var order   = [];       // question indexes actually shown
+  var pos     = 0;
+  var settings = {};
+
+  function $(id){ return document.getElementById(id); }
+  function show(name){
+    ['intro','q','email','done','closed'].forEach(function (s) {
+      $('screen-' + s).classList.toggle('hide', s !== name);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  // ---- settings -----------------------------------------------------------
+  // The offer wording is painted from whatever we know, so the page never sits
+  // there silently saying nothing about the discount. Live values come from the
+  // settings table; the config.js values are a fallback for previewing the file
+  // off disk. Neither can actually issue a code — the database refuses that
+  // until discount_terms is set there.
+  function paintOffer(pct, terms) {
+    $('introEyebrow').textContent = pct + '% off your first order';
+    $('offerLine').innerHTML =
+      'Finish it and we&rsquo;ll give you a code for <strong>' + esc(pct) +
+      '% off your first order</strong>, to use whenever we open.';
+    $('emailWhy').innerHTML =
+      'Just so we know where to send your ' + esc(pct) + '% code. That is all we use it for &mdash; ' +
+      'the tick box underneath is a separate thing, and entirely up to you.';
+    $('codeLbl').textContent = 'Your ' + pct + '% code';
+
+    // The terms appear BEFORE the address is handed over as well as after, so
+    // nobody discovers the minimum spend once it is too late to care.
+    //
+    // The wording lives in exactly two places — the settings table, which is
+    // authoritative, and config.js, which is only so that opening the file off
+    // disk looks like the real thing. It is deliberately NOT hardcoded here:
+    // three copies of a public promise is how they drift apart.
+    ['introTerms', 'emailTerms', 'codeTerms'].forEach(function (id) {
+      $(id).textContent = terms || '';
+      $(id).style.display = terms ? '' : 'none';
+    });
+  }
+
+  function boot() {
+    // Paint from config first so nothing is ever blank, then correct it from
+    // the database if we can reach it.
+    paintOffer(cfg.DISCOUNT_PERCENT || '10', cfg.DISCOUNT_TERMS || '');
+
+    if (!db) return;
+
+    db.rpc('public_settings').then(function (r) {
+      settings = (r && r.data) || {};
+      if (settings.assessment_intro) $('introLede').textContent = settings.assessment_intro;
+
+      var live  = settings.assessment_live === 'true';
+      var terms = settings.discount_terms || '';
+      var pct   = settings.discount_percent || '';
+
+      if (!live || !terms || terms === 'TERMS NOT SET') {
+        show('closed');
+        return;
+      }
+      paintOffer(pct, terms);
+    }, function () { /* keep the config wording; the finish step will report */ });
+  }
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  // ---- rendering ----------------------------------------------------------
+  function buildOrder() {
+    // No branching. Five questions, always the same five.
+    order = [];
+    for (var i = 0; i < QS.length; i++) order.push(i);
+  }
+
+  function render() {
+    buildOrder();
+    if (pos >= order.length) { show('email'); return; }
+
+    var q = QS[order[pos]];
+    $('qText').textContent = q.q;
+    $('qHint').textContent = q.hint || '';
+    $('qHint').style.display = q.hint ? 'block' : 'none';
+    $('progNum').textContent = (pos + 1) + ' / ' + order.length;
+    $('progBar').style.width = Math.round((pos / order.length) * 100) + '%';
+    $('backBtn').disabled = pos === 0;
+    $('nextBtn').textContent = pos === order.length - 1 ? 'Finish' : 'Next';
+
+    var body = $('qBody');
+    body.innerHTML = '';
+
+    if (q.type === 'text') {
+      var ta = document.createElement('textarea');
+      ta.placeholder = q.placeholder || '';
+      ta.value = answers[q.id] || '';
+      ta.maxLength = 600;
+      ta.addEventListener('input', function () { answers[q.id] = ta.value; });
+      body.appendChild(ta);
+      return;
+    }
+
+    var opts = q.opts;
+    if (q.dynamic) {
+      opts = (answers[q.dynamic] || []).filter(function (x) {
+        return x.indexOf('None of these') !== 0;
+      });
+      if (!opts.length) opts = CATS;
+    }
+
+    var box = document.createElement('div');
+    box.className = 'opts';
+
+    opts.forEach(function (text) {
+      var lab = document.createElement('label');
+      lab.className = 'opt';
+      var inp = document.createElement('input');
+      inp.type = q.type === 'multi' ? 'checkbox' : 'radio';
+      inp.name = q.id;
+
+      var cur = answers[q.id];
+      var on  = q.type === 'multi' ? (cur || []).indexOf(text) > -1 : cur === text;
+      inp.checked = on;
+      if (on) lab.classList.add('on');
+
+      inp.addEventListener('change', function () {
+        if (q.type === 'multi') {
+          var list = answers[q.id] || [];
+          if (inp.checked) {
+            // "None of these" clears everything else, and picking anything
+            // else clears "None of these".
+            if (q.exclusive && text === q.exclusive) list = [text];
+            else list = list.filter(function (x) { return x !== q.exclusive; }).concat([text]);
+          } else {
+            list = list.filter(function (x) { return x !== text; });
+          }
+          answers[q.id] = list;
+        } else {
+          answers[q.id] = text;
+        }
+        render();
+      });
+
+      var span = document.createElement('span');
+      span.textContent = text;
+      lab.appendChild(inp);
+      lab.appendChild(span);
+      box.appendChild(lab);
+    });
+
+    body.appendChild(box);
+  }
+
+  function answered(q) {
+    var a = answers[q.id];
+    if (q.type === 'multi') return !!(a && a.length);
+    if (q.type === 'text')  return true;
+    return !!a;
+  }
+
+  // ---- navigation ---------------------------------------------------------
+  $('startBtn').addEventListener('click', function () { show('q'); pos = 0; render(); });
+  $('backBtn').addEventListener('click', function () { if (pos > 0) { pos--; render(); } });
+  $('backBtn2').addEventListener('click', function () {
+    show('q'); buildOrder(); pos = order.length - 1; render();
+  });
+
+  $('nextBtn').addEventListener('click', function () {
+    var q = QS[order[pos]];
+    if (q.required && !answered(q)) {
+      $('qHint').textContent = 'Pick one to carry on — or the one that’s closest.';
+      $('qHint').style.display = 'block';
+      $('qHint').style.color = '#8A3324';
+      return;
+    }
+    $('qHint').style.color = '';
+    pos++;
+    buildOrder();
+    if (pos >= order.length) { show('email'); } else { render(); }
+  });
+
+  // ---- finish -------------------------------------------------------------
+  function say(text) {
+    var el = $('emailMsg');
+    el.textContent = text;
+    el.className = 'msg show err';
+  }
+
+  // Their own answers, read back in one sentence or two. No score, no grade,
+  // no opinion about them — just evidence that somebody was listening.
+  var SELF = {
+    '£0 to £25':    'under £25 a month on yourself',
+    '£25 to £50':   'somewhere around £25 to £50 a month on yourself',
+    '£50 to £100':  'somewhere around £50 to £100 a month on yourself',
+    '£100 or more': 'over £100 a month on yourself'
+  };
+  var KIDS = {
+    '£0 to £50':     'under £50 on the kids',
+    '£50 to £100':   '£50 to £100 on the kids',
+    '£100 to £200':  '£100 to £200 on the kids',
+    '£200 or more':  'over £200 on the kids'
+  };
+  var PET = {
+    'Yes':       'and rather more than that on the pet',
+    'No':        'and less than that on the pet',
+    'Sometimes': 'and sometimes more than that on the pet'
+  };
+  var SPOILED = {
+    'Me':       'You are the one who gets spoiled, which we respect.',
+    'My pet':   'The pet gets spoiled the most, which will surprise nobody.',
+    'My kids':  'The kids get spoiled the most, which is how it usually goes.',
+    'All of us':'Everybody gets spoiled, which seems like the right answer.',
+    'Nobody, we are very sensible':'Nobody gets spoiled, apparently. We are not sure we believe you.'
+  };
+  var OFTEN = {
+    'Every few weeks':               'You reorder the same things every few weeks',
+    'Every couple of months':        'You reorder every couple of months',
+    'Once or twice a year':          'You buy this sort of thing once or twice a year',
+    'I buy it once and that’s that': 'You buy it once and that is that'
+  };
+
+  function mirrorSentence() {
+    var bits = [];
+
+    var one = '';
+    if (answers.spendSelf && SELF[answers.spendSelf]) one = 'You spend ' + SELF[answers.spendSelf];
+    if (one && answers.petVsSelf && PET[answers.petVsSelf]) one += ' ' + PET[answers.petVsSelf];
+    if (one && answers.spendKids && KIDS[answers.spendKids]) one += ', and ' + KIDS[answers.spendKids];
+    if (one) bits.push(one + '.');
+
+    if (answers.often && OFTEN[answers.often]) bits.push(OFTEN[answers.often] + '.');
+    if (answers.spoiled && SPOILED[answers.spoiled]) bits.push(SPOILED[answers.spoiled]);
+
+    if (!bits.length) return 'Thank you — that is all noted.';
+    return bits.join(' ');
+  }
+
+  $('finishBtn').addEventListener('click', function () {
+    var email    = $('email').value.trim();
+    var consent  = $('consent').checked;
+    var honeypot = $('website').value;
+
+    if (honeypot) { $('codeVal').textContent = 'THANK-YOU'; show('done'); return; }
+
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      say('That email address doesn’t look right. Could you check it?');
+      return;
+    }
+    if (!db) {
+      say('This isn’t connected yet. Please try again shortly.');
+      return;
+    }
+
+    var btn = $('finishBtn');
+    btn.disabled = true;
+    btn.textContent = 'One moment…';
+
+    db.rpc('complete_assessment', {
+      p_email:        email,
+      p_answers:      answers,
+      p_consent:      consent,
+      // The exact wording agreed to, stored as the consent evidence. Null when
+      // the box was left unticked, because nothing was agreed to.
+      p_consent_text: consent ? $('consentLabel').textContent.trim() : null,
+      p_utm_source:   utm.source,
+      p_utm_medium:   utm.medium,
+      p_utm_campaign: utm.campaign
+    }).then(function (res) {
+      btn.disabled = false;
+      btn.textContent = 'Get my code';
+
+      if (res.error) {
+        var m = String(res.error.message || '');
+        if (m.indexOf('assessment_closed') > -1 || m.indexOf('discount_terms_not_set') > -1) {
+          show('closed'); return;
+        }
+        if (m.indexOf('invalid_email') > -1) {
+          say('That email address doesn’t look right. Could you check it?'); return;
+        }
+        console.error(res.error);
+        say('Something went wrong at our end. Please try again in a minute.');
+        return;
+      }
+
+      $('mirror').textContent = mirrorSentence();
+      $('codeVal').textContent = res.data || '—';
+      show('done');
+    });
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>

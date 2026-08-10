@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Packet — coming soon</title>
+<meta name="description" content="Packet. Bespoke products, chosen with care. Something new is coming.">
+<link rel="icon" href="assets/packet-badge.png">
+
+<meta property="og:title" content="Packet — coming soon">
+<meta property="og:description" content="Bespoke products, chosen with care. Something new is coming.">
+<meta property="og:image" content="assets/packet-badge.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --cream:#F6EFE6;
+    --cream-deep:#EFE5D8;
+    --brown:#3A2E27;
+    --brown-soft:#6B5B50;
+    --terracotta:#C0623F;
+    --terracotta-dark:#A6512F;
+    --line:rgba(58,46,39,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--cream);
+    color:var(--brown);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-weight:300;
+    line-height:1.65;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:26px 22px 22px;
+    text-align:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* Sized so the whole page clears a short laptop viewport without scrolling.
+     Everything below is on a tight vertical budget — roughly 600px total. */
+  .wrap{width:100%;max-width:760px}
+
+  /* The wordmark is the one thing here that has to be unmissable — it is all
+     the brand recognition Packet has. It gets the top of the page to itself. */
+  .mark{width:100%;max-width:270px;height:auto;margin:0 auto 10px;display:block}
+  .markRule{width:50px;height:1px;background:rgba(58,46,39,.22);margin:0 auto 18px;border:0}
+
+  .eyebrow{
+    font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--terracotta);font-weight:500;margin-bottom:14px;
+  }
+  h1{
+    font-family:'Lora',Georgia,serif;
+    font-weight:400;
+    font-size:clamp(23px,4.4vw,30px);
+    line-height:1.25;
+    letter-spacing:-.01em;
+    margin-bottom:12px;
+  }
+  h1 .dot{color:var(--terracotta)}
+  .lede{
+    font-size:14.5px;color:var(--brown-soft);
+    max-width:430px;margin:0 auto 22px;line-height:1.55;
+  }
+
+  .rule{
+    width:44px;height:1px;background:var(--line);
+    margin:0 auto 22px;border:0;
+  }
+
+  /* Two choices, side by side on anything wider than a phone. Stacking them
+     is what pushed the page past the fold. */
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:stretch;text-align:center}
+  @media (max-width:620px){
+    .choices{grid-template-columns:1fr;gap:0}
+  }
+
+  form{display:flex;flex-direction:column;gap:14px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  label.lbl{
+    font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--brown-soft);font-weight:500;
+  }
+  input[type=email]{
+    width:100%;padding:12px 14px;text-align:center;
+    font-family:inherit;font-size:14.5px;color:var(--brown);
+    background:var(--cream);
+    border:1px solid var(--line);border-radius:3px;
+    transition:border-color .15s ease;
+  }
+  input[type=email]:focus{outline:none;border-color:var(--terracotta)}
+  input[type=email]::placeholder{color:#B3A497}
+
+  /* Centred as a block, but the sentence itself stays left-aligned — centred
+     multi-line body text next to a tick box reads as ragged. */
+  .consent{
+    display:flex;gap:10px;align-items:flex-start;justify-content:center;
+    font-size:13px;color:var(--brown-soft);line-height:1.5;
+    text-align:left;max-width:300px;margin:0 auto;
+  }
+  .consent input{
+    margin-top:3px;width:16px;height:16px;flex:0 0 auto;
+    accent-color:var(--terracotta);cursor:pointer;
+  }
+  .consent label{cursor:pointer}
+
+  button{
+    width:100%;padding:15px 20px;margin-top:4px;
+    font-family:'Lora',Georgia,serif;font-size:15px;letter-spacing:.02em;
+    color:var(--cream);background:var(--terracotta);
+    border:0;border-radius:2px;cursor:pointer;
+    transition:background .15s ease;
+  }
+  button:hover:not(:disabled){background:var(--terracotta-dark)}
+  button:disabled{opacity:.55;cursor:not-allowed}
+
+  .msg{
+    font-size:14px;padding:14px 16px;border-radius:2px;
+    display:none;text-align:left;line-height:1.55;
+  }
+  .msg.show{display:block}
+  .msg.ok{background:rgba(192,98,63,.09);color:var(--brown);border:1px solid rgba(192,98,63,.28)}
+  .msg.err{background:rgba(150,40,30,.07);color:#8A3324;border:1px solid rgba(150,40,30,.24)}
+
+  /* honeypot — hidden from people, visible to naive bots */
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+  /* Both cards run on one type scale so neither looks heavier than the other:
+     heading 17px, body 13.5px, supporting 13px, footnote 10.5px. */
+  .card{
+    background:#FFFCF7;border:1px solid var(--line);border-radius:4px;
+    padding:20px 18px 17px;text-align:center;
+    display:flex;flex-direction:column;
+  }
+  /* The assessment is the offer, so it gets the accent border. */
+  .card.hi{border-color:var(--terracotta)}
+  .cardH{
+    font-family:'Lora',Georgia,serif;font-weight:500;
+    font-size:17px;line-height:1.3;margin-bottom:7px;
+  }
+  .cardP{font-size:13.5px;color:var(--brown-soft);line-height:1.55;margin-bottom:14px}
+  .cardP strong{color:var(--terracotta-dark);font-weight:500}
+  /* The offer is the reason to pick this card, so the number carries it. */
+  .cardH .pc{color:var(--terracotta);font-size:22px;letter-spacing:-.01em}
+
+  /* The left card had nothing between its copy and its button, so forcing the
+     buttons to line up just opened a hole. It now carries a short list of what
+     is actually asked — which fills the space with something worth reading and
+     happens to be about the height of the email field and tick box opposite. */
+  .asks{list-style:none;margin:0;padding:13px 0 0;border-top:1px solid var(--line)}
+  .asks li{font-size:13px;color:var(--brown-soft);line-height:1.5;margin-bottom:4px}
+
+  /* Absorbs whatever difference is left, so both buttons sit on the same line
+     without either card growing a gap. */
+  .grow{flex:1 1 auto;min-height:10px}
+  .cardTerms{font-size:10.5px;color:#A2948A;line-height:1.5;margin-top:10px}
+  #signupForm{display:flex;flex-direction:column;flex:1 1 auto;gap:11px}
+  /* Only appears once the cards stack, where "or" actually reads as a choice. */
+  .or{
+    font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+    color:#9C8D80;margin:13px 0;text-align:center;display:none;
+  }
+  @media (max-width:620px){ .or.on{display:block} }
+  /* Solid, not outlined. An outline button on a cream page reads as absent
+     until the pointer is over it, which is no use on a phone. */
+  a.btn{
+    display:block;width:100%;padding:12px 18px;text-align:center;
+    font-family:'Lora',Georgia,serif;font-size:14.5px;letter-spacing:.02em;
+    color:var(--cream);background:var(--terracotta);text-decoration:none;
+    border:1px solid var(--terracotta);border-radius:3px;
+    transition:background .15s ease,border-color .15s ease;
+  }
+  a.btn:hover{background:var(--terracotta-dark);border-color:var(--terracotta-dark)}
+  /* Secondary once there are two choices; overridden back to solid by the
+     script when the assessment is switched off and this is the only one. */
+  button.secondary{
+    color:var(--brown-soft);background:transparent;
+    border:1px solid rgba(58,46,39,.28);
+  }
+  button.secondary:hover:not(:disabled){background:var(--cream-deep);color:var(--brown)}
+  .assessBtn{
+    display:inline-block;padding:13px 26px;
+    font-family:'Lora',Georgia,serif;font-size:15px;
+    color:var(--terracotta);background:transparent;text-decoration:none;
+    border:1px solid var(--terracotta);border-radius:2px;
+    transition:background .15s ease,color .15s ease;
+  }
+  .assessBtn:hover{background:var(--terracotta);color:var(--cream)}
+
+  footer{
+    margin-top:24px;font-size:11.5px;color:var(--brown-soft);
+    display:flex;flex-direction:column;gap:9px;align-items:center;
+  }
+  footer a{color:var(--brown-soft);text-decoration:none;border-bottom:1px solid var(--line)}
+  footer a:hover{color:var(--terracotta);border-bottom-color:var(--terracotta)}
+  .ig{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;color:var(--brown);border-bottom:0;
+  }
+  .ig svg{width:16px;height:16px}
+  .ig:hover{color:var(--terracotta)}
+  .legal{font-size:10.5px;color:#9C8D80;max-width:460px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<main class="wrap">
+  <img class="mark" src="assets/packet-wordmark.png" alt="Packet">
+  <hr class="markRule">
+
+  <p class="eyebrow">Coming soon</p>
+
+  <h1>Bespoke products,<br>chosen with care<span class="dot">.</span></h1>
+
+  <p class="lede" id="lede">
+    We&rsquo;re putting together a considered range, and we&rsquo;re taking our
+    time over it. Leave your email and we&rsquo;ll tell you the moment we open.
+  </p>
+
+  <hr class="rule">
+
+  <div id="msg" class="msg"></div>
+
+  <div class="choices" id="choices" style="grid-template-columns:1fr;max-width:420px;margin:0 auto">
+
+  <!-- Choice one. Hidden until the assessment is switched on in settings, in
+       which case the notify card beside it simply becomes the whole page. -->
+  <div class="card hi" id="assessCard" style="display:none">
+    <p class="cardH" id="assessH">Answer five questions, get 10% off</p>
+    <p class="cardP" id="assessP"></p>
+    <ul class="asks">
+      <li>What you spend on yourself each month</li>
+      <li>Whether the pet does better than you do</li>
+      <li>Who gets spoiled the most</li>
+    </ul>
+    <div class="grow"></div>
+    <a class="btn" href="assessment.html">Answer five questions</a>
+    <p class="cardTerms" id="assessTerms"></p>
+  </div>
+
+  <div class="or" id="orDiv">or</div>
+
+  <!-- Choice two. -->
+  <div class="card">
+    <!-- These two read as the only option by default, and are reworded by the
+         script into the second of two choices when the assessment is live. -->
+    <p class="cardH" id="notifyH">Be first to know</p>
+    <p class="cardP" id="notifyP">Leave your email and we&rsquo;ll let you know the moment we&rsquo;re open.</p>
+
+    <form id="signupForm" novalidate>
+      <div class="field">
+        <label class="lbl" for="email">Email address</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com"
+               autocomplete="email" required>
+      </div>
+
+      <div class="hp" aria-hidden="true">
+        <label for="website">Leave this empty</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="consent">
+        <input type="checkbox" id="consent" name="consent">
+        <label for="consent" id="consentLabel">I&rsquo;d like Packet to email me news and offers. I can unsubscribe at any time.</label>
+      </div>
+
+      <div class="grow"></div>
+      <button type="submit" id="submitBtn">Notify me</button>
+    </form>
+    <p class="cardTerms">No spam, nothing sold on, and you can leave at any time.</p>
+  </div>
+
+  </div>
+
+  <footer>
+    <a class="ig" id="igLink" href="#" style="display:none" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="2.5" y="2.5" width="19" height="19" rx="5"/>
+        <circle cx="12" cy="12" r="4.2"/>
+        <circle cx="17.6" cy="6.4" r="1.1" fill="currentColor" stroke="none"/>
+      </svg>
+      <span id="igHandle">Follow on Instagram</span>
+    </a>
+
+    <p><a href="privacy.html">Privacy notice</a></p>
+
+    <p class="legal">
+      Packet is a trading name of Phil Munro. We only email people who have
+      asked us to, and every email has an unsubscribe link.
+    </p>
+  </footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var cfg = window.PACKET_CONFIG || {};
+  var db = null;
+
+  if (cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY &&
+      cfg.SUPABASE_URL.indexOf('YOUR-PROJECT') === -1) {
+    db = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+  }
+
+  // ---- Instagram link (hidden entirely if no handle is configured) --------
+  if (cfg.INSTAGRAM) {
+    var ig = document.getElementById('igLink');
+    ig.href = 'https://instagram.com/' + cfg.INSTAGRAM;
+    document.getElementById('igHandle').textContent = '@' + cfg.INSTAGRAM;
+    ig.style.display = 'inline-flex';
+  }
+
+  // ---- UTM capture --------------------------------------------------------
+  var params = new URLSearchParams(window.location.search);
+  var utm = {
+    source:   params.get('utm_source'),
+    medium:   params.get('utm_medium'),
+    campaign: params.get('utm_campaign')
+  };
+
+  // ---- Anonymous page view ------------------------------------------------
+  // No cookie, no localStorage, no IP stored. Nothing is written to the
+  // visitor's device, which is what keeps this outside the PECR cookie rules.
+  if (db) {
+    db.rpc('log_view', {
+      p_path:         window.location.pathname || '/',
+      p_referrer:     document.referrer || null,
+      p_utm_source:   utm.source,
+      p_utm_medium:   utm.medium,
+      p_utm_campaign: utm.campaign
+    }).then(function () {}, function () {});  // never block the page
+  }
+
+  // ---- The two choices ----------------------------------------------------
+  // The page offers the assessment first and the plain signup second. With no
+  // assessment the page is simply the signup, which is what it degrades to.
+  function showChoices(pct, terms) {
+    document.getElementById('assessH').innerHTML =
+      'Answer five questions,<br>get <span class="pc">' + pct + '% off</span>';
+    document.getElementById('assessP').innerHTML =
+      'Under a minute, and we&rsquo;ll give you a code for <strong>' + pct +
+      '% off your first order</strong> &mdash; no minimum spend.';
+
+    // The landing page carries a pointer, not the whole thing. The full terms
+    // are on the assessment page twice over: on its opening screen, and again
+    // before anyone hands over an email address. Deriving nothing from the
+    // settings string here also means this line cannot drift out of date.
+    var t = document.getElementById('assessTerms');
+    t.textContent = terms
+      ? 'Full terms on the next page, before you give us anything.'
+      : '';
+    t.style.display = terms ? '' : 'none';
+
+    document.getElementById('lede').innerHTML =
+      'A considered range, and we&rsquo;re taking our time over it. ' +
+      'Two ways to be first to know.';
+
+    document.getElementById('notifyH').textContent = 'Just tell me when you open';
+    document.getElementById('notifyP').innerHTML =
+      'We&rsquo;ll email you the moment we&rsquo;re open. Nothing else.';
+
+    document.getElementById('assessCard').style.display = 'flex';
+
+    // Go to two columns. With one choice the grid is a single narrow column,
+    // centred; with two it opens out and the cards sit side by side, which is
+    // what keeps the whole page above the fold on a short laptop screen.
+    var g = document.getElementById('choices');
+    g.style.gridTemplateColumns = '';
+    g.style.maxWidth = 'none';
+    // The "or" only means anything once they stack, on a phone.
+    document.getElementById('orDiv').classList.add('on');
+
+    // Two choices, so the signup steps back to secondary.
+    document.getElementById('submitBtn').className = 'secondary';
+  }
+
+  if (!db) {
+    // No database — which in practice means someone has opened this file off
+    // disk to look at it. Paint from config.js so the page previews as the
+    // real thing rather than silently dropping half of itself. Nothing can be
+    // issued in this state anyway; the code comes from the database.
+    showChoices(cfg.DISCOUNT_PERCENT || '10', cfg.DISCOUNT_TERMS || '');
+  } else {
+    db.rpc('public_settings').then(function (r) {
+      var s = (r && r.data) || {};
+      var terms = s.discount_terms || '';
+      // Live, the settings table is the only authority. If it says the
+      // assessment is off, or the terms have never been written, the card
+      // stays hidden — there is no way to advertise a code that has not
+      // been agreed. Same on an error: better to show nothing than to
+      // promise something the database is not going to honour.
+      if (s.assessment_live !== 'true' || !terms || terms === 'TERMS NOT SET') return;
+      showChoices(String(s.discount_percent || '').replace(/[^0-9]/g, '') || '10', terms);
+    }, function () {});
+  }
+
+  // ---- Signup -------------------------------------------------------------
+  var form   = document.getElementById('signupForm');
+  var btn    = document.getElementById('submitBtn');
+  var msgEl  = document.getElementById('msg');
+
+  function say(text, kind) {
+    msgEl.textContent = text;
+    msgEl.className = 'msg show ' + kind;
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    var email    = document.getElementById('email').value.trim();
+    var consent  = document.getElementById('consent').checked;
+    var honeypot = document.getElementById('website').value;
+
+    // Bot filled the hidden field. Pretend it worked, store nothing.
+    if (honeypot) { say('Thank you — you’re on the list.', 'ok'); form.reset(); return; }
+
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      say('That email address doesn’t look right. Could you check it?', 'err');
+      return;
+    }
+
+    // Consent must be an active choice. The box is never pre-ticked, and the
+    // form will not submit without it.
+    if (!consent) {
+      say('Please tick the box to say we can email you.', 'err');
+      return;
+    }
+
+    if (!db) {
+      say('The signup form isn’t connected yet. Please try again shortly.', 'err');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'One moment…';
+
+    db.rpc('subscribe', {
+      p_email:        email,
+      p_consent:      true,
+      // The exact wording the person agreed to, stored alongside the address
+      // as consent evidence.
+      p_consent_text: document.getElementById('consentLabel').textContent.trim(),
+      p_source:       'landing',
+      p_utm_source:   utm.source,
+      p_utm_medium:   utm.medium,
+      p_utm_campaign: utm.campaign
+    }).then(function (res) {
+      btn.disabled = false;
+      btn.textContent = 'Keep me posted';
+
+      if (res.error) {
+        console.error(res.error);
+        say('Something went wrong at our end. Please try again in a minute.', 'err');
+        return;
+      }
+
+      form.style.display = 'none';
+      say('Thank you — you’re on the list. We’ll be in touch when we open.', 'ok');
+    });
+  });
+})();
+</script>
+</body>
+</html>

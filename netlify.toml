@@ -1,0 +1,36 @@
+# Packet — Netlify config
+# From the AXRIK starter kit under licence.
+#
+# TWO SITES from this one repository, which is the JG Foods pattern:
+#
+#   packetlabel.com        publish directory: website
+#   admin.packetlabel.com  publish directory: admin
+#
+# The publish directory is set per site in the Netlify UI, NOT here —
+# one netlify.toml cannot give two sites different publish paths. What
+# lives here is everything the two sites share: the functions folder
+# and the security headers.
+#
+# Each folder has its own config.js holding the same two Supabase
+# values. They must match. If you change one, change the other.
+
+[build]
+  functions = "netlify-functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+
+# The admin is never for search engines. The public site has its own
+# meta robots tags where needed.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

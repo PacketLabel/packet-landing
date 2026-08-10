@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "Packet \u2014 Admin",
+  "short_name": "Packet",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "lang": "en-GB",
+  "dir": "ltr",
+  "theme_color": "#C0623F",
+  "background_color": "#F6EFE6",
+  "icons": [
+    {
+      "src": "./assets/packet-badge.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/packet-badge.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}

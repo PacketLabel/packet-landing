@@ -1,0 +1,17 @@
+# config.js is deliberately NOT ignored — it holds only the Supabase URL and
+# anon key, both of which are public by design and must be present in the
+# deployed site (there is no build step to inject them).
+#
+# What must never be committed:
+.env
+.env.*
+*service_role*
+*service-role*
+secrets.*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

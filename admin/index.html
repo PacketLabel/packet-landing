@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Packet admin</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="assets/packet-badge.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#F6EFE6">
+<link rel="apple-touch-icon" href="assets/packet-badge.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Packet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F6EFE6;--panel:#FFFCF7;--brown:#3A2E27;--brown-soft:#6B5B50;
+    --terracotta:#C0623F;--terracotta-dark:#A6512F;--line:rgba(58,46,39,.14);
+    --ok:#4F7A4A;--warn:#8A3324;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--cream);color:var(--brown);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+  /* ---------- login ---------- */
+  #loginPage{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .login-card{background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    padding:38px 32px;width:100%;max-width:360px;text-align:center}
+  .login-card img{width:150px;margin:0 auto 8px;display:block}
+  .login-card .sub{font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--terracotta);font-weight:500;margin-bottom:26px}
+
+  /* ---------- shell ---------- */
+  header{background:var(--panel);border-bottom:1px solid var(--line);
+    padding:14px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  header img{height:26px;width:auto}
+  nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+  nav button{background:none;border:0;padding:8px 14px;border-radius:2px;cursor:pointer;
+    font-family:inherit;font-size:14px;color:var(--brown-soft)}
+  nav button:hover{background:rgba(58,46,39,.05);color:var(--brown)}
+  nav button.active{background:var(--brown);color:var(--cream)}
+  .who{font-size:12px;color:var(--brown-soft)}
+
+  main{padding:26px 22px 60px;max-width:1080px;margin:0 auto}
+  .page{display:none}
+  .page.active{display:block}
+
+  h1{font-family:'Lora',Georgia,serif;font-weight:400;font-size:24px;margin-bottom:4px}
+  .hint{font-size:13px;color:var(--brown-soft);margin-bottom:22px}
+  h2{font-family:'Lora',Georgia,serif;font-weight:500;font-size:16px;margin:26px 0 10px}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:8px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:16px 18px}
+  .card .n{font-family:'Lora',Georgia,serif;font-size:28px;line-height:1.1}
+  .card .l{font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--brown-soft);margin-top:5px}
+
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  input[type=text],input[type=email],input[type=password]{
+    padding:10px 13px;font-family:inherit;font-size:15px;color:var(--brown);
+    background:var(--panel);border:1px solid var(--line);border-radius:2px;width:100%}
+  input:focus{outline:none;border-color:var(--terracotta)}
+  .bar input[type=text]{max-width:280px}
+
+  button.btn{padding:10px 16px;font-family:inherit;font-size:14px;cursor:pointer;
+    background:var(--terracotta);color:var(--cream);border:0;border-radius:2px}
+  button.btn:hover{background:var(--terracotta-dark)}
+  button.btn.ghost{background:none;color:var(--brown-soft);border:1px solid var(--line)}
+  button.btn.ghost:hover{background:rgba(58,46,39,.05);color:var(--brown)}
+  button.btn:disabled{opacity:.5;cursor:not-allowed}
+  button.link{background:none;border:0;color:var(--terracotta);cursor:pointer;
+    font-family:inherit;font-size:13px;padding:2px 5px}
+  button.link:hover{text-decoration:underline}
+  button.link.danger{color:var(--warn)}
+
+  table{width:100%;border-collapse:collapse;background:var(--panel);
+    border:1px solid var(--line);border-radius:3px;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+  th{font-weight:500;font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--brown-soft);background:rgba(58,46,39,.035)}
+  tr:last-child td{border-bottom:0}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px}
+  .tag.on{background:rgba(79,122,74,.13);color:var(--ok)}
+  .tag.off{background:rgba(138,51,36,.11);color:var(--warn)}
+  .empty{padding:34px;text-align:center;color:var(--brown-soft);font-size:14px}
+  .wrapscroll{overflow-x:auto}
+
+  .msg{font-size:14px;padding:11px 14px;border-radius:2px;margin-bottom:14px;display:none}
+  .msg.show{display:block}
+  .msg.ok{background:rgba(79,122,74,.11);color:var(--ok)}
+  .msg.err{background:rgba(138,51,36,.09);color:var(--warn)}
+
+  .field{text-align:left;margin-bottom:12px}
+  .field label{display:block;font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--brown-soft);margin-bottom:5px}
+  textarea,select{padding:10px 13px;font-family:inherit;font-size:15px;color:var(--brown);
+    background:var(--panel);border:1px solid var(--line);border-radius:2px;width:100%;line-height:1.5}
+  textarea{resize:vertical}
+  textarea:focus,select:focus{outline:none;border-color:var(--terracotta)}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="loginPage">
+  <div class="login-card">
+    <img src="assets/packet-wordmark.png" alt="Packet">
+    <p class="sub">Admin</p>
+    <div id="loginMsg" class="msg"></div>
+    <form id="loginForm">
+      <div class="field">
+        <label for="liEmail">Email</label>
+        <input type="email" id="liEmail" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="liPass">Password</label>
+        <input type="password" id="liPass" autocomplete="current-password" required>
+      </div>
+      <button class="btn" type="submit" id="liBtn" style="width:100%">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app" style="display:none">
+  <header>
+    <img src="assets/packet-wordmark.png" alt="Packet">
+    <nav>
+      <button data-page="overview" class="active">Overview</button>
+      <button data-page="subscribers">Subscribers</button>
+      <button data-page="assessment">Assessment</button>
+      <button data-page="social">Social</button>
+      <button data-page="traffic">Traffic</button>
+      <button data-page="users">Users</button>
+    </nav>
+    <span class="who" id="whoami"></span>
+    <button class="btn ghost" id="signOutBtn">Sign out</button>
+  </header>
+
+  <main>
+    <div id="appMsg" class="msg"></div>
+
+    <!-- ---------- Overview ---------- -->
+    <section id="page-overview" class="page active">
+      <h1>Overview</h1>
+      <p class="hint">Everything the holding page has collected so far.</p>
+      <div class="cards">
+        <div class="card"><div class="n" id="cSubs">–</div><div class="l">On the list</div></div>
+        <div class="card"><div class="n" id="cSubs7">–</div><div class="l">Joined, last 7 days</div></div>
+        <div class="card"><div class="n" id="cUnsub">–</div><div class="l">Unsubscribed</div></div>
+        <div class="card"><div class="n" id="cViews">–</div><div class="l">Visits, all time</div></div>
+        <div class="card"><div class="n" id="cViews7">–</div><div class="l">Visits, last 7 days</div></div>
+        <div class="card"><div class="n" id="cRate">–</div><div class="l">Visit to signup</div></div>
+      </div>
+      <h2>Where visitors came from</h2>
+      <div class="wrapscroll"><table id="tblRefOverview"></table></div>
+    </section>
+
+    <!-- ---------- Subscribers ---------- -->
+    <section id="page-subscribers" class="page">
+      <h1>Subscribers</h1>
+      <p class="hint">
+        Anyone who ticked the consent box on the holding page. The wording each
+        person agreed to is stored against their row as evidence.
+      </p>
+      <div class="bar">
+        <input type="text" id="search" placeholder="Search an email address…">
+        <button class="btn ghost" id="exportBtn">Export CSV</button>
+        <button class="btn ghost" id="refreshBtn">Refresh</button>
+      </div>
+      <div class="wrapscroll"><table id="tblSubs"></table></div>
+    </section>
+
+    <!-- ---------- Assessment ---------- -->
+    <section id="page-assessment" class="page">
+      <h1>Assessment</h1>
+      <p class="hint">
+        Everyone who finished the five questions and was issued a code. Note that
+        finishing is not the same as joining the mailing list &mdash; the tick box is
+        optional and the code is issued either way, so the two counts differ on purpose.
+      </p>
+      <div class="cards">
+        <div class="card"><div class="n" id="aDone">–</div><div class="l">Completed</div></div>
+        <div class="card"><div class="n" id="aStarts">–</div><div class="l">Visits to the page</div></div>
+        <div class="card"><div class="n" id="aRate">–</div><div class="l">Visit to completion</div></div>
+        <div class="card"><div class="n" id="aConsent">–</div><div class="l">Also joined the list</div></div>
+        <div class="card"><div class="n" id="aRedeemed">–</div><div class="l">Codes redeemed</div></div>
+        <div class="card"><div class="n" id="aDone7">–</div><div class="l">Completed, last 7 days</div></div>
+      </div>
+
+      <div class="bar">
+        <button class="btn ghost" id="exportAssessBtn">Export CSV</button>
+        <button class="btn ghost" id="refreshBtn2">Refresh</button>
+      </div>
+
+      <h2>Spend on themselves, per month</h2>
+      <div class="wrapscroll"><table id="tblSpendSelf"></table></div>
+
+      <h2>Spend more on the pet than themselves?</h2>
+      <p class="hint">&ldquo;I don&rsquo;t have a pet&rsquo; is how many of these people are not pet owners.</p>
+      <div class="wrapscroll"><table id="tblPetVsSelf"></table></div>
+
+      <h2>Spend on the kids, per month</h2>
+      <div class="wrapscroll"><table id="tblSpendKids"></table></div>
+
+      <h2>How often they reorder</h2>
+      <p class="hint">The number that decides whether a customer is worth more than one order.</p>
+      <div class="wrapscroll"><table id="tblOften"></table></div>
+
+      <h2>Who gets spoiled the most</h2>
+      <p class="hint">The closest thing here to which range a person would actually shop.</p>
+      <div class="wrapscroll"><table id="tblSpoiled"></table></div>
+
+      <h2>Everyone, with their code</h2>
+      <div class="wrapscroll"><table id="tblAssess"></table></div>
+    </section>
+
+    <!-- ---------- Social studio ---------- -->
+    <section id="page-social" class="page">
+      <h1>Social studio</h1>
+      <p class="hint">
+        Drafts an Instagram post from rough notes, in Packet&rsquo;s voice and
+        inside Packet&rsquo;s rules. It never posts anything &mdash; you copy the
+        draft out and post it yourself.
+      </p>
+
+      <div id="aiState" class="msg"></div>
+
+      <div class="cards" style="grid-template-columns:1fr">
+        <div class="card">
+          <div class="field">
+            <label for="soBrief">What is the post about?</label>
+            <textarea id="soBrief" rows="3" placeholder="e.g. ask people what they can never find when they go looking"></textarea>
+          </div>
+          <div class="field">
+            <label for="soKind">What kind of post</label>
+            <select id="soKind">
+              <option value="question">A question &mdash; something we can take notes from</option>
+              <option value="useful">Something useful &mdash; a fact about the products themselves</option>
+              <option value="light">Something light &mdash; a Friday one</option>
+            </select>
+          </div>
+          <div class="bar">
+            <button class="btn" id="soDraft">Draft it</button>
+            <button class="btn ghost" id="soTemplate">Use a template instead</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="soResultWrap" style="display:none">
+        <h2>Draft</h2>
+        <div class="card">
+          <div class="field">
+            <label for="soBody">Caption</label>
+            <textarea id="soBody" rows="8"></textarea>
+          </div>
+          <div class="field">
+            <label for="soTags">Hashtags</label>
+            <input type="text" id="soTags">
+          </div>
+          <div class="bar">
+            <button class="btn" id="soSave">Save draft</button>
+            <button class="btn ghost" id="soCopy">Copy caption</button>
+            <span class="hint" id="soHow" style="margin:0"></span>
+          </div>
+        </div>
+      </div>
+
+      <h2>Saved drafts</h2>
+      <div class="wrapscroll"><table id="tblSocial"></table></div>
+
+      <h2>The rules these drafts follow</h2>
+      <p class="hint" id="soRules"></p>
+    </section>
+
+    <!-- ---------- Users (owner only) ---------- -->
+    <section id="page-users" class="page">
+      <h1>Users</h1>
+      <p class="hint">
+        Add and remove logins without touching Supabase. Owners can do everything;
+        staff can read the list and unsubscribe someone by hand, but cannot delete
+        a record or change anything the public sees.
+      </p>
+
+      <div id="usState" class="msg"></div>
+
+      <div class="cards" style="grid-template-columns:1fr">
+        <div class="card">
+          <div class="bar">
+            <input type="email" id="usEmail" placeholder="name@packetlabel.com" style="max-width:260px">
+            <input type="text" id="usName" placeholder="Full name" style="max-width:200px">
+            <input type="password" id="usPass" placeholder="Temporary password" style="max-width:200px">
+            <select id="usRole" style="max-width:130px">
+              <option value="staff">staff</option>
+              <option value="owner">owner</option>
+            </select>
+            <button class="btn" id="usAdd">Add login</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="wrapscroll"><table id="tblUsers"></table></div>
+    </section>
+
+    <!-- ---------- Traffic ---------- -->
+    <section id="page-traffic" class="page">
+      <h1>Traffic</h1>
+      <p class="hint">
+        Anonymous visit counts &mdash; no cookies, no IP addresses, nothing that
+        identifies a person. Numbers count page loads, not unique people.
+      </p>
+      <h2>Last 14 days</h2>
+      <div class="wrapscroll"><table id="tblDays"></table></div>
+      <h2>Referrers</h2>
+      <div class="wrapscroll"><table id="tblRef"></table></div>
+      <h2>Campaigns</h2>
+      <div class="wrapscroll"><table id="tblUtm"></table></div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var cfg = window.PACKET_CONFIG || {};
+  var db  = null;
+  var state = { subs: [], views: [], assess: [], posts: [], role: null, email: null, id: null };
+
+  var loginPage = document.getElementById('loginPage');
+  var app       = document.getElementById('app');
+
+  function note(id, text, kind) {
+    var el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'msg show ' + kind;
+    if (kind === 'ok') setTimeout(function () { el.className = 'msg'; }, 3500);
+  }
+
+  if (!cfg.SUPABASE_URL || cfg.SUPABASE_URL.indexOf('YOUR-PROJECT') !== -1) {
+    note('loginMsg', 'config.js has not been filled in yet.', 'err');
+    return;
+  }
+  db = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+
+  // ---------------------------------------------------------------- router
+  // Single-file admin shell with a showPage() router, per Packet convention.
+  function showPage(name) {
+    var pages = document.querySelectorAll('.page');
+    for (var i = 0; i < pages.length; i++) pages[i].classList.remove('active');
+    var target = document.getElementById('page-' + name);
+    if (target) target.classList.add('active');
+
+    var btns = document.querySelectorAll('nav button');
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].classList.toggle('active', btns[j].dataset.page === name);
+    }
+    window.location.hash = name;
+  }
+
+  var navBtns = document.querySelectorAll('nav button');
+  for (var n = 0; n < navBtns.length; n++) {
+    navBtns[n].addEventListener('click', function () { showPage(this.dataset.page); });
+  }
+
+  // ------------------------------------------------------------------ auth
+  document.getElementById('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = document.getElementById('liBtn');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+
+    db.auth.signInWithPassword({
+      email: document.getElementById('liEmail').value.trim(),
+      password: document.getElementById('liPass').value
+    }).then(function (res) {
+      btn.disabled = false; btn.textContent = 'Sign in';
+      if (res.error) { note('loginMsg', 'Those details were not accepted.', 'err'); return; }
+      start(res.data.session);
+    });
+  });
+
+  // ---- PWA install --------------------------------------------------------
+  // The service worker needs a real fetch handler or Chrome on Android will
+  // not offer the install prompt at all. sw.js is network-first, so the
+  // installed app is always the live site — no stale versions to explain.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+
+  document.getElementById('signOutBtn').addEventListener('click', function () {
+    db.auth.signOut().then(function () { window.location.reload(); });
+  });
+
+  function start(session) {
+    state.email = session.user.email;
+    state.id    = session.user.id;
+
+    // The role lives in user_profiles, not in the sign-in token. That is the
+    // kit convention and it matters here: changing someone's role takes effect
+    // on their next page load rather than waiting for them to sign out and
+    // back in. Read it through the same helper the RLS policies use.
+    db.rpc('current_user_role').then(function (r) {
+      state.role = (r && r.data) || null;
+
+      // Cosmetic only — the real gate is the RLS policy on every table. If the
+      // role is wrong the queries below simply return nothing.
+      if (['owner', 'staff'].indexOf(state.role) === -1) {
+        note('loginMsg', 'That account has no admin role yet. An owner can set it in Users.', 'err');
+        db.auth.signOut();
+        return;
+      }
+
+      loginPage.style.display = 'none';
+      app.style.display = 'block';
+      document.getElementById('whoami').textContent = state.email + ' · ' + state.role;
+
+      // Owner-only pages are hidden rather than merely refused, so staff are
+      // not presented with a button that will only ever tell them no.
+      if (state.role !== 'owner') {
+        var u = document.querySelector('[data-page="users"]');
+        if (u) u.style.display = 'none';
+      }
+
+      var hash = (window.location.hash || '').replace('#', '');
+      var pages = ['overview', 'subscribers', 'assessment', 'social', 'traffic'];
+      if (state.role === 'owner') pages.push('users');
+      showPage(pages.indexOf(hash) > -1 ? hash : 'overview');
+
+      loadAll();
+    }, function () {
+      note('loginMsg', 'Could not read your role. Has 002_roles_and_rls.sql been run?', 'err');
+      db.auth.signOut();
+    });
+  }
+
+  db.auth.getSession().then(function (res) {
+    if (res.data && res.data.session) start(res.data.session);
+  });
+
+  // ------------------------------------------------------------------ data
+  function loadAll() {
+    Promise.all([
+      db.from('subscribers')
+        .select('id,email,consent_marketing,consent_text,consent_at,source,utm_source,unsubscribed_at,created_at')
+        .order('created_at', { ascending: false }),
+      db.from('page_views')
+        .select('path,referrer,utm_source,utm_medium,utm_campaign,created_at')
+        .order('created_at', { ascending: false })
+        .limit(5000),
+      db.from('assessments')
+        .select('id,email,answers,discount_code,code_redeemed_at,consent_marketing,utm_source,created_at')
+        .order('created_at', { ascending: false }),
+      db.from('social_posts')
+        .select('id,channel,brief,body,hashtags,status,ai_used,created_at')
+        .order('created_at', { ascending: false }),
+      db.from('app_settings').select('key,value').eq('key', 'brand_voice')
+    ]).then(function (r) {
+      if (r[0].error) { note('appMsg', 'Could not load subscribers: ' + r[0].error.message, 'err'); }
+      if (r[1].error) { note('appMsg', 'Could not load traffic: ' + r[1].error.message, 'err'); }
+      // The assessment tables may not exist yet if assessment-schema.sql has
+      // not been run. That is not an error worth shouting about — the rest of
+      // the app works fine without them.
+      state.subs   = r[0].data || [];
+      state.views  = r[1].data || [];
+      state.assess = (r[2] && r[2].data) || [];
+      state.posts  = (r[3] && r[3].data) || [];
+      var v = (r[4] && r[4].data && r[4].data[0]) || null;
+      state.voice  = v ? v.value : null;
+      renderOverview();
+      renderSubs();
+      renderAssessment();
+      renderSocial();
+      renderTraffic();
+      loadUsers();
+    });
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', loadAll);
+
+  function daysAgo(n) {
+    var d = new Date(); d.setDate(d.getDate() - n); return d;
+  }
+  function fmt(ts) {
+    if (!ts) return '—';
+    var d = new Date(ts);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // -------------------------------------------------------------- overview
+  function renderOverview() {
+    var live  = state.subs.filter(function (s) { return !s.unsubscribed_at; });
+    var gone  = state.subs.filter(function (s) { return s.unsubscribed_at; });
+    var wk    = daysAgo(7);
+    var live7 = state.subs.filter(function (s) { return new Date(s.created_at) >= wk; });
+    var view7 = state.views.filter(function (v) { return new Date(v.created_at) >= wk; });
+
+    document.getElementById('cSubs').textContent   = live.length;
+    document.getElementById('cSubs7').textContent  = live7.length;
+    document.getElementById('cUnsub').textContent  = gone.length;
+    document.getElementById('cViews').textContent  = state.views.length;
+    document.getElementById('cViews7').textContent = view7.length;
+    document.getElementById('cRate').textContent   = state.views.length
+      ? (state.subs.length / state.views.length * 100).toFixed(1) + '%'
+      : '—';
+
+    renderRefTable('tblRefOverview', 5);
+  }
+
+  // ------------------------------------------------------------ subscribers
+  function renderSubs() {
+    var q = document.getElementById('search').value.trim().toLowerCase();
+    var rows = state.subs.filter(function (s) { return !q || s.email.indexOf(q) > -1; });
+    var t = document.getElementById('tblSubs');
+
+    if (!rows.length) {
+      t.innerHTML = '<tr><td class="empty">' +
+        (state.subs.length ? 'Nothing matches that search.'
+                           : 'No signups yet. They will appear here as they come in.') +
+        '</td></tr>';
+      return;
+    }
+
+    var html = '<tr><th>Email</th><th>Status</th><th>Signed up</th><th>Source</th><th></th></tr>';
+    rows.forEach(function (s) {
+      html += '<tr>' +
+        '<td>' + esc(s.email) + '</td>' +
+        '<td>' + (s.unsubscribed_at
+            ? '<span class="tag off">Unsubscribed</span>'
+            : '<span class="tag on">Subscribed</span>') + '</td>' +
+        '<td>' + fmt(s.created_at) + '</td>' +
+        '<td>' + esc(s.utm_source || s.source || '—') + '</td>' +
+        '<td style="text-align:right;white-space:nowrap">' +
+          (s.unsubscribed_at ? '' :
+            '<button class="link" data-unsub="' + s.id + '">Unsubscribe</button>') +
+          (state.role === 'owner'
+            ? '<button class="link danger" data-del="' + s.id + '">Delete</button>' : '') +
+        '</td></tr>';
+    });
+    t.innerHTML = html;
+
+    t.querySelectorAll('[data-unsub]').forEach(function (b) {
+      b.addEventListener('click', function () { manualUnsub(this.dataset.unsub); });
+    });
+    t.querySelectorAll('[data-del]').forEach(function (b) {
+      b.addEventListener('click', function () { erase(this.dataset.del); });
+    });
+  }
+
+  document.getElementById('search').addEventListener('input', renderSubs);
+
+  // Someone replied asking to come off rather than clicking the link. You must
+  // honour that just the same, so staff can do it here.
+  function manualUnsub(id) {
+    db.from('subscribers')
+      .update({ unsubscribed_at: new Date().toISOString(), consent_marketing: false })
+      .eq('id', id)
+      .then(function (r) {
+        if (r.error) { note('appMsg', 'Could not update: ' + r.error.message, 'err'); return; }
+        note('appMsg', 'Marked as unsubscribed.', 'ok');
+        loadAll();
+      });
+  }
+
+  // UK GDPR right to erasure. Owner only, and irreversible.
+  function erase(id) {
+    if (!window.confirm('Delete this record permanently?\n\nUse this for a right-to-erasure request. If they simply want to stop receiving emails, use Unsubscribe instead — that keeps a record so we do not email them again by accident.')) return;
+    db.from('subscribers').delete().eq('id', id).then(function (r) {
+      if (r.error) { note('appMsg', 'Could not delete: ' + r.error.message, 'err'); return; }
+      note('appMsg', 'Record deleted.', 'ok');
+      loadAll();
+    });
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', function () {
+    if (!state.subs.length) { note('appMsg', 'Nothing to export yet.', 'err'); return; }
+    var cols = ['email', 'consent_marketing', 'consent_at', 'consent_text',
+                'source', 'utm_source', 'unsubscribed_at', 'created_at'];
+    var lines = [cols.join(',')];
+    state.subs.forEach(function (s) {
+      lines.push(cols.map(function (c) {
+        return '"' + String(s[c] == null ? '' : s[c]).replace(/"/g, '""') + '"';
+      }).join(','));
+    });
+    var url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'packet-subscribers-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ------------------------------------------------------------- assessment
+  document.getElementById('refreshBtn2').addEventListener('click', loadAll);
+
+  // Counts every tick across everyone, so a multi-select question totals more
+  // than the number of people. Percentages are of people, not of ticks.
+  function countAnswers(key, multi) {
+    var m = {}, people = state.assess.length;
+    state.assess.forEach(function (a) {
+      var v = (a.answers || {})[key];
+      if (v == null) return;
+      (multi ? (Array.isArray(v) ? v : [v]) : [v]).forEach(function (x) {
+        if (!x) return;
+        m[x] = (m[x] || 0) + 1;
+      });
+    });
+    return Object.keys(m).map(function (k) {
+      return { k: k, n: m[k], pc: people ? Math.round((m[k] / people) * 100) : 0 };
+    }).sort(function (a, b) { return b.n - a.n; });
+  }
+
+  function answerTable(id, key, multi) {
+    var t = document.getElementById(id);
+    var rows = countAnswers(key, multi);
+    if (!rows.length) { t.innerHTML = '<tr><td class="empty">Nothing recorded yet.</td></tr>'; return; }
+    var html = '<tr><th>Answer</th><th>People</th><th>Share</th></tr>';
+    rows.forEach(function (r) {
+      html += '<tr><td>' + esc(r.k) + '</td><td>' + r.n + '</td><td>' + r.pc + '%</td></tr>';
+    });
+    t.innerHTML = html;
+  }
+
+  function renderAssessment() {
+    var A = state.assess;
+    var wk = daysAgo(7);
+    var starts = state.views.filter(function (v) { return v.path === '/assessment'; }).length;
+
+    document.getElementById('aDone').textContent     = A.length;
+    document.getElementById('aStarts').textContent   = starts;
+    document.getElementById('aRate').textContent     =
+      starts ? Math.round((A.length / starts) * 100) + '%' : '–';
+    document.getElementById('aConsent').textContent  =
+      A.filter(function (a) { return a.consent_marketing; }).length;
+    document.getElementById('aRedeemed').textContent =
+      A.filter(function (a) { return a.code_redeemed_at; }).length;
+    document.getElementById('aDone7').textContent    =
+      A.filter(function (a) { return new Date(a.created_at) >= wk; }).length;
+
+    answerTable('tblSpendSelf', 'spendSelf', false);
+    answerTable('tblPetVsSelf', 'petVsSelf', false);
+    answerTable('tblSpendKids', 'spendKids', false);
+    answerTable('tblOften',     'often',     false);
+    answerTable('tblSpoiled',   'spoiled',   false);
+
+    // Everyone, with their code.
+    var t = document.getElementById('tblAssess');
+    if (!A.length) { t.innerHTML = '<tr><td class="empty">Nobody has completed it yet.</td></tr>'; return; }
+    var html = '<tr><th>When</th><th>Email</th><th>Code</th><th>On the list</th>' +
+               '<th>Redeemed</th><th>Source</th><th></th></tr>';
+    A.forEach(function (a) {
+      html += '<tr>' +
+        '<td>' + fmt(a.created_at) + '</td>' +
+        '<td>' + esc(a.email) + '</td>' +
+        '<td style="font-variant-numeric:tabular-nums">' + esc(a.discount_code) + '</td>' +
+        '<td>' + (a.consent_marketing ? 'Yes' : 'No') + '</td>' +
+        '<td>' + (a.code_redeemed_at ? fmt(a.code_redeemed_at) : '–') + '</td>' +
+        '<td>' + esc(a.utm_source || 'Direct') + '</td>' +
+        '<td>' + (a.code_redeemed_at ? '' :
+          '<button class="btn ghost" data-redeem="' + a.id + '">Mark redeemed</button>') + '</td>' +
+        '</tr>';
+    });
+    t.innerHTML = html;
+
+    t.querySelectorAll('[data-redeem]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = this.dataset.redeem;
+        db.from('assessments').update({ code_redeemed_at: new Date().toISOString() })
+          .eq('id', id).then(function (r) {
+            if (r.error) { note('appMsg', 'Could not update: ' + r.error.message, 'err'); return; }
+            note('appMsg', 'Marked as redeemed.', 'ok');
+            loadAll();
+          });
+      });
+    });
+  }
+
+  document.getElementById('exportAssessBtn').addEventListener('click', function () {
+    if (!state.assess.length) { note('appMsg', 'Nothing to export yet.', 'err'); return; }
+    var keys = ['spendSelf', 'petVsSelf', 'spendKids', 'often', 'spoiled'];
+    var head = ['email', 'discount_code', 'consent_marketing', 'code_redeemed_at',
+                'utm_source', 'created_at'].concat(keys);
+    var lines = [head.join(',')];
+    state.assess.forEach(function (a) {
+      var row = [a.email, a.discount_code, a.consent_marketing, a.code_redeemed_at || '',
+                 a.utm_source || '', a.created_at].concat(keys.map(function (k) {
+        var v = (a.answers || {})[k];
+        return Array.isArray(v) ? v.join(' | ') : (v == null ? '' : v);
+      }));
+      lines.push(row.map(function (c) {
+        return '"' + String(c).replace(/"/g, '""') + '"';
+      }).join(','));
+    });
+    var url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'packet-assessment-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ------------------------------------------------------------ social studio
+  // One proxy, many features — every AI call in this app goes through
+  // /.netlify/functions/ai. It returns { fallback: true } when the key is
+  // missing or the request fails, and the caller then uses a built-in
+  // template. Nobody should ever see a broken button because an environment
+  // variable was not set.
+  function callAI(system, prompt, maxTokens) {
+    return fetch('/.netlify/functions/ai', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ system: system, prompt: prompt, max_tokens: maxTokens || 700 })
+    }).then(function (r) {
+      return r.json().then(function (d) {
+        if (!r.ok || d.fallback || !d.text) return null;
+        return d.text;
+      });
+    }).catch(function () { return null; });
+  }
+
+  // The rules are not decoration — they are the ones already agreed for the
+  // Instagram plan, and they live in app_settings so they can be changed
+  // without a redeploy.
+  var VOICE_FALLBACK =
+    'Warm, plain, UK English. Never claim a product does anything to skin or hair. ' +
+    'Never imply how many people work at Packet. Never suggest Packet is undecided ' +
+    'or waiting to be told what to sell. Never hand someone a reason not to buy.';
+
+  function socialSystem() {
+    return 'You write Instagram captions for Packet, a new UK online shop that is not open yet ' +
+      'and has not chosen what it sells.\n\n' +
+      'VOICE AND RULES — these are absolute:\n' + (state.voice || VOICE_FALLBACK) + '\n\n' +
+      'ALSO:\n' +
+      '- Never state a launch date, a price or a discount.\n' +
+      '- Never say what Packet has decided, or imply followers decide what it stocks.\n' +
+      '- Never publish poll results or numbers.\n' +
+      '- Two or three short paragraphs, a blank line between each. No emoji.\n' +
+      '- Sound like one person talking, not a brand.\n\n' +
+      'Return ONLY the caption, then a final line beginning "HASHTAGS: " with four to six ' +
+      'lowercase hashtags.';
+  }
+
+  var KIND_STEER = {
+    question: 'Write a question post. It should be easy to answer in a comment, and it must ask ' +
+              'about the reader, never about what Packet should sell.',
+    useful:   'Write a genuinely useful post — a fact about the products themselves, not about ' +
+              'Packet. No claims about what anything does to a person.',
+    light:    'Write a light, warm post. Funny is fine. It should not sell anything.'
+  };
+
+  // The non-AI path. Deliberately plain — it should be usable, not clever.
+  function socialTemplate(brief, kind) {
+    var b = (brief || 'what you buy without thinking about it').trim().replace(/\.$/, '');
+    if (kind === 'useful') {
+      return { body: 'Something worth knowing about ' + b + '.\n\n' +
+                     '[Put the actual fact here — one or two plain sentences.]\n\n' +
+                     'Worth knowing before your next order.',
+               tags: '#ukshopping #packet #knowyourstuff #newshop' };
+    }
+    if (kind === 'light') {
+      return { body: b.charAt(0).toUpperCase() + b.slice(1) + '.\n\n' +
+                     '[One honest line about it.]\n\n' +
+                     'Go on then.',
+               tags: '#fridayfeeling #ukshopping #packet' };
+    }
+    return { body: b.charAt(0).toUpperCase() + b.slice(1) + '?\n\n' +
+                   'Nothing is too petty. The small stuff is usually the real stuff.\n\n' +
+                   'Go on then.',
+             tags: '#ukshopping #onlineshopping #packet #newshop' };
+  }
+
+  function splitDraft(text) {
+    var m = /(^|\n)\s*HASHTAGS:\s*(.+)\s*$/i.exec(text);
+    if (!m) return { body: text.trim(), tags: '' };
+    return { body: text.slice(0, m.index).trim(), tags: m[2].trim() };
+  }
+
+  function showDraft(d, aiUsed) {
+    document.getElementById('soBody').value = d.body;
+    document.getElementById('soTags').value = d.tags;
+    document.getElementById('soResultWrap').style.display = 'block';
+    document.getElementById('soHow').textContent = aiUsed
+      ? 'Drafted by AI. Read it before it goes anywhere.'
+      : 'Template — AI is not switched on. Fill in the bracketed parts.';
+    state.lastAiUsed = !!aiUsed;
+  }
+
+  document.getElementById('soDraft').addEventListener('click', function () {
+    var brief = document.getElementById('soBrief').value.trim();
+    var kind  = document.getElementById('soKind').value;
+    if (!brief) { note('aiState', 'Give it a line or two to work from first.', 'err'); return; }
+
+    var btn = this; btn.disabled = true; btn.textContent = 'Drafting…';
+    var recent = state.posts.slice(0, 3).map(function (p) { return p.body; }).join('\n\n---\n\n');
+    var prompt = KIND_STEER[kind] + '\n\nThe post is about: ' + brief +
+      (recent ? '\n\nRecent Packet captions, for voice only — match the voice, do not copy them:\n\n' + recent : '');
+
+    callAI(socialSystem(), prompt, 700).then(function (text) {
+      btn.disabled = false; btn.textContent = 'Draft it';
+      if (!text) {
+        note('aiState', 'AI is not available, so here is the template instead. Nothing is broken.', 'err');
+        showDraft(socialTemplate(brief, kind), false);
+        return;
+      }
+      note('aiState', 'Drafted. Read it properly before posting — it is a draft, not a decision.', 'ok');
+      showDraft(splitDraft(text), true);
+    });
+  });
+
+  document.getElementById('soTemplate').addEventListener('click', function () {
+    showDraft(socialTemplate(document.getElementById('soBrief').value,
+                             document.getElementById('soKind').value), false);
+  });
+
+  document.getElementById('soCopy').addEventListener('click', function () {
+    var t = document.getElementById('soBody').value + '\n\n' + document.getElementById('soTags').value;
+    navigator.clipboard.writeText(t).then(function () {
+      note('aiState', 'Copied. Paste it straight into Instagram.', 'ok');
+    }, function () {
+      note('aiState', 'Could not copy automatically — select the text and copy it.', 'err');
+    });
+  });
+
+  document.getElementById('soSave').addEventListener('click', function () {
+    var body = document.getElementById('soBody').value.trim();
+    if (!body) { note('aiState', 'Nothing to save yet.', 'err'); return; }
+    db.from('social_posts').insert({
+      channel: 'instagram',
+      brief: document.getElementById('soBrief').value.trim(),
+      body: body,
+      hashtags: document.getElementById('soTags').value.trim(),
+      ai_used: !!state.lastAiUsed,
+      created_by: state.id
+    }).then(function (r) {
+      if (r.error) { note('aiState', 'Could not save: ' + r.error.message, 'err'); return; }
+      note('aiState', 'Saved.', 'ok');
+      loadAll();
+    });
+  });
+
+  function renderSocial() {
+    document.getElementById('soRules').textContent = state.voice || VOICE_FALLBACK;
+    var t = document.getElementById('tblSocial');
+    if (!state.posts.length) { t.innerHTML = '<tr><td class="empty">No drafts yet.</td></tr>'; return; }
+    var html = '<tr><th>When</th><th>Caption</th><th>Status</th><th>How</th><th></th></tr>';
+    state.posts.forEach(function (p) {
+      html += '<tr>' +
+        '<td>' + fmt(p.created_at) + '</td>' +
+        '<td>' + esc(String(p.body).slice(0, 150)) + (String(p.body).length > 150 ? '…' : '') + '</td>' +
+        '<td>' + esc(p.status) + '</td>' +
+        '<td>' + (p.ai_used ? 'AI' : 'Template') + '</td>' +
+        '<td><button class="link" data-souse="' + p.id + '">Open</button>' +
+        '<button class="link danger" data-sodel="' + p.id + '">Delete</button></td></tr>';
+    });
+    t.innerHTML = html;
+    t.querySelectorAll('[data-souse]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var p = state.posts.filter(function (x) { return x.id === this.dataset.souse; }.bind(this))[0];
+        if (!p) return;
+        document.getElementById('soBrief').value = p.brief || '';
+        showDraft({ body: p.body, tags: p.hashtags || '' }, p.ai_used);
+        window.scrollTo(0, 0);
+      });
+    });
+    t.querySelectorAll('[data-sodel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (!confirm('Delete this draft?')) return;
+        db.from('social_posts').delete().eq('id', this.dataset.sodel).then(function () { loadAll(); });
+      });
+    });
+  }
+
+  // ------------------------------------------------------------------ users
+  function usersCall(payload) {
+    return db.auth.getSession().then(function (s) {
+      var token = s.data && s.data.session && s.data.session.access_token;
+      return fetch('/.netlify/functions/manage-users', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+        body: JSON.stringify(payload)
+      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); });
+    });
+  }
+
+  function loadUsers() {
+    if (state.role !== 'owner') return;
+    usersCall({ action: 'list' }).then(function (res) {
+      var t = document.getElementById('tblUsers');
+      if (!res.ok) {
+        t.innerHTML = '<tr><td class="empty">' + esc(res.d.error || 'Could not load users') +
+          '. If this says not configured, the Netlify environment variables are not set yet.</td></tr>';
+        return;
+      }
+      var html = '<tr><th>Email</th><th>Role</th><th>Added</th><th></th></tr>';
+      (res.d.users || []).forEach(function (u) {
+        html += '<tr><td>' + esc(u.email) + '</td>' +
+          '<td>' + esc(u.role) + '</td>' +
+          '<td>' + fmt(u.created_at) + '</td>' +
+          '<td>' + (u.id === state.id ? '<span class="hint">you</span>' :
+            '<button class="link" data-usrole="' + u.id + '" data-to="' +
+              (u.role === 'owner' ? 'staff' : 'owner') + '">Make ' +
+              (u.role === 'owner' ? 'staff' : 'owner') + '</button>' +
+            '<button class="link danger" data-usdel="' + u.id + '">Remove</button>') +
+          '</td></tr>';
+      });
+      t.innerHTML = html;
+      t.querySelectorAll('[data-usrole]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          usersCall({ action: 'setRole', userId: this.dataset.usrole, role: this.dataset.to })
+            .then(function () { note('usState', 'Role updated. It applies immediately.', 'ok'); loadUsers(); });
+        });
+      });
+      t.querySelectorAll('[data-usdel]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (!confirm('Remove this login?')) return;
+          usersCall({ action: 'delete', userId: this.dataset.usdel })
+            .then(function () { note('usState', 'Removed.', 'ok'); loadUsers(); });
+        });
+      });
+    });
+  }
+
+  document.getElementById('usAdd').addEventListener('click', function () {
+    var email = document.getElementById('usEmail').value.trim();
+    var pass  = document.getElementById('usPass').value;
+    if (!email || !pass) { note('usState', 'Email and a temporary password are both needed.', 'err'); return; }
+    usersCall({ action: 'create', email: email, password: pass,
+                role: document.getElementById('usRole').value,
+                full_name: document.getElementById('usName').value.trim() })
+      .then(function (res) {
+        if (!res.ok) { note('usState', res.d.error || 'Could not add that login.', 'err'); return; }
+        note('usState', 'Added. Tell them the temporary password and ask them to change it.', 'ok');
+        document.getElementById('usEmail').value = '';
+        document.getElementById('usPass').value = '';
+        document.getElementById('usName').value = '';
+        loadUsers();
+      });
+  });
+
+  // ---------------------------------------------------------------- traffic
+  function tally(list, keyFn) {
+    var m = {};
+    list.forEach(function (x) {
+      var k = keyFn(x) || 'Direct / none';
+      m[k] = (m[k] || 0) + 1;
+    });
+    return Object.keys(m).map(function (k) { return { k: k, n: m[k] }; })
+                 .sort(function (a, b) { return b.n - a.n; });
+  }
+
+  function simpleTable(id, head, rows, limit) {
+    var t = document.getElementById(id);
+    if (!rows.length) { t.innerHTML = '<tr><td class="empty">Nothing recorded yet.</td></tr>'; return; }
+    var html = '<tr><th>' + head[0] + '</th><th>' + head[1] + '</th></tr>';
+    rows.slice(0, limit || rows.length).forEach(function (r) {
+      html += '<tr><td>' + esc(r.k) + '</td><td>' + r.n + '</td></tr>';
+    });
+    t.innerHTML = html;
+  }
+
+  function renderRefTable(id, limit) {
+    simpleTable(id, ['Referrer', 'Visits'], tally(state.views, function (v) {
+      if (!v.referrer) return null;
+      try { return new URL(v.referrer).hostname.replace(/^www\./, ''); }
+      catch (e) { return v.referrer; }
+    }), limit);
+  }
+
+  function renderTraffic() {
+    var days = [];
+    for (var i = 13; i >= 0; i--) {
+      var d = daysAgo(i).toISOString().slice(0, 10);
+      days.push({ k: d, n: state.views.filter(function (v) {
+        return v.created_at.slice(0, 10) === d;
+      }).length });
+    }
+    var t = document.getElementById('tblDays');
+    var max = Math.max.apply(null, days.map(function (d) { return d.n; }).concat([1]));
+    var html = '<tr><th>Date</th><th>Visits</th><th style="width:55%"></th></tr>';
+    days.forEach(function (d) {
+      html += '<tr><td>' + fmt(d.k) + '</td><td>' + d.n + '</td>' +
+        '<td><div style="height:8px;border-radius:4px;background:var(--terracotta);width:' +
+        (d.n / max * 100) + '%;min-width:' + (d.n ? '3px' : '0') + '"></div></td></tr>';
+    });
+    t.innerHTML = html;
+
+    renderRefTable('tblRef');
+    simpleTable('tblUtm', ['Campaign', 'Visits'], tally(state.views, function (v) {
+      return v.utm_campaign || v.utm_source;
+    }));
+  }
+})();
+</script>
+</body>
+</html>
