@@ -111,13 +111,25 @@
   }
   button.ghost:hover:not(:disabled){background:var(--cream-deep);color:var(--brown)}
 
-  .consent{
-    display:flex;gap:11px;align-items:flex-start;
-    font-size:13px;color:var(--brown-soft);line-height:1.55;margin-top:18px;
-    padding-top:18px;border-top:1px solid var(--line);
+  .consent-note{
+    font-size:13px;color:var(--brown-soft);line-height:1.55;
+    margin-top:18px;padding-top:18px;border-top:1px solid var(--line);
   }
-  .consent input{margin-top:3px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--terracotta);cursor:pointer}
-  .consent label{cursor:pointer}
+
+  /* The opt-in is the primary button, the decline is quiet but plainly
+     there and equally clickable. Not a dark pattern: both give the code,
+     and the wording of the decline is neutral, not shaming. */
+  .finish{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+  .finish button.plain{
+    background:transparent;color:var(--brown-soft);border:1px solid var(--line);
+    font-size:15px;padding:13px 18px;
+  }
+  .finish button.plain:hover:not(:disabled){background:var(--cream-deep);color:var(--brown)}
+  .finish button.ghost{
+    background:transparent;border:none;color:var(--brown-soft);
+    font-size:14px;padding:6px;text-decoration:underline;text-underline-offset:3px;
+  }
+  .finish button.ghost:hover:not(:disabled){background:transparent;color:var(--brown)}
 
   .offer{
     font-size:16.5px;line-height:1.55;margin-bottom:18px;
@@ -215,17 +227,34 @@
         <input type="text" id="website" tabindex="-1" autocomplete="off">
       </div>
 
-      <!-- The tick box is OPTIONAL and separate from the code. Someone who
-           leaves it unticked still gets their code. Do not change this
-           without taking advice — see the note in assessment-schema.sql. -->
-      <div class="consent">
-        <input type="checkbox" id="consent">
-        <label for="consent" id="consentLabel">Also email me when Packet opens, plus the odd bit of news. Optional, and I can unsubscribe at any time.</label>
+      <!-- TWO BUTTONS, NOT A TICK BOX. Read this before changing anything here.
+           ==========================================================
+           Both buttons issue the code. That is not negotiable: it keeps the
+           consent freely given, because nobody is refused the thing they were
+           promised for declining marketing.
+
+           Clicking a button labelled "keep me posted" IS a clear affirmative
+           act, which is what UK GDPR requires. What is NOT consent, and must
+           never be reintroduced here:
+             - a pre-ticked box
+             - "by entering your email you agree to receive offers"
+             - opting people in and letting them opt out afterwards
+           All three have been proposed and all three were rejected. The soft
+           opt-in does not rescue any of them: it only covers people who have
+           bought or negotiated a purchase, and Packet has sold nothing.
+
+           consentText below is stored verbatim as the evidence of what each
+           person actually agreed to, so if the wording changes, old rows keep
+           the wording that was on screen at the time. -->
+      <div class="consent-note" id="consentNote">
+        Keeping you posted means the odd email about new ranges and offers.
+        One click to stop, any time.
       </div>
 
-      <div class="nav">
+      <div class="finish">
+        <button id="finishYes">Get my code and keep me posted</button>
+        <button class="plain" id="finishNo">Just the code, thanks</button>
         <button class="ghost" id="backBtn2">Back</button>
-        <button id="finishBtn" style="flex:1">Get my code</button>
       </div>
     </div>
   </section>
@@ -586,9 +615,17 @@
     return bits.join(' ');
   }
 
-  $('finishBtn').addEventListener('click', function () {
+  // The exact words on the button the person pressed, plus the explanation
+  // sitting above it. This is what gets stored as the consent evidence — if
+  // anyone ever asks what a subscriber agreed to, this is the answer, in the
+  // wording that was actually on screen when they agreed to it.
+  function consentEvidence() {
+    return 'Button pressed: "Get my code and keep me posted". ' +
+           'Shown above it: "' + $('consentNote').textContent.replace(/\s+/g, ' ').trim() + '"';
+  }
+
+  function finish(consent, btn) {
     var email    = $('email').value.trim();
-    var consent  = $('consent').checked;
     var honeypot = $('website').value;
 
     if (honeypot) { $('codeVal').textContent = 'THANK-YOU'; show('done'); return; }
@@ -602,23 +639,24 @@
       return;
     }
 
-    var btn = $('finishBtn');
-    btn.disabled = true;
+    var label = btn.textContent;
+    $('finishYes').disabled = true;
+    $('finishNo').disabled  = true;
     btn.textContent = 'One moment…';
 
     db.rpc('complete_assessment', {
       p_email:        email,
       p_answers:      answers,
       p_consent:      consent,
-      // The exact wording agreed to, stored as the consent evidence. Null when
-      // the box was left unticked, because nothing was agreed to.
-      p_consent_text: consent ? $('consentLabel').textContent.trim() : null,
+      // Null when they chose "Just the code", because nothing was agreed to.
+      p_consent_text: consent ? consentEvidence() : null,
       p_utm_source:   utm.source,
       p_utm_medium:   utm.medium,
       p_utm_campaign: utm.campaign
     }).then(function (res) {
-      btn.disabled = false;
-      btn.textContent = 'Get my code';
+      $('finishYes').disabled = false;
+      $('finishNo').disabled  = false;
+      btn.textContent = label;
 
       if (res.error) {
         var m = String(res.error.message || '');
@@ -637,7 +675,10 @@
       $('codeVal').textContent = res.data || '—';
       show('done');
     });
-  });
+  }
+
+  $('finishYes').addEventListener('click', function () { finish(true,  this); });
+  $('finishNo').addEventListener('click',  function () { finish(false, this); });
 
   boot();
 })();
