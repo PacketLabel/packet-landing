@@ -120,7 +120,21 @@
         <input type="password" id="liPass" autocomplete="current-password" required>
       </div>
       <button class="btn" type="submit" id="liBtn" style="width:100%">Sign in</button>
+      <button type="button" class="link" id="liForgot" style="margin-top:14px">Forgotten your password?</button>
     </form>
+
+    <!-- Reset request. Same card, swapped in, so nobody leaves the page. -->
+    <div id="resetBox" style="display:none;text-align:left">
+      <p class="hint" style="margin-bottom:14px">
+        Put your email in and we&rsquo;ll send you a link to set a new password.
+      </p>
+      <div class="field">
+        <label for="rsEmail">Email</label>
+        <input type="email" id="rsEmail" autocomplete="username">
+      </div>
+      <button class="btn" id="rsSend" style="width:100%">Send the link</button>
+      <button type="button" class="link" id="rsCancel" style="margin-top:14px">Back to sign in</button>
+    </div>
   </div>
 </div>
 
@@ -369,6 +383,67 @@
   }
 
   // ------------------------------------------------------------------ auth
+  // ---- Forgotten password -------------------------------------------------
+  // Supabase sends the email and hosts the reset flow. Two notes:
+  //  - The same "check your email" message shows whether or not the address
+  //    exists. Saying "no such account" would let anyone test whether an
+  //    address is an admin here.
+  //  - redirectTo has to be listed under Authentication → URL Configuration
+  //    in Supabase, or the link in the email will refuse to open.
+  var loginForm = document.getElementById('loginForm');
+  var resetBox  = document.getElementById('resetBox');
+
+  document.getElementById('liForgot').addEventListener('click', function () {
+    document.getElementById('rsEmail').value = document.getElementById('liEmail').value.trim();
+    loginForm.style.display = 'none';
+    resetBox.style.display = 'block';
+    note('loginMsg', '', 'ok');
+    document.getElementById('loginMsg').className = 'msg';
+  });
+
+  document.getElementById('rsCancel').addEventListener('click', function () {
+    resetBox.style.display = 'none';
+    loginForm.style.display = 'block';
+    document.getElementById('loginMsg').className = 'msg';
+  });
+
+  document.getElementById('rsSend').addEventListener('click', function () {
+    var email = document.getElementById('rsEmail').value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      note('loginMsg', 'That email address does not look right.', 'err');
+      return;
+    }
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Sending…';
+
+    db.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/'
+    }).then(function () {
+      btn.disabled = false; btn.textContent = 'Send the link';
+      // Deliberately the same message either way.
+      note('loginMsg', 'If that address has an account, a reset link is on its way. Check spam as well.', 'ok');
+    }, function () {
+      btn.disabled = false; btn.textContent = 'Send the link';
+      note('loginMsg', 'Could not send that just now. Try again in a minute.', 'err');
+    });
+  });
+
+  // Coming back from the email link: Supabase puts a recovery session in the
+  // URL, so ask for the new password rather than dropping them into the app.
+  db.auth.onAuthStateChange(function (event) {
+    if (event === 'PASSWORD_RECOVERY') {
+      var pw = window.prompt('Set a new password (at least 8 characters):');
+      if (!pw || pw.length < 8) {
+        note('loginMsg', 'Password not changed — it needs to be at least 8 characters.', 'err');
+        return;
+      }
+      db.auth.updateUser({ password: pw }).then(function (r) {
+        if (r.error) { note('loginMsg', 'Could not set that password: ' + r.error.message, 'err'); return; }
+        note('loginMsg', 'Password updated. Signing you in…', 'ok');
+      });
+    }
+  });
+
   document.getElementById('loginForm').addEventListener('submit', function (e) {
     e.preventDefault();
     var btn = document.getElementById('liBtn');
