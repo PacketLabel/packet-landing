@@ -247,12 +247,12 @@
            person actually agreed to, so if the wording changes, old rows keep
            the wording that was on screen at the time. -->
       <div class="consent-note" id="consentNote">
-        Keeping you posted means the odd email about new ranges and offers.
+        Signing up means exclusive offers, new product launches and the odd tip.
         One click to stop, any time.
       </div>
 
       <div class="finish">
-        <button id="finishYes">Get my code and keep me posted</button>
+        <button id="finishYes">Email my code and sign me up</button>
         <button class="plain" id="finishNo">Just the code, thanks</button>
         <button class="ghost" id="backBtn2">Back</button>
       </div>
@@ -619,8 +619,11 @@
   // sitting above it. This is what gets stored as the consent evidence — if
   // anyone ever asks what a subscriber agreed to, this is the answer, in the
   // wording that was actually on screen when they agreed to it.
-  function consentEvidence() {
-    return 'Button pressed: "Get my code and keep me posted". ' +
+  // Read from the page rather than repeated as a string literal, so the record
+  // can never drift out of step with what the person actually saw. Captured
+  // before the button label is swapped to "One moment…".
+  function consentEvidence(buttonLabel) {
+    return 'Button pressed: "' + buttonLabel.replace(/\s+/g, ' ').trim() + '". ' +
            'Shown above it: "' + $('consentNote').textContent.replace(/\s+/g, ' ').trim() + '"';
   }
 
@@ -649,7 +652,7 @@
       p_answers:      answers,
       p_consent:      consent,
       // Null when they chose "Just the code", because nothing was agreed to.
-      p_consent_text: consent ? consentEvidence() : null,
+      p_consent_text: consent ? consentEvidence(label) : null,
       p_utm_source:   utm.source,
       p_utm_medium:   utm.medium,
       p_utm_campaign: utm.campaign
