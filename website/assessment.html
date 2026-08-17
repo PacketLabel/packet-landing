@@ -280,7 +280,10 @@
         <div class="val" id="codeVal">&mdash;</div>
       </div>
       <p class="terms" id="codeTerms"></p>
-      <p style="font-size:14.5px;color:var(--brown-soft);margin-top:20px;text-align:center">
+      <!-- Filled in by sendCodeEmail(). Starts as the honest neutral
+           wording so that if the send never resolves, the screen has not
+           promised an email that is not coming. -->
+      <p id="emailStatus" style="font-size:14.5px;color:var(--brown-soft);margin-top:20px;text-align:center">
         Write it down somewhere. We&rsquo;ve got it on file too, so if you lose it,
         just ask.
       </p>
@@ -700,8 +703,49 @@
       $('mirror').textContent = mirrorSentence();
       $('codeVal').textContent = res.data || '—';
       show('done');
+
+      // Deliberately AFTER the code is on screen and not awaited. The
+      // code is already issued and saved; emailing it is a courtesy on
+      // top. If Resend is down, the person still walks away with what
+      // they were promised and the screen simply does not claim an
+      // email was sent.
+      sendCodeEmail(email, res.data);
     });
   });
+
+  function sendCodeEmail(email, code) {
+    if (!code) return;
+    var el = $('emailStatus');
+
+    fetch('/.netlify/functions/send-code', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: email, code: code })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.sent) {
+          el.innerHTML = 'We’ve emailed it to <strong>' + escHtml(email) +
+            '</strong> as well. If it isn’t there in a minute, check your spam folder.';
+        } else if (d && d.reason === 'already_sent') {
+          el.innerHTML = 'We already emailed this code to <strong>' + escHtml(email) +
+            '</strong>. Check your spam folder if you cannot find it.';
+        } else {
+          // Never explain the failure. "Our email is broken" is not a
+          // useful thing for a stranger to know, and the code on screen
+          // is genuine either way.
+          el.textContent = 'Write it down somewhere. We’ve got it on file too, ' +
+            'so if you lose it, just ask.';
+        }
+      })
+      .catch(function () { /* leave the neutral wording in place */ });
+  }
+
+  function escHtml(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
 
   boot();
 })();

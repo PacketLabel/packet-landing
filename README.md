@@ -33,9 +33,11 @@ supabase/
   001_base_schema.sql       Tables, triggers, app_settings seed
   002_roles_and_rls.sql     user_profiles + current_user_role() + every policy
   003_public_functions.sql  The five functions anon may execute
+  004_code_email.sql        code_emailed_at bookkeeping + sender identity settings
 netlify-functions/
   ai.js                 Generic Claude proxy — every AI feature goes through it
   manage-users.js       Owner self-manages logins (service-role, owner-gated)
+  send-code.js          Emails the discount code via Resend (service-role, verified)
 HARVEST.md              Go-live retro; feeds reusable wins back into the kit
 ```
 
@@ -79,5 +81,23 @@ not cover prospective customers, so the whole list runs on express consent.
 | Variable | Needed by | Without it |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | `ai.js` | Social studio falls back to templates. Nothing breaks. |
-| `SUPABASE_URL` | `manage-users.js` | Users page says not configured |
-| `SUPABASE_SERVICE_ROLE_KEY` | `manage-users.js` | Users page says not configured |
+| `SUPABASE_URL` | `manage-users.js`, `send-code.js` | Users page says not configured; no code emails |
+| `SUPABASE_SERVICE_ROLE_KEY` | `manage-users.js`, `send-code.js` | Users page says not configured; no code emails |
+| `RESEND_API_KEY` | `send-code.js` | Code shows on screen but is never emailed |
+
+## Emailing the code
+
+`send-code.js` is a public endpoint, so it verifies before it sends: the email
+**and** the code must match the same row in `assessments`, and `code_emailed_at`
+must be null. It cannot be used to send mail to anyone who has not just finished
+the assessment, and it cannot send twice. On failure it records the reason in
+`code_email_error`, which the admin's Assessment page surfaces.
+
+That email is **transactional**, not marketing — it goes to everyone who
+finishes, tick box or not, because they asked for a code. Do not add offers or
+product news to that template. The moment it promotes anything, it becomes
+marketing and needs consent that the unticked half have not given.
+
+Sending is fire-and-forget from the page, deliberately: the code is issued and
+saved before the send is attempted, so a Resend outage can never stop someone
+getting what they were promised.

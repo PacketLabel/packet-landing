@@ -689,7 +689,8 @@
         .order('created_at', { ascending: false })
         .limit(5000),
       db.from('assessments')
-        .select('id,email,answers,discount_code,code_redeemed_at,consent_marketing,utm_source,created_at')
+        .select('id,email,answers,discount_code,code_redeemed_at,code_emailed_at,' +
+                'code_email_error,consent_marketing,utm_source,created_at')
         .order('created_at', { ascending: false }),
       db.from('social_posts')
         .select('id,channel,brief,body,hashtags,status,ai_used,created_at')
@@ -891,13 +892,23 @@
     // Everyone, with their code.
     var t = document.getElementById('tblAssess');
     if (!A.length) { t.innerHTML = '<tr><td class="empty">Nobody has completed it yet.</td></tr>'; return; }
-    var html = '<tr><th>When</th><th>Email</th><th>Code</th><th>On the list</th>' +
-               '<th>Redeemed</th><th>Source</th><th></th></tr>';
+    var html = '<tr><th>When</th><th>Email</th><th>Code</th><th>Emailed</th>' +
+               '<th>On the list</th><th>Redeemed</th><th>Source</th><th></th></tr>';
     A.forEach(function (a) {
+      // Anything that is not a clean "sent" is worth seeing at a glance.
+      // A failure shows the reason on hover rather than only in a
+      // Netlify log nobody thinks to open.
+      var sent = a.code_emailed_at
+        ? '<span style="color:var(--ok)">' + fmt(a.code_emailed_at) + '</span>'
+        : (a.code_email_error
+            ? '<span style="color:var(--warn)" title="' + esc(a.code_email_error) + '">Failed</span>'
+            : '<span style="color:var(--brown-soft)">Not sent</span>');
+
       html += '<tr>' +
         '<td>' + fmt(a.created_at) + '</td>' +
         '<td>' + esc(a.email) + '</td>' +
         '<td style="font-variant-numeric:tabular-nums">' + esc(a.discount_code) + '</td>' +
+        '<td>' + sent + '</td>' +
         '<td>' + (a.consent_marketing ? 'Yes' : 'No') + '</td>' +
         '<td>' + (a.code_redeemed_at ? fmt(a.code_redeemed_at) : '–') + '</td>' +
         '<td>' + esc(a.utm_source || 'Direct') + '</td>' +
