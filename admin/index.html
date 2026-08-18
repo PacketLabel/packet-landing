@@ -445,6 +445,7 @@
         <button data-sub="shortlist" class="active">Shortlist</button>
         <button data-sub="suppliers">Suppliers</button>
         <button data-sub="competitors">Competitors</button>
+        <button data-sub="review">Competitor review</button>
         <button data-sub="import">Import a price list</button>
         <button data-sub="srsettings">Settings</button>
       </div>
@@ -569,6 +570,34 @@
           <button class="btn ghost" id="compScan">Scan them now</button>
         </div>
         <div class="wrapscroll"><table id="tblCompetitors"></table></div>
+      </div>
+
+      <!-- ····· Competitor review ····· -->
+      <div id="sub-review" class="sub">
+        <p class="hint">
+          How each competitor actually operates — the shape of their range, where they
+          sit on price, how fast they add things, and what they promise on delivery and
+          returns. Every number here is counted from pages we have read. Only the
+          written summaries are AI, and only about those numbers.
+        </p>
+
+        <div class="notice">
+          <p class="hint" style="margin:0">
+            <b>What this cannot see:</b> their sales, their profit, their advertising spend,
+            their visitor numbers, or who supplies them. All private. So it can tell you
+            what a shop <i>does</i> — never how well it is doing. A tidy site with 400
+            products might be on its last legs.
+          </p>
+        </div>
+
+        <div class="bar">
+          <button class="btn ghost" id="revRunBtn">Review them now</button>
+          <span class="hint" id="revLastRun" style="margin:0"></span>
+        </div>
+
+        <div id="revMarket"></div>
+        <h2>Shop by shop</h2>
+        <div id="revList"></div>
       </div>
 
       <!-- ····· Import ····· -->
@@ -1565,7 +1594,8 @@
   // writes to Shopify. The arithmetic lives in packet-margin.js, which
   // the scheduled function uses too, so the figure on this screen and
   // the figure in the database always come from the same code.
-  var sr = { settings: null, cats: [], sups: [], comps: [], opps: [], run: null, parsed: null };
+  var sr = { settings: null, cats: [], sups: [], comps: [], opps: [], run: null,
+             profiles: [], market: null, parsed: null };
 
   var subBtns = document.querySelectorAll('.subnav button');
   for (var sb = 0; sb < subBtns.length; sb++) {
@@ -1606,7 +1636,9 @@
       db.from('suppliers').select('*').order('name'),
       db.from('competitors').select('*').order('name'),
       db.from('opportunities').select('*').order('score', { ascending: false }),
-      db.from('sourcing_runs').select('*').order('started_at', { ascending: false }).limit(1)
+      db.from('sourcing_runs').select('*').order('started_at', { ascending: false }).limit(1),
+      db.from('latest_competitor_review').select('*'),
+      db.from('market_reviews').select('*').order('reviewed_at', { ascending: false }).limit(1)
     ]).then(function (r) {
       // 005 may not have been run yet. That is not worth an error —
       // the rest of the admin works perfectly well without it.
@@ -1617,6 +1649,10 @@
       sr.comps = r[3].data || [];
       sr.opps  = r[4].data || [];
       sr.run   = (r[5].data && r[5].data[0]) || null;
+      // 006 may not have been run yet. Same reasoning as above — the
+      // rest of the tool works perfectly well without the review.
+      sr.profiles = (r[6] && r[6].data) || [];
+      sr.market   = (r[7] && r[7].data && r[7].data[0]) || null;
 
       fillCategorySelect();
       fillSupplierSelect();
@@ -1625,6 +1661,7 @@
       renderCompetitors();
       renderCategories();
       fillSettingsForm();
+      renderReview();
     });
   }
 
@@ -2220,6 +2257,183 @@
       });
     }
   }
+
+
+  // -------------------------------------------------------- competitor review
+  // Facts on the left, interpretation clearly labelled. When the AI is
+  // unavailable the facts still render and the page says so, rather than
+  // showing an empty box that reads as "nothing to report".
+  function renderReview() {
+    document.getElementById('revLastRun').textContent = sr.market
+      ? 'Last reviewed ' + fmt(sr.market.reviewed_at)
+      : 'Not reviewed yet';
+
+    renderMarketReview();
+    renderShopReviews();
+  }
+
+  function renderMarketReview() {
+    var box = document.getElementById('revMarket');
+    var m = sr.market;
+
+    if (!m) {
+      box.innerHTML = '<div class="empty">No review yet. Add your competitors, then press ' +
+        '&ldquo;Review them now&rdquo;.</div>';
+      return;
+    }
+
+    var html = '<div class="opp"><div class="top"><div class="name">Across all of them</div>' +
+      (m.ai_used ? '<span class="tag dim">summary written by AI</span>'
+                 : '<span class="tag off">facts only — AI unavailable</span>') + '</div>';
+
+    if (m.summary) {
+      html += '<div class="why" style="font-size:14px">' + paras(m.summary) + '</div>';
+    }
+
+    // The gaps are the whole point of this screen, so they get the
+    // prominence rather than being buried under the prose.
+    if (m.gaps && m.gaps.length) {
+      html += '<h2 style="margin:18px 0 8px">Where the gaps are</h2>' +
+              '<div class="why"><ul>' +
+              m.gaps.map(function (g) { return '<li>' + esc(g) + '</li>'; }).join('') +
+              '</ul></div>';
+    }
+
+    // Price bands, counted. An empty row is the interesting one.
+    if (m.price_bands) {
+      var shops = {};
+      Object.keys(m.price_bands).forEach(function (band) {
+        Object.keys(m.price_bands[band]).forEach(function (s) { shops[s] = true; });
+      });
+      var names = Object.keys(shops);
+
+      html += '<details open><summary>How many products each shop has at each price</summary>' +
+        '<div class="wrapscroll"><table style="margin-top:8px"><tr><th>Price</th>' +
+        names.map(function (n) { return '<th>' + esc(n) + '</th>'; }).join('') +
+        '<th>Total</th></tr>';
+
+      Object.keys(m.price_bands).forEach(function (band) {
+        var row = m.price_bands[band];
+        var total = names.reduce(function (a, n) { return a + (row[n] || 0); }, 0);
+        html += '<tr' + (total === 0 ? ' style="background:rgba(192,98,63,.06)"' : '') + '>' +
+          '<td>' + esc(band) + '</td>' +
+          names.map(function (n) { return '<td>' + (row[n] || 0) + '</td>'; }).join('') +
+          '<td>' + (total === 0 ? '<span class="tag mid">nobody</span>' : total) + '</td></tr>';
+      });
+      html += '</table></div></details>';
+    }
+
+    if (m.delivery_summary && m.delivery_summary.length) {
+      html += '<details><summary>What they charge for delivery, and their returns window</summary>' +
+        '<div class="wrapscroll"><table style="margin-top:8px">' +
+        '<tr><th>Shop</th><th>Delivery</th><th>Free over</th><th>Returns</th></tr>' +
+        m.delivery_summary.map(function (d, i) {
+          var r = (m.returns_summary && m.returns_summary[i]) || {};
+          return '<tr><td>' + esc(d.competitor) + '</td>' +
+            '<td>' + (d.cost_pence === null ? notFound(d.known) : money(d.cost_pence)) + '</td>' +
+            '<td>' + (d.free_over_pence === null ? notFound(d.known) : money(d.free_over_pence)) + '</td>' +
+            '<td>' + (r.days ? r.days + ' days' : notFound(r.known)) + '</td></tr>';
+        }).join('') + '</table></div>' +
+        '<p class="hint" style="margin-top:8px">Blank means it was not stated plainly enough on ' +
+        'their policy pages to read with confidence. It is left blank on purpose rather than ' +
+        'guessed — a wrong delivery charge here is worse than none.</p></details>';
+    }
+
+    html += '</div>';
+    box.innerHTML = html;
+  }
+
+  function notFound(pagesWereRead) {
+    return pagesWereRead
+      ? '<span class="tag dim">not stated</span>'
+      : '<span class="tag dim">no policy page</span>';
+  }
+
+  function renderShopReviews() {
+    var box = document.getElementById('revList');
+    if (!sr.profiles.length) {
+      box.innerHTML = '<div class="empty">Nothing yet.</div>';
+      return;
+    }
+
+    box.innerHTML = sr.profiles.map(function (p) {
+      var moved = p.previous_product_count === null || p.previous_product_count === undefined
+        ? null : p.product_count - p.previous_product_count;
+
+      var html = '<div class="opp"><div class="top">' +
+        '<div class="name">' + esc(p.competitor_name) + '</div>' +
+        (p.ai_used ? '' : '<span class="tag off">facts only</span>') +
+        '</div>' +
+        '<div class="sup">' + esc(p.competitor_website || '') + '</div>';
+
+      html += '<div class="figs">' +
+        fig(p.product_count === null ? '—' : p.product_count, 'Products') +
+        fig(p.new_products_30d === null ? '—' : '+' + p.new_products_30d, 'Added, 30 days') +
+        fig(money(p.price_median_pence), 'Middle price') +
+        fig(p.out_of_stock_count === null ? '—' : p.out_of_stock_count, 'Out of stock') +
+        fig(p.discounted_count === null ? '—' : p.discounted_count, 'On discount') +
+        fig(p.delivery_free_over_pence === null ? '—' : money(p.delivery_free_over_pence), 'Free delivery over') +
+      '</div>';
+
+      html += '<div class="sup">' +
+        'Prices ' + money(p.price_min_pence) + ' to ' + money(p.price_max_pence) +
+        (p.returns_days ? ' · ' + p.returns_days + ' day returns' : '') +
+        (moved === null ? '' : ' · range ' + (moved >= 0 ? 'up ' : 'down ') + Math.abs(moved) +
+                               ' since the last review') +
+        '</div>';
+
+      if (p.summary) {
+        html += '<div class="why" style="font-size:14px">' + paras(p.summary) + '</div>';
+      } else {
+        html += '<div class="why">No written summary — the AI was not available when this ran. ' +
+                'The figures above are unaffected.</div>';
+      }
+
+      if (p.categories) {
+        var cats = Object.keys(p.categories).sort(function (a, b) {
+          return p.categories[b] - p.categories[a];
+        }).slice(0, 10);
+        if (cats.length) {
+          html += '<details><summary>What they group their products under</summary>' +
+            '<div class="why"><ul>' + cats.map(function (c) {
+              return '<li>' + esc(c) + ' — ' + p.categories[c] + '</li>';
+            }).join('') + '</ul></div></details>';
+        }
+      }
+
+      return html + '</div>';
+    }).join('');
+  }
+
+  // AI text arrives as plain paragraphs. Escaped first, then split —
+  // never inserted as markup.
+  function paras(text) {
+    return String(text).split(/\n\s*\n/).map(function (t) {
+      return '<p style="margin-bottom:8px">' + esc(t.trim()).replace(/\n/g, '<br>') + '</p>';
+    }).join('');
+  }
+
+  document.getElementById('revRunBtn').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Reading their sites…';
+    // Scan first so the review works from today's prices rather than
+    // last week's, then review.
+    callFn('scan-competitors', {})
+      .then(function () { return callFn('review-competitors', {}); })
+      .then(function (res) {
+        btn.disabled = false; btn.textContent = 'Review them now';
+        if (res && res.ok) {
+          note('srMsg', 'Reviewed ' + res.reviewed + ' shop(s).' +
+            (res.ai_used ? '' : ' The written summaries were skipped — the AI key is not set.'), 'ok');
+        } else {
+          note('srMsg', (res && res.note) || 'That did not complete.', 'err');
+        }
+        loadSourcing();
+      }, function () {
+        btn.disabled = false; btn.textContent = 'Review them now';
+        note('srMsg', 'Could not reach the review function. Is it deployed?', 'err');
+      });
+  });
 
 })();
 </script>

@@ -51,3 +51,9 @@
 
 [functions."build-opportunities"]
   schedule = "30 5 * * 1"
+
+# Reads the competitors' policy pages and writes up how each shop
+# operates. Runs after the shortlist so it works from the same
+# morning's prices.
+[functions."review-competitors"]
+  schedule = "0 6 * * 1"
