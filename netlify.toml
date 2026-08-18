@@ -34,3 +34,20 @@
   for = "/index.html"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
+
+# ---- Sourcing ----------------------------------------------------------
+# Monday morning: look at the competitors first, then work out what is
+# worth selling from what came back. Two separate functions rather than
+# one, so a shop being down cannot stop the scoring, and so either half
+# can be run on its own from the admin.
+#
+# Scheduled here rather than with the @netlify/functions helper, because
+# that would mean a package.json and a build step, and this repository
+# deliberately has neither.
+#
+# Times are UTC.
+[functions."scan-competitors"]
+  schedule = "0 5 * * 1"
+
+[functions."build-opportunities"]
+  schedule = "30 5 * * 1"

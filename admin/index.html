@@ -107,6 +107,57 @@
   textarea{resize:vertical}
   textarea:focus,select:focus{outline:none;border-color:var(--terracotta)}
 
+
+  /* ---------- sourcing ---------- */
+  .subnav{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);
+    margin-bottom:20px;padding-bottom:10px}
+  .subnav button{background:none;border:0;padding:7px 13px;border-radius:2px;cursor:pointer;
+    font-family:inherit;font-size:13px;color:var(--brown-soft)}
+  .subnav button:hover{background:rgba(58,46,39,.05);color:var(--brown)}
+  .subnav button.active{background:rgba(192,98,63,.12);color:var(--terracotta);font-weight:500}
+  .sub{display:none}
+  .sub.active{display:block}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    padding:20px;margin-top:16px}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0 16px}
+
+  .tick{display:flex;gap:9px;align-items:flex-start;font-size:14px;margin:10px 0;cursor:pointer}
+  .tick input{margin-top:4px;flex:none}
+
+  .notice{background:rgba(58,46,39,.035);border:1px solid var(--line);border-left:3px solid var(--line);
+    border-radius:2px;padding:13px 15px;margin:14px 0}
+  .notice.warn{background:rgba(138,51,36,.06);border-left-color:var(--warn)}
+  .notice code{background:rgba(58,46,39,.07);padding:1px 4px;border-radius:2px;font-size:12px}
+
+  /* One recommendation. Deliberately not a table row: the reasoning
+     matters as much as the number, and reasoning does not fit in a cell. */
+  .opp{background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    padding:16px 18px;margin-bottom:12px}
+  .opp.blocked{border-left:3px solid var(--warn);background:rgba(138,51,36,.03)}
+  .opp .top{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+  .opp .name{font-family:'Lora',Georgia,serif;font-size:17px;flex:1;min-width:200px}
+  .opp .sup{font-size:12px;color:var(--brown-soft)}
+  .opp .figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));
+    gap:10px;margin:14px 0 4px}
+  .opp .fig .v{font-family:'Lora',Georgia,serif;font-size:19px;line-height:1.2}
+  .opp .fig .v.good{color:var(--ok)}
+  .opp .fig .v.bad{color:var(--warn)}
+  .opp .fig .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--brown-soft);margin-top:3px}
+  .opp .why{font-size:13px;color:var(--brown-soft);margin-top:10px}
+  .opp .why li{margin:4px 0 4px 16px}
+  .opp .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;
+    border-top:1px solid var(--line);padding-top:12px}
+  .opp details{margin-top:10px}
+  .opp summary{cursor:pointer;font-size:13px;color:var(--terracotta)}
+  .opp .sums{width:100%;font-size:13px;margin-top:8px;border:0}
+  .opp .sums td{padding:5px 0;border-bottom:1px dotted var(--line)}
+  .opp .sums td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+
+  .tag.mid{background:rgba(192,98,63,.13);color:var(--terracotta)}
+  .tag.dim{background:rgba(58,46,39,.07);color:var(--brown-soft)}
+
   /* ---------- install to home screen ---------- */
   #installBar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;
     background:var(--brown);color:#F6EFE6;padding:14px 18px;
@@ -190,6 +241,7 @@
       <button data-page="overview" class="active">Overview</button>
       <button data-page="subscribers">Subscribers</button>
       <button data-page="assessment">Assessment</button>
+      <button data-page="sourcing">Sourcing</button>
       <button data-page="social">Social</button>
       <button data-page="traffic">Traffic</button>
       <button data-page="users">Users</button>
@@ -377,6 +429,262 @@
       <h2>Campaigns</h2>
       <div class="wrapscroll"><table id="tblUtm"></table></div>
     </section>
+    <!-- ---------- Sourcing ---------- -->
+    <!-- Watches competitors and suppliers, and proposes things worth
+         selling. It proposes. Every row on the shortlist waits for a
+         person to say yes, and nothing here writes to Shopify. -->
+    <section id="page-sourcing" class="page">
+      <h1>Sourcing</h1>
+      <p class="hint">
+        What the competitors are selling, what the suppliers can supply, and
+        where the two overlap at a price worth having. Recommendations only —
+        nothing goes near the shop until you say so.
+      </p>
+
+      <div class="subnav">
+        <button data-sub="shortlist" class="active">Shortlist</button>
+        <button data-sub="suppliers">Suppliers</button>
+        <button data-sub="competitors">Competitors</button>
+        <button data-sub="import">Import a price list</button>
+        <button data-sub="srsettings">Settings</button>
+      </div>
+
+      <div id="srMsg" class="msg"></div>
+
+      <!-- ····· Shortlist ····· -->
+      <div id="sub-shortlist" class="sub active">
+        <div id="srBlocked" class="notice warn" style="display:none"></div>
+
+        <div class="bar">
+          <select id="srCategory" style="max-width:230px"><option value="">Every category</option></select>
+          <select id="srStatus" style="max-width:200px">
+            <option value="new">Waiting on a decision</option>
+            <option value="shortlisted">Shortlisted</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="">Everything</option>
+          </select>
+          <button class="btn ghost" id="srRunBtn">Run it now</button>
+          <span class="hint" id="srLastRun" style="margin:0"></span>
+        </div>
+
+        <div id="srList"></div>
+      </div>
+
+      <!-- ····· Suppliers ····· -->
+      <div id="sub-suppliers" class="sub">
+        <p class="hint">
+          Packet is the seller of everything it lists, whoever ships the box.
+          What is recorded here decides what the tool will and will not put in
+          front of you — in particular the Responsible Person question, which
+          blocks cosmetics outright when the answer is no.
+        </p>
+        <div class="bar"><button class="btn" id="supAddBtn">Add a supplier</button></div>
+        <div class="wrapscroll"><table id="tblSuppliers"></table></div>
+
+        <div id="supForm" class="panel" style="display:none">
+          <h2 id="supFormTitle">Add a supplier</h2>
+          <input type="hidden" id="supId">
+          <div class="grid2">
+            <div class="field"><label for="supName">Name</label>
+              <input type="text" id="supName" style="max-width:none"></div>
+            <div class="field"><label for="supSite">Website</label>
+              <input type="text" id="supSite" style="max-width:none"></div>
+            <div class="field"><label for="supSource">How we get their catalogue</label>
+              <select id="supSource">
+                <option value="manual">Typed in by hand</option>
+                <option value="csv">Price list we download</option>
+                <option value="feed">A feed we can fetch</option>
+                <option value="api">A proper API</option>
+              </select></div>
+            <div class="field"><label for="supShips">Ships from</label>
+              <input type="text" id="supShips" value="GB" style="max-width:none"></div>
+            <div class="field"><label for="supStatus">Where we are with them</label>
+              <select id="supStatus">
+                <option value="prospect">Prospect</option>
+                <option value="registered">Registered</option>
+                <option value="sample_ordered">Sample ordered</option>
+                <option value="sample_passed">Sample passed</option>
+                <option value="sample_failed">Sample failed</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select></div>
+            <div class="field"><label for="supDispatch">Dispatch, working days</label>
+              <input type="text" id="supDispatch" placeholder="e.g. 1-3" style="max-width:none"></div>
+          </div>
+
+          <div class="notice">
+            <label class="tick">
+              <input type="checkbox" id="supRp">
+              <span>This supplier holds the <b>UK Responsible Person</b> role for the
+              cosmetics they sell us</span>
+            </label>
+            <div class="field" style="margin-top:10px">
+              <label for="supRpEv">What proves it</label>
+              <input type="text" id="supRpEv" placeholder="e.g. emailed confirmation, 12 Aug 2026" style="max-width:none">
+            </div>
+            <p class="hint" style="margin:6px 0 0">
+              Anything applied to the body — shampoo, skincare, nails, fragrance —
+              needs a UK Responsible Person, a safety assessment and a product
+              notification. Leave this unticked and the tool will refuse to
+              shortlist their cosmetics, which is the point of it. Tools and
+              brushes are unaffected. This is a note for your solicitor to
+              confirm, not legal advice.
+            </p>
+          </div>
+
+          <label class="tick"><input type="checkbox" id="supUnbranded">
+            <span>Parcels arrive with no supplier branding</span></label>
+          <label class="tick"><input type="checkbox" id="supInvoice">
+            <span>They put their own paperwork in the box</span></label>
+
+          <div class="field"><label for="supNotes">Notes</label>
+            <textarea id="supNotes" rows="2"></textarea></div>
+
+          <div class="bar">
+            <button class="btn" id="supSave">Save</button>
+            <button class="btn ghost" id="supCancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ····· Competitors ····· -->
+      <div id="sub-competitors" class="sub">
+        <p class="hint">
+          Shopify shops publish a product feed that anyone can read, which is why
+          they are straightforward to watch. Anything else has to be followed by
+          hand. Check a shop&rsquo;s terms before adding it — reading a public
+          price is ordinary research, but this should stay a weekly look, never
+          a crawl.
+        </p>
+        <div class="bar">
+          <input type="text" id="compName" placeholder="Name">
+          <input type="text" id="compUrl" placeholder="https://theirshop.com">
+          <select id="compPlatform" style="max-width:170px">
+            <option value="shopify">Shopify</option>
+            <option value="other">Something else</option>
+            <option value="unknown">Not sure yet</option>
+          </select>
+          <button class="btn" id="compAdd">Add</button>
+          <button class="btn ghost" id="compScan">Scan them now</button>
+        </div>
+        <div class="wrapscroll"><table id="tblCompetitors"></table></div>
+      </div>
+
+      <!-- ····· Import ····· -->
+      <div id="sub-import" class="sub">
+        <p class="hint">
+          Works with every supplier from day one, whether or not they offer a
+          feed: export their price list, paste it in, done. Suppliers with a real
+          feed get wired up properly later — this is the path that never depends
+          on them having one.
+        </p>
+
+        <div class="field" style="max-width:340px">
+          <label for="impSupplier">Which supplier</label>
+          <select id="impSupplier"></select>
+        </div>
+
+        <div class="field">
+          <label for="impCsv">Paste the CSV, including its header row</label>
+          <textarea id="impCsv" rows="9" placeholder="sku,title,brand,mpn,gtin,cost_price,rrp,delivery_cost,category,stock,url&#10;TW-001,Slant Tip Tweezers,,,,1.10,4.99,1.49,beauty-tools,120,https://..."></textarea>
+        </div>
+
+        <div class="notice">
+          <p class="hint" style="margin:0">
+            <b>sku</b> and <b>title</b> and <b>cost_price</b> are required; the rest
+            can be left out. Prices go in as pounds — <code>1.10</code>, not
+            <code>110</code>. <b>cost_price</b> is the trade price excluding VAT.
+            <b>gtin</b> is the barcode, and it is worth more than every other
+            column put together: with it, a product matches a competitor exactly,
+            and without it the tool is comparing titles and guessing.
+          </p>
+        </div>
+
+        <div class="bar">
+          <button class="btn" id="impPreview">Check it</button>
+          <button class="btn" id="impRun" disabled>Import</button>
+          <button class="btn ghost" id="impClear">Clear</button>
+        </div>
+        <div id="impResult"></div>
+      </div>
+
+      <!-- ····· Settings ····· -->
+      <div id="sub-srsettings" class="sub">
+        <div class="notice warn">
+          <p style="margin:0;font-size:14px">
+            These start empty deliberately, and the tool will not price anything
+            until they are filled in. A sensible-looking default would get quoted
+            back later as though somebody had checked it. Take them from the real
+            Shopify plan, the real payment contract and the returns you have
+            actually seen — and if you do not know one yet, leave it blank rather
+            than estimating. Blank is reported honestly. A guess is not.
+          </p>
+        </div>
+
+        <h2>Selling costs</h2>
+        <div class="grid2">
+          <div class="field"><label for="stVatReg">VAT registered</label>
+            <select id="stVatReg">
+              <option value="">Not decided yet</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select></div>
+          <div class="field"><label for="stVatRate">VAT rate, %</label>
+            <input type="text" id="stVatRate" placeholder="e.g. 20" style="max-width:none"></div>
+          <div class="field"><label for="stPayPct">Payment fee, %</label>
+            <input type="text" id="stPayPct" placeholder="from your payment contract" style="max-width:none"></div>
+          <div class="field"><label for="stPayFixed">Payment fee, fixed pence per order</label>
+            <input type="text" id="stPayFixed" style="max-width:none"></div>
+          <div class="field"><label for="stPlatPct">Any other platform fee, %</label>
+            <input type="text" id="stPlatPct" style="max-width:none"></div>
+          <div class="field"><label for="stPickPack">Handling per order, pence</label>
+            <input type="text" id="stPickPack" style="max-width:none"></div>
+        </div>
+
+        <h2>Advertising</h2>
+        <p class="hint">
+          The line that decides whether any of this is a business. A product can
+          look healthy and be underwater the moment it costs money to find a
+          buyer. Left blank, every figure on the shortlist is marked as being
+          before advertising — which is a warning, not a pass.
+        </p>
+        <div class="grid2">
+          <div class="field"><label for="stCpa">What it costs to win one order, pence</label>
+            <input type="text" id="stCpa" style="max-width:none"></div>
+        </div>
+
+        <h2>Where we price</h2>
+        <div class="grid2">
+          <div class="field"><label for="stPos">Against the competitor median</label>
+            <select id="stPos">
+              <option value="match">Match it</option>
+              <option value="undercut">Undercut it</option>
+              <option value="premium">Sit above it</option>
+            </select></div>
+          <div class="field"><label for="stPosPct">By how much, %</label>
+            <input type="text" id="stPosPct" style="max-width:none"></div>
+          <div class="field"><label for="stMinContrib">Least we will accept per order, pence</label>
+            <input type="text" id="stMinContrib" style="max-width:none"></div>
+          <div class="field"><label for="stTargetPct">Target margin, %</label>
+            <input type="text" id="stTargetPct" style="max-width:none"></div>
+          <div class="field"><label for="stMaxPer">How many to show per category</label>
+            <input type="text" id="stMaxPer" style="max-width:none"></div>
+        </div>
+
+        <div class="bar"><button class="btn" id="stSave">Save the settings</button></div>
+
+        <h2>Categories and returns</h2>
+        <p class="hint">
+          Return rates stay blank until you have measured one or a supplier has
+          given you theirs in writing. Blank means returns are left out of the
+          margin entirely and the row is marked best case — which is the honest
+          way to show a number nobody has yet.
+        </p>
+        <div class="wrapscroll"><table id="tblCategories"></table></div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -394,6 +702,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<!-- The arithmetic behind every recommendation. Shared, deliberately, with
+     the scheduled function that writes them, so the figure on screen and
+     the figure in the database can never come from two different sums. -->
+<script src="packet-margin.js"></script>
 <script>
 (function () {
   'use strict';
@@ -661,7 +973,7 @@
       }
 
       var hash = (window.location.hash || '').replace('#', '');
-      var pages = ['overview', 'subscribers', 'assessment', 'social', 'traffic'];
+      var pages = ['overview', 'subscribers', 'assessment', 'sourcing', 'social', 'traffic'];
       if (state.role === 'owner') pages.push('users');
       showPage(pages.indexOf(hash) > -1 ? hash : 'overview');
 
@@ -714,6 +1026,7 @@
       renderSocial();
       renderTraffic();
       loadUsers();
+      loadSourcing();
     });
   }
 
@@ -1245,6 +1558,669 @@
       return v.utm_campaign || v.utm_source;
     }));
   }
+
+  // ============================================================ sourcing
+  // Watches competitors and suppliers and proposes what to sell. It
+  // proposes only: every row waits for a person, and nothing here
+  // writes to Shopify. The arithmetic lives in packet-margin.js, which
+  // the scheduled function uses too, so the figure on this screen and
+  // the figure in the database always come from the same code.
+  var sr = { settings: null, cats: [], sups: [], comps: [], opps: [], run: null, parsed: null };
+
+  var subBtns = document.querySelectorAll('.subnav button');
+  for (var sb = 0; sb < subBtns.length; sb++) {
+    subBtns[sb].addEventListener('click', function () {
+      var name = this.dataset.sub;
+      var subs = document.querySelectorAll('.sub');
+      for (var i = 0; i < subs.length; i++) subs[i].classList.remove('active');
+      var t = document.getElementById('sub-' + name);
+      if (t) t.classList.add('active');
+      for (var j = 0; j < subBtns.length; j++) {
+        subBtns[j].classList.toggle('active', subBtns[j].dataset.sub === name);
+      }
+    });
+  }
+
+  function money(pence) {
+    if (pence === null || pence === undefined || isNaN(pence)) return '—';
+    return '£' + (pence / 100).toFixed(2);
+  }
+
+  // Netlify functions are called with the signed-in user's token, so
+  // the function can check the role itself rather than trusting the page.
+  function callFn(name, body) {
+    return db.auth.getSession().then(function (res) {
+      var token = res.data && res.data.session && res.data.session.access_token;
+      return fetch('/.netlify/functions/' + name, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+        body: JSON.stringify(body || {})
+      }).then(function (r) { return r.json(); });
+    });
+  }
+
+  function loadSourcing() {
+    Promise.all([
+      db.from('sourcing_settings').select('*').eq('id', 1).maybeSingle(),
+      db.from('category_settings').select('*').order('label'),
+      db.from('suppliers').select('*').order('name'),
+      db.from('competitors').select('*').order('name'),
+      db.from('opportunities').select('*').order('score', { ascending: false }),
+      db.from('sourcing_runs').select('*').order('started_at', { ascending: false }).limit(1)
+    ]).then(function (r) {
+      // 005 may not have been run yet. That is not worth an error —
+      // the rest of the admin works perfectly well without it.
+      if (r[0].error) return;
+      sr.settings = r[0].data || {};
+      sr.cats  = r[1].data || [];
+      sr.sups  = r[2].data || [];
+      sr.comps = r[3].data || [];
+      sr.opps  = r[4].data || [];
+      sr.run   = (r[5].data && r[5].data[0]) || null;
+
+      fillCategorySelect();
+      fillSupplierSelect();
+      renderShortlist();
+      renderSuppliers();
+      renderCompetitors();
+      renderCategories();
+      fillSettingsForm();
+    });
+  }
+
+  function fillCategorySelect() {
+    var s = document.getElementById('srCategory');
+    s.innerHTML = '<option value="">Every category</option>' + sr.cats.map(function (c) {
+      return '<option value="' + esc(c.category) + '">' + esc(c.label) + '</option>';
+    }).join('');
+  }
+
+  function fillSupplierSelect() {
+    document.getElementById('impSupplier').innerHTML = sr.sups.map(function (s) {
+      return '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>';
+    }).join('') || '<option value="">Add a supplier first</option>';
+  }
+
+  // ------------------------------------------------------------ shortlist
+  function renderShortlist() {
+    var box = document.getElementById('srList');
+    var notice = document.getElementById('srBlocked');
+
+    // If the engine refused to run, say so plainly and say what it is
+    // waiting for. A blank screen with no explanation is the worst
+    // possible answer, because it reads as "nothing worth selling".
+    if (sr.run && sr.run.status === 'blocked') {
+      notice.style.display = 'block';
+      notice.innerHTML = '<b>Nothing has been scored yet.</b><br>' + esc(sr.run.blocked_reason || '');
+    } else {
+      notice.style.display = 'none';
+    }
+
+    document.getElementById('srLastRun').textContent = sr.run
+      ? 'Last run ' + fmt(sr.run.started_at) + ' · ' + sr.run.status
+      : 'Never run';
+
+    var wantCat = document.getElementById('srCategory').value;
+    var wantSt  = document.getElementById('srStatus').value;
+
+    var rows = sr.opps.filter(function (o) {
+      return (!wantCat || o.category === wantCat) && (!wantSt || o.status === wantSt);
+    });
+
+    if (!rows.length) {
+      box.innerHTML = '<div class="empty">' +
+        (sr.opps.length ? 'Nothing matches those filters.'
+                        : 'No recommendations yet. Add suppliers and competitors, import a price list, then run it.') +
+        '</div>';
+      return;
+    }
+    box.innerHTML = rows.map(oppCard).join('');
+    wireOppButtons();
+  }
+
+  function oppCard(o) {
+    var b = o.breakdown || {};
+    var blocked = o.compliance_status === 'blocked';
+
+    var confTag = o.data_confidence === 'good' ? '<span class="tag on">figures look solid</span>'
+                : o.data_confidence === 'partial' ? '<span class="tag mid">figures are partial</span>'
+                : '<span class="tag off">figures unproven</span>';
+
+    var afterAds = o.contribution_after_ads_pence;
+    var adsCls = afterAds === null || afterAds === undefined ? ''
+               : (afterAds > 0 ? ' good' : ' bad');
+
+    var notes = (o.confidence_notes || []).map(function (n) {
+      return '<li>' + esc(n) + '</li>';
+    }).join('');
+
+    var html = '<div class="opp' + (blocked ? ' blocked' : '') + '" data-opp="' + esc(o.id) + '">' +
+      '<div class="top">' +
+        '<div class="name">' + esc(b.product || 'Unnamed product') + '</div>' +
+        confTag +
+      '</div>' +
+      '<div class="sup">' + esc(b.supplier || '') +
+        (b.sku ? ' · ' + esc(b.sku) : '') +
+        ' · ' + esc(o.category || 'no category') + '</div>';
+
+    if (blocked) {
+      html += '<div class="notice warn" style="margin:12px 0 0"><b>Cannot be listed.</b> ' +
+              esc(o.compliance_reason || '') + '</div>';
+    } else if (o.compliance_status === 'needs_check') {
+      html += '<div class="notice" style="margin:12px 0 0"><b>Check this first.</b> ' +
+              esc(o.compliance_reason || '') + '</div>';
+    }
+
+    html += '<div class="figs">' +
+      fig(money(o.suggested_price_pence), 'Sell it at') +
+      fig(money(o.landed_cost_pence), 'Costs us') +
+      fig(money(o.contribution_pence), 'We keep') +
+      fig(o.contribution_pct === null ? '—' : o.contribution_pct + '%', 'Margin') +
+      fig(afterAds === null || afterAds === undefined ? 'unknown' : money(afterAds), 'After ads', adsCls) +
+      fig(o.n_competitors + ' shop' + (o.n_competitors === 1 ? '' : 's'), 'Selling it') +
+    '</div>';
+
+    html += '<div class="sup">Competitors charge ' + money(o.competitor_min_pence) +
+            ' to ' + money(o.competitor_max_pence) +
+            ', middle ' + money(o.competitor_median_pence) +
+            ' · seen for ' + (o.weeks_observed || 0) + ' weeks</div>';
+
+    if (notes) html += '<div class="why"><b>Worth knowing</b><ul>' + notes + '</ul></div>';
+
+    // The full arithmetic, on demand. The whole point is that a
+    // recommendation can be taken apart rather than taken on trust.
+    html += '<details><summary>Show the workings</summary><table class="sums">' +
+      sum('Ticket price', money(o.suggested_price_pence)) +
+      (b.vat_due ? sum('VAT out of that', '-' + money(b.vat_due)) : '') +
+      sum('Payment and platform fees', '-' + money(o.fees_pence)) +
+      sum('Cost of goods, delivered', '-' + money(o.landed_cost_pence)) +
+      sum('Expected cost of returns', b.return_rate_known
+            ? '-' + money(o.expected_return_cost_pence)
+            : 'not counted — no measured rate') +
+      sum('<b>Contribution</b>', '<b>' + money(o.contribution_pence) + '</b>') +
+      sum('Advertising', b.cpa_pence === null || b.cpa_pence === undefined
+            ? 'not counted — not set'
+            : '-' + money(b.cpa_pence)) +
+      sum('<b>After advertising</b>', '<b>' +
+            (afterAds === null || afterAds === undefined ? 'unknown' : money(afterAds)) + '</b>') +
+      sum('Price came from', esc(b.price_source || '—')) +
+      sum('Comparisons', (b.matches ? b.matches.total + ' total, ' + b.matches.fuzzy + ' matched on title only' : '—')) +
+      '</table>' +
+      (b.product_url ? '<p class="hint" style="margin-top:8px"><a href="' + esc(b.product_url) +
+        '" target="_blank" rel="noopener">Open it on the supplier&rsquo;s site</a></p>' : '') +
+      '</details>';
+
+    html += '<div class="acts">';
+    if (!blocked) {
+      html += '<button class="btn" data-decide="approved" data-id="' + esc(o.id) + '">Yes, sell this</button>' +
+              '<button class="btn ghost" data-decide="shortlisted" data-id="' + esc(o.id) + '">Keep for later</button>';
+    }
+    html += '<button class="btn ghost" data-decide="rejected" data-id="' + esc(o.id) + '">No</button>' +
+            '<span class="sup" style="margin-left:auto">' +
+            (o.status === 'new' ? 'waiting on you' : esc(o.status)) + '</span>' +
+            '</div></div>';
+
+    return html;
+  }
+
+  function fig(v, k, cls) {
+    return '<div class="fig"><div class="v' + (cls || '') + '">' + v + '</div><div class="k">' + k + '</div></div>';
+  }
+  function sum(k, v) { return '<tr><td>' + k + '</td><td>' + v + '</td></tr>'; }
+
+  function wireOppButtons() {
+    var btns = document.querySelectorAll('[data-decide]');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener('click', function () {
+        var id = this.dataset.id, to = this.dataset.decide;
+        var note_ = to === 'rejected' ? window.prompt('Why not? (optional, but it stops this coming back every week)') : null;
+        db.from('opportunities')
+          .update({ status: to, decided_by: state.id, decision_note: note_ })
+          .eq('id', id)
+          .then(function (r) {
+            // The database refuses to approve a compliance-blocked row.
+            // If that refusal ever fires here, it means the page let a
+            // button through that it should not have.
+            if (r.error) { note('srMsg', r.error.message, 'err'); return; }
+            note('srMsg', to === 'approved'
+              ? 'Marked to sell. Add it to Shopify when you are ready — nothing here does that for you.'
+              : 'Saved.', 'ok');
+            loadSourcing();
+          });
+      });
+    }
+  }
+
+  document.getElementById('srCategory').addEventListener('change', renderShortlist);
+  document.getElementById('srStatus').addEventListener('change', renderShortlist);
+
+  document.getElementById('srRunBtn').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Working…';
+    callFn('scan-competitors', {})
+      .then(function () { return callFn('build-opportunities', {}); })
+      .then(function (res) {
+        btn.disabled = false; btn.textContent = 'Run it now';
+        if (res && res.blocked) {
+          note('srMsg', 'Waiting on: ' + (res.missing || []).join(', ') + '. Fill those in under Settings.', 'err');
+        } else if (res && res.ok) {
+          note('srMsg', 'Looked at ' + res.considered + ' products and shortlisted ' + res.shortlisted + '.', 'ok');
+        } else {
+          note('srMsg', 'That did not complete. Check the function logs in Netlify.', 'err');
+        }
+        loadSourcing();
+      }, function () {
+        btn.disabled = false; btn.textContent = 'Run it now';
+        note('srMsg', 'Could not reach the sourcing functions. Are they deployed?', 'err');
+      });
+  });
+
+  // ------------------------------------------------------------ suppliers
+  function renderSuppliers() {
+    var t = document.getElementById('tblSuppliers');
+    if (!sr.sups.length) {
+      t.innerHTML = '<tr><td class="empty">No suppliers yet.</td></tr>';
+      return;
+    }
+    var html = '<tr><th>Supplier</th><th>Catalogue</th><th>Ships from</th>' +
+               '<th>Responsible Person</th><th>Stage</th><th></th></tr>';
+    sr.sups.forEach(function (s) {
+      var rp = s.is_uk_responsible_person
+        ? '<span class="tag on">yes</span>' + (s.rp_evidence ? '' : ' <span class="tag off">no evidence</span>')
+        : '<span class="tag dim">no</span>';
+      html += '<tr>' +
+        '<td>' + esc(s.name) + '</td>' +
+        '<td>' + esc(s.data_source) + '</td>' +
+        '<td>' + esc(s.ships_from_country || '—') + '</td>' +
+        '<td>' + rp + '</td>' +
+        '<td>' + esc(String(s.status).replace(/_/g, ' ')) + '</td>' +
+        '<td><button class="link" data-supedit="' + esc(s.id) + '">Edit</button></td>' +
+        '</tr>';
+    });
+    t.innerHTML = html;
+
+    var eb = document.querySelectorAll('[data-supedit]');
+    for (var i = 0; i < eb.length; i++) {
+      eb[i].addEventListener('click', function () { openSupplier(this.dataset.supedit); });
+    }
+  }
+
+  function openSupplier(id) {
+    var s = id ? sr.sups.filter(function (x) { return x.id === id; })[0] : null;
+    document.getElementById('supFormTitle').textContent = s ? 'Edit ' + s.name : 'Add a supplier';
+    document.getElementById('supId').value       = s ? s.id : '';
+    document.getElementById('supName').value     = s ? s.name : '';
+    document.getElementById('supSite').value     = s ? (s.website || '') : '';
+    document.getElementById('supSource').value   = s ? s.data_source : 'manual';
+    document.getElementById('supShips').value    = s ? (s.ships_from_country || 'GB') : 'GB';
+    document.getElementById('supStatus').value   = s ? s.status : 'prospect';
+    document.getElementById('supDispatch').value = s && s.dispatch_days_min !== null
+      ? s.dispatch_days_min + '-' + (s.dispatch_days_max || s.dispatch_days_min) : '';
+    document.getElementById('supRp').checked        = s ? !!s.is_uk_responsible_person : false;
+    document.getElementById('supRpEv').value        = s ? (s.rp_evidence || '') : '';
+    document.getElementById('supUnbranded').checked = s ? !!s.unbranded_packaging : false;
+    document.getElementById('supInvoice').checked   = s ? !!s.invoice_in_parcel : false;
+    document.getElementById('supNotes').value       = s ? (s.notes || '') : '';
+    document.getElementById('supForm').style.display = 'block';
+  }
+
+  document.getElementById('supAddBtn').addEventListener('click', function () { openSupplier(null); });
+  document.getElementById('supCancel').addEventListener('click', function () {
+    document.getElementById('supForm').style.display = 'none';
+  });
+
+  document.getElementById('supSave').addEventListener('click', function () {
+    var name = document.getElementById('supName').value.trim();
+    if (!name) { note('srMsg', 'A supplier needs a name.', 'err'); return; }
+
+    var dispatch = document.getElementById('supDispatch').value.trim().match(/(\d+)\D+(\d+)|(\d+)/);
+    var row = {
+      name: name,
+      website: document.getElementById('supSite').value.trim() || null,
+      data_source: document.getElementById('supSource').value,
+      ships_from_country: document.getElementById('supShips').value.trim() || null,
+      status: document.getElementById('supStatus').value,
+      dispatch_days_min: dispatch ? parseInt(dispatch[1] || dispatch[3], 10) : null,
+      dispatch_days_max: dispatch ? parseInt(dispatch[2] || dispatch[3], 10) : null,
+      is_uk_responsible_person: document.getElementById('supRp').checked,
+      rp_evidence: document.getElementById('supRpEv').value.trim() || null,
+      unbranded_packaging: document.getElementById('supUnbranded').checked,
+      invoice_in_parcel: document.getElementById('supInvoice').checked,
+      notes: document.getElementById('supNotes').value.trim() || null
+    };
+
+    if (row.is_uk_responsible_person && !row.rp_evidence) {
+      note('srMsg', 'Record what proves the Responsible Person status before ticking it. ' +
+                    'Saved anyway, but the tool will flag their cosmetics until you do.', 'err');
+    }
+
+    var id = document.getElementById('supId').value;
+    var q = id ? db.from('suppliers').update(row).eq('id', id)
+               : db.from('suppliers').insert(row);
+    q.then(function (r) {
+      if (r.error) { note('srMsg', r.error.message, 'err'); return; }
+      document.getElementById('supForm').style.display = 'none';
+      note('srMsg', 'Saved.', 'ok');
+      loadSourcing();
+    });
+  });
+
+  // ---------------------------------------------------------- competitors
+  function renderCompetitors() {
+    var t = document.getElementById('tblCompetitors');
+    if (!sr.comps.length) {
+      t.innerHTML = '<tr><td class="empty">No competitors yet. Five or six is plenty to start.</td></tr>';
+      return;
+    }
+    var html = '<tr><th>Name</th><th>Platform</th><th>Products seen</th>' +
+               '<th>Last look</th><th>How it went</th><th></th></tr>';
+    sr.comps.forEach(function (c) {
+      var st = c.last_scan_status === 'ok' ? '<span class="tag on">fine</span>'
+             : c.last_scan_status === 'failed'
+               ? '<span class="tag off" title="' + esc(c.last_scan_error || '') + '">' +
+                 esc((c.last_scan_error || 'failed').slice(0, 60)) + '</span>'
+               : '<span class="tag dim">not yet</span>';
+      html += '<tr>' +
+        '<td>' + esc(c.name) + '<br><span class="sup">' + esc(c.website) + '</span></td>' +
+        '<td>' + esc(c.platform) + '</td>' +
+        '<td>' + (c.products_seen || 0) + '</td>' +
+        '<td>' + fmt(c.last_scanned_at) + '</td>' +
+        '<td>' + st + '</td>' +
+        '<td><button class="link danger" data-compdel="' + esc(c.id) + '">Remove</button></td>' +
+        '</tr>';
+    });
+    t.innerHTML = html;
+
+    var db_ = document.querySelectorAll('[data-compdel]');
+    for (var i = 0; i < db_.length; i++) {
+      db_[i].addEventListener('click', function () {
+        var id = this.dataset.compdel;
+        db.from('competitors').delete().eq('id', id).then(function () { loadSourcing(); });
+      });
+    }
+  }
+
+  document.getElementById('compAdd').addEventListener('click', function () {
+    var name = document.getElementById('compName').value.trim();
+    var url  = document.getElementById('compUrl').value.trim();
+    if (!name || !url) { note('srMsg', 'A competitor needs a name and an address.', 'err'); return; }
+    if (!/^https?:\/\//.test(url)) url = 'https://' + url;
+
+    db.from('competitors').insert({
+      name: name, website: url.replace(/\/+$/, ''),
+      platform: document.getElementById('compPlatform').value
+    }).then(function (r) {
+      if (r.error) { note('srMsg', r.error.message, 'err'); return; }
+      document.getElementById('compName').value = '';
+      document.getElementById('compUrl').value = '';
+      note('srMsg', 'Added. Scan them to see what they sell.', 'ok');
+      loadSourcing();
+    });
+  });
+
+  document.getElementById('compScan').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Looking…';
+    callFn('scan-competitors', {}).then(function (res) {
+      btn.disabled = false; btn.textContent = 'Scan them now';
+      note('srMsg', res && res.ok
+        ? 'Looked at ' + res.competitors_scanned + ' shop(s), ' + res.products_seen + ' products.' +
+          (res.problems ? ' ' + res.problems + ' had trouble — see the table.' : '')
+        : 'That did not complete.', res && res.ok ? 'ok' : 'err');
+      loadSourcing();
+    }, function () {
+      btn.disabled = false; btn.textContent = 'Scan them now';
+      note('srMsg', 'Could not reach the scanner. Is it deployed?', 'err');
+    });
+  });
+
+  // --------------------------------------------------------------- import
+  // A small CSV reader rather than a library: quoted fields, escaped
+  // quotes, commas and newlines inside quotes. That is the whole of
+  // what a supplier price list throws at you.
+  function parseCsv(text) {
+    var rows = [], row = [], field = '', inQuotes = false;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; }
+          else inQuotes = false;
+        } else field += ch;
+      } else if (ch === '"') inQuotes = true;
+      else if (ch === ',') { row.push(field); field = ''; }
+      else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (ch !== '\r') field += ch;
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows.filter(function (r) { return r.some(function (c) { return c.trim() !== ''; }); });
+  }
+
+  // "1.10" -> 110. Strings all the way, because floating point and
+  // money should never be introduced to each other.
+  function poundsToPence(v) {
+    if (v === null || v === undefined) return null;
+    var m = String(v).replace(/[£,\s]/g, '').match(/^(\d+)(?:\.(\d{1,2}))?$/);
+    if (!m) return null;
+    return parseInt(m[1], 10) * 100 + parseInt((m[2] || '0').replace(/^(\d)$/, '$10'), 10);
+  }
+
+  function readPriceList(text) {
+    var rows = parseCsv(text);
+    if (rows.length < 2) return { error: 'That needs a header row and at least one product.' };
+
+    var head = rows[0].map(function (h) { return h.trim().toLowerCase().replace(/\s+/g, '_'); });
+    var need = ['sku', 'title', 'cost_price'];
+    var missing = need.filter(function (n) { return head.indexOf(n) === -1; });
+    if (missing.length) return { error: 'Missing column(s): ' + missing.join(', ') + '.' };
+
+    var col = {};
+    head.forEach(function (h, i) { col[h] = i; });
+
+    var out = [], bad = [];
+    var validCats = sr.cats.map(function (c) { return c.category; });
+
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i];
+      var get = function (name) {
+        return col[name] === undefined ? null : (r[col[name]] || '').trim() || null;
+      };
+
+      var cost = poundsToPence(get('cost_price'));
+      var sku = get('sku'), title = get('title');
+      var cat = get('category');
+
+      if (!sku || !title) { bad.push('Row ' + (i + 1) + ': needs a sku and a title.'); continue; }
+      if (cost === null)  { bad.push('Row ' + (i + 1) + ' (' + sku + '): cost price "' + (get('cost_price') || '') + '" is not a price.'); continue; }
+      if (cat && validCats.indexOf(cat) === -1) {
+        bad.push('Row ' + (i + 1) + ' (' + sku + '): "' + cat + '" is not one of the categories.');
+        continue;
+      }
+
+      out.push({
+        sku: sku,
+        title: title,
+        brand: get('brand'),
+        mpn: get('mpn'),
+        gtin: get('gtin'),
+        category: cat,
+        cost_price_pence: cost,
+        rrp_pence: poundsToPence(get('rrp')),
+        delivery_cost_pence: poundsToPence(get('delivery_cost')),
+        stock_qty: get('stock') ? parseInt(get('stock'), 10) : null,
+        in_stock: get('stock') ? parseInt(get('stock'), 10) > 0 : true,
+        product_url: get('url'),
+        image_url: get('image'),
+        last_seen_at: new Date().toISOString()
+      });
+    }
+    return { rows: out, problems: bad };
+  }
+
+  document.getElementById('impPreview').addEventListener('click', function () {
+    var res = readPriceList(document.getElementById('impCsv').value);
+    var box = document.getElementById('impResult');
+
+    if (res.error) {
+      box.innerHTML = '<div class="notice warn">' + esc(res.error) + '</div>';
+      document.getElementById('impRun').disabled = true;
+      return;
+    }
+
+    sr.parsed = res.rows;
+    var withGtin = res.rows.filter(function (r) { return r.gtin; }).length;
+    var noCat    = res.rows.filter(function (r) { return !r.category; }).length;
+
+    var html = '<div class="notice"><b>' + res.rows.length + ' product' +
+      (res.rows.length === 1 ? '' : 's') + ' ready.</b><br>' +
+      withGtin + ' have a barcode, so they will match competitors exactly. ' +
+      (res.rows.length - withGtin) + ' will be matched on the title, which is a guess ' +
+      'you should confirm before trusting the price.' +
+      (noCat ? '<br>' + noCat + ' have no category, so no compliance rule can be applied to them ' +
+               'and they will be flagged rather than shortlisted.' : '') +
+      '</div>';
+
+    if (res.problems.length) {
+      html += '<div class="notice warn"><b>' + res.problems.length + ' row(s) skipped</b><ul>' +
+        res.problems.slice(0, 12).map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') +
+        (res.problems.length > 12 ? '<li>…and ' + (res.problems.length - 12) + ' more</li>' : '') +
+        '</ul></div>';
+    }
+
+    html += '<div class="wrapscroll"><table><tr><th>SKU</th><th>Title</th><th>Barcode</th>' +
+      '<th>Category</th><th>Trade</th><th>Delivery</th></tr>' +
+      res.rows.slice(0, 15).map(function (r) {
+        return '<tr><td>' + esc(r.sku) + '</td><td>' + esc(r.title) + '</td>' +
+          '<td>' + (r.gtin ? esc(r.gtin) : '<span class="tag dim">none</span>') + '</td>' +
+          '<td>' + esc(r.category || '—') + '</td>' +
+          '<td>' + money(r.cost_price_pence) + '</td>' +
+          '<td>' + money(r.delivery_cost_pence) + '</td></tr>';
+      }).join('') + '</table></div>' +
+      (res.rows.length > 15 ? '<p class="hint">Showing the first 15.</p>' : '');
+
+    box.innerHTML = html;
+    document.getElementById('impRun').disabled = res.rows.length === 0;
+  });
+
+  document.getElementById('impRun').addEventListener('click', function () {
+    var supplierId = document.getElementById('impSupplier').value;
+    if (!supplierId) { note('srMsg', 'Pick a supplier first.', 'err'); return; }
+    if (!sr.parsed || !sr.parsed.length) { note('srMsg', 'Check the list first.', 'err'); return; }
+
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Importing…';
+
+    var rows = sr.parsed.map(function (r) {
+      var copy = {};
+      for (var k in r) if (r.hasOwnProperty(k)) copy[k] = r[k];
+      copy.supplier_id = supplierId;
+      return copy;
+    });
+
+    db.from('supplier_products')
+      .upsert(rows, { onConflict: 'supplier_id,sku' })
+      .then(function (r) {
+        btn.disabled = false; btn.textContent = 'Import';
+        if (r.error) { note('srMsg', r.error.message, 'err'); return; }
+        note('srMsg', rows.length + ' products imported. Run the shortlist to price them.', 'ok');
+        document.getElementById('impCsv').value = '';
+        document.getElementById('impResult').innerHTML = '';
+        sr.parsed = null;
+      });
+  });
+
+  document.getElementById('impClear').addEventListener('click', function () {
+    document.getElementById('impCsv').value = '';
+    document.getElementById('impResult').innerHTML = '';
+    document.getElementById('impRun').disabled = true;
+    sr.parsed = null;
+  });
+
+  // ------------------------------------------------------------- settings
+  function pctToRate(v) {
+    var n = parseFloat(String(v).replace('%', '').trim());
+    return isNaN(n) ? null : Math.round((n / 100) * 10000) / 10000;
+  }
+  function rateToPct(v) {
+    return v === null || v === undefined ? '' : String(Math.round(v * 10000) / 100);
+  }
+  function intOrNull(v) {
+    var n = parseInt(String(v).trim(), 10);
+    return isNaN(n) ? null : n;
+  }
+
+  function fillSettingsForm() {
+    var s = sr.settings || {};
+    document.getElementById('stVatReg').value    = s.vat_registered === null || s.vat_registered === undefined
+      ? '' : String(s.vat_registered);
+    document.getElementById('stVatRate').value   = rateToPct(s.vat_rate);
+    document.getElementById('stPayPct').value    = rateToPct(s.payment_fee_pct);
+    document.getElementById('stPayFixed').value  = s.payment_fee_fixed_pence === null ? '' : s.payment_fee_fixed_pence;
+    document.getElementById('stPlatPct').value   = rateToPct(s.platform_fee_pct);
+    document.getElementById('stPickPack').value  = s.pick_pack_pence === null ? '' : s.pick_pack_pence;
+    document.getElementById('stCpa').value       = s.assumed_cpa_pence === null ? '' : s.assumed_cpa_pence;
+    document.getElementById('stPos').value       = s.price_position || 'match';
+    document.getElementById('stPosPct').value    = s.price_position_pct === null ? '' : s.price_position_pct;
+    document.getElementById('stMinContrib').value = s.min_contribution_pence === null ? '' : s.min_contribution_pence;
+    document.getElementById('stTargetPct').value = s.target_contribution_pct === null ? '' : s.target_contribution_pct;
+    document.getElementById('stMaxPer').value    = s.max_candidates_per_category || 5;
+  }
+
+  document.getElementById('stSave').addEventListener('click', function () {
+    var vat = document.getElementById('stVatReg').value;
+    db.from('sourcing_settings').update({
+      vat_registered: vat === '' ? null : vat === 'true',
+      vat_rate: pctToRate(document.getElementById('stVatRate').value),
+      payment_fee_pct: pctToRate(document.getElementById('stPayPct').value),
+      payment_fee_fixed_pence: intOrNull(document.getElementById('stPayFixed').value),
+      platform_fee_pct: pctToRate(document.getElementById('stPlatPct').value),
+      pick_pack_pence: intOrNull(document.getElementById('stPickPack').value),
+      assumed_cpa_pence: intOrNull(document.getElementById('stCpa').value),
+      price_position: document.getElementById('stPos').value,
+      price_position_pct: parseFloat(document.getElementById('stPosPct').value) || 0,
+      min_contribution_pence: intOrNull(document.getElementById('stMinContrib').value),
+      target_contribution_pct: parseFloat(document.getElementById('stTargetPct').value) || null,
+      max_candidates_per_category: intOrNull(document.getElementById('stMaxPer').value) || 5
+    }).eq('id', 1).then(function (r) {
+      if (r.error) { note('srMsg', r.error.message, 'err'); return; }
+      note('srMsg', 'Settings saved.', 'ok');
+      loadSourcing();
+    });
+  });
+
+  function renderCategories() {
+    var t = document.getElementById('tblCategories');
+    var html = '<tr><th>Category</th><th>Return rate %</th><th>Handling a return, pence</th>' +
+               '<th>Compliance</th><th></th></tr>';
+    sr.cats.forEach(function (c) {
+      html += '<tr>' +
+        '<td>' + esc(c.label) + '</td>' +
+        '<td><input type="text" style="max-width:90px" data-catrate="' + esc(c.category) + '" value="' +
+          rateToPct(c.return_rate) + '" placeholder="unknown"></td>' +
+        '<td><input type="text" style="max-width:90px" data-cathandle="' + esc(c.category) + '" value="' +
+          (c.return_handling_cost_pence === null ? '' : c.return_handling_cost_pence) + '"></td>' +
+        '<td>' + (c.requires_uk_rp ? '<span class="tag off">Responsible Person needed</span> ' : '') +
+          '<span class="sup">' + esc(c.compliance_note || '') + '</span></td>' +
+        '<td><button class="link" data-catsave="' + esc(c.category) + '">Save</button></td>' +
+        '</tr>';
+    });
+    t.innerHTML = html;
+
+    var sb = document.querySelectorAll('[data-catsave]');
+    for (var i = 0; i < sb.length; i++) {
+      sb[i].addEventListener('click', function () {
+        var cat = this.dataset.catsave;
+        db.from('category_settings').update({
+          return_rate: pctToRate(document.querySelector('[data-catrate="' + cat + '"]').value),
+          return_handling_cost_pence: intOrNull(document.querySelector('[data-cathandle="' + cat + '"]').value)
+        }).eq('category', cat).then(function (r) {
+          note('srMsg', r.error ? r.error.message : 'Saved.', r.error ? 'err' : 'ok');
+          loadSourcing();
+        });
+      });
+    }
+  }
+
 })();
 </script>
 </body>
