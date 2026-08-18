@@ -123,6 +123,20 @@
   }
   .consent:hover{background:rgba(192,98,63,.11);border-color:rgba(192,98,63,.42)}
   .consent.on{background:rgba(192,98,63,.13);border-color:var(--terracotta)}
+  /* Once there is a usable email address in the box above, the panel brightens
+     so nobody wonders why the button is still greyed out. It brightens only —
+     it never ticks itself. See the note beside the mark-up. */
+  .consent.needs{
+    background:rgba(192,98,63,.13);border-color:var(--terracotta);
+    box-shadow:0 0 0 3px rgba(192,98,63,.14);
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .consent.needs{animation:consentNudge .45s ease}
+  }
+  @keyframes consentNudge{
+    0%{box-shadow:0 0 0 0 rgba(192,98,63,0)}
+    100%{box-shadow:0 0 0 3px rgba(192,98,63,.14)}
+  }
   .consent input{
     margin-top:1px;width:19px;height:19px;flex:0 0 auto;
     accent-color:var(--terracotta);cursor:pointer;
@@ -233,25 +247,33 @@
            after taking views from two other sources. Recorded here so the
            decision has an owner and a date if it is ever queried.
 
-           THE TWO THINGS THAT MUST NOT CHANGE:
+           THE THING THAT MUST NOT CHANGE:
 
-           1. The box starts UNTICKED. A pre-ticked box is not consent under
-              UK GDPR — it needs a clear affirmative act. Never set `checked`.
+           The box starts UNTICKED and is never ticked on the person's behalf.
+           A pre-ticked box is not consent under UK GDPR — it needs a clear
+           affirmative act. Never set `checked`, and never tick it from script
+           when they type their email or at any other point.
 
-           2. Leaving it unticked still issues the code. The button works
-              either way. This keeps the consent freely given, and it is what
-              the guidance Phil and Scott took says as well.
+           CHANGED 18 Aug 2026, on Phil Munro's instruction, superseding point
+           2 of the 10 Aug decision: the tick is now REQUIRED. "Get my code"
+           stays disabled until the email looks valid AND the box is ticked.
+           Before this, the code was issued either way.
 
-           Noted at the time and not acted on, so a future reader knows it was
-           considered: the label bundles the transactional (send my code) with
-           the marketing (sign me up), which arguably makes the consent less
-           specific than it could be, and reads as though ticking is required
-           to get the code. It is not. Owners decided the wording stands.
+           What that trades away, recorded so it is not lost. The code is now
+           conditional on agreeing to marketing, so the consent is incentivised
+           rather than free-standing. That model is common and widely used
+           ("join the list, get 10% off"), but it only holds up if the page is
+           honest that signing up is how you get the code — and the wording
+           above the box still reads as though the code is already theirs and
+           merely needs an address. Raised with Phil on 18 Aug 2026; he asked
+           for the page to be left as it looks, so the wording stands. This is
+           a point for a solicitor to settle before launch, not a settled one.
 
            Also never acceptable, whatever else changes here:
              - "by entering your email you agree to receive offers"
+             - ticking the box for them, on email entry or anywhere else
              - opting people in by default and letting them opt out later
-           Neither is consent, and the soft opt-in does not rescue them —
+           None of those is consent, and the soft opt-in does not rescue them —
            it only covers people who have bought or negotiated a purchase,
            and Packet has sold nothing.
 
@@ -264,7 +286,9 @@
 
       <div class="nav">
         <button class="ghost" id="backBtn2">Back</button>
-        <button id="finishBtn" style="flex:1">Get my code</button>
+        <!-- Starts disabled on purpose: needs a valid email AND the tick.
+             See updateFinishState() below. -->
+        <button id="finishBtn" style="flex:1" disabled>Get my code</button>
       </div>
     </div>
   </section>
@@ -642,28 +666,54 @@
     return $('consentLabel').textContent.replace(/\s+/g, ' ').trim();
   }
 
+  var EMAIL_RE   = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  var consentBox = $('consent');
+  var consentWrap = $('consentWrap');
+  var emailInput = $('email');
+  var finishBtn  = $('finishBtn');
+
+  // "Get my code" is only available once we have something that looks like an
+  // email address AND the box has been ticked. Both, every time. The button
+  // greys out again if they go back and clear either one.
+  function updateFinishState() {
+    var emailOk = EMAIL_RE.test(emailInput.value.trim());
+    finishBtn.disabled = !(emailOk && consentBox.checked);
+    // Brighten the panel once the email is usable and the tick is the only
+    // thing left, so the greyed-out button is never a mystery. Brightening
+    // only — the box is never ticked for them.
+    consentWrap.classList.toggle('needs', emailOk && !consentBox.checked);
+  }
+
   // Keeps the panel in step with the box whether they click the box, the
   // label or the panel itself.
-  var consentBox  = $('consent');
-  var consentWrap = $('consentWrap');
   consentWrap.addEventListener('click', function (e) {
     if (e.target !== consentBox && e.target.tagName !== 'LABEL') consentBox.click();
   });
   consentBox.addEventListener('change', function () {
     consentWrap.classList.toggle('on', consentBox.checked);
+    updateFinishState();
   });
+  emailInput.addEventListener('input', updateFinishState);
+  emailInput.addEventListener('change', updateFinishState);
+  updateFinishState();
 
-  $('finishBtn').addEventListener('click', function () {
+  finishBtn.addEventListener('click', function () {
     var btn      = this;
-    // Ticked or not, the code is issued. Do not make this conditional.
     var consent  = consentBox.checked;
     var email    = $('email').value.trim();
     var honeypot = $('website').value;
 
     if (honeypot) { $('codeVal').textContent = 'THANK-YOU'; show('done'); return; }
 
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    if (!EMAIL_RE.test(email)) {
       say('That email address doesn’t look right. Could you check it?');
+      return;
+    }
+    // The button should never be pressable without this, but never take a
+    // consent flag on trust from the front end.
+    if (!consent) {
+      say('Please tick the box so we can send you your code.');
+      updateFinishState();
       return;
     }
     if (!db) {
@@ -684,8 +734,8 @@
       p_utm_medium:   utm.medium,
       p_utm_campaign: utm.campaign
     }).then(function (res) {
-      btn.disabled = false;
       btn.textContent = 'Get my code';
+      updateFinishState();
 
       if (res.error) {
         var m = String(res.error.message || '');
