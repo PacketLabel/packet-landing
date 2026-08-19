@@ -57,3 +57,16 @@
 # morning's prices.
 [functions."review-competitors"]
   schedule = "0 6 * * 1"
+
+# The same work again, pointed at the calendar: what is worth
+# selling for a season close enough to act on, and what the
+# competitors are selling for it that our suppliers cannot give us.
+#
+# Reads the same morning's prices. It only ever touches shortlist
+# rows carrying a season, and build-opportunities only ever touches
+# rows without one, so neither can clear the other's work.
+#
+# sourcing-assistant is deliberately NOT scheduled. It runs only
+# when somebody presses a button, which is the whole design.
+[functions."build-seasonal"]
+  schedule = "45 5 * * 1"

@@ -27,6 +27,19 @@ kit with a `KIT-CHANGELOG.md` entry and a version bump.
 - [ ] **Anonymous page-view counting with no cookie banner.** No IP, no cookie,
       no localStorage — worth writing up as a blueprint since it removes a whole
       compliance conversation.
+- [ ] **Seasonal calendar engine (`packet-seasons.js`).** Date rules rather than
+      dates, so Easter, Mothering Sunday, Black Friday and Father's Day stay
+      right every year instead of for one, plus the backwards-from-the-event
+      lead time maths. Any client selling anything dated needs this and none of
+      it is domain-specific. Strong kit candidate.
+- [ ] **Propose / confirm / apply assistant.** A natural-language box over a
+      hard allow-list: the model proposes, ordinary code validates and writes
+      the plain-English preview, a human confirms, and the boundary is a CHECK
+      constraint rather than a prompt. The generalisable part is the SHAPE —
+      three separate steps, with the preview generated from the validated
+      actions rather than from the model's prose. Every client eventually asks
+      "can I just tell it what to do", and this is the answer that does not end
+      with an AI editing a price. Best kit candidate on this list.
 
 ## What broke or took too long
 
@@ -49,7 +62,7 @@ kit with a `KIT-CHANGELOG.md` entry and a version bump.
 | | |
 |---|---|
 | Hours to go-live | |
-| Migrations run | 3 |
+| Migrations run | 8 |
 | Migrations that were rework | 0 |
 | Visit → signup rate, first week | |
 | Visit → assessment completion, first week | |

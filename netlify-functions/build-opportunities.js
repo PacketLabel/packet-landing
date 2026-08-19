@@ -182,7 +182,22 @@ exports.handler = async (event) => {
     // shortlisted, approved, rejected — is left exactly where it is.
     // Rejections in particular must survive, or the same product comes
     // back every week and gets argued about again.
-    await db.del('opportunities', 'status=eq.new');
+    //
+    // season_id is null scopes this to the everyday shortlist. Seasonal
+    // rows belong to build-seasonal and are cleared by that function on
+    // its own schedule; without this filter, whichever of the two ran
+    // last would quietly delete the other's work.
+    //
+    // The fallback covers the deploy-before-migrate case: if 007 has
+    // not been run yet the column does not exist and PostgREST rejects
+    // the filter. That is safe to fall back from, because without the
+    // column there are no seasonal rows to protect.
+    try {
+      await db.del('opportunities', 'status=eq.new&season_id=is.null');
+    } catch (err) {
+      console.warn('season_id filter unavailable, clearing unscoped (has 007 been run?)', err.message);
+      await db.del('opportunities', 'status=eq.new');
+    }
     if (kept.length) await db.insert('opportunities', kept);
 
     await db.patch('sourcing_runs', 'id=eq.' + runId, {

@@ -443,6 +443,8 @@
 
       <div class="subnav">
         <button data-sub="shortlist" class="active">Shortlist</button>
+        <button data-sub="seasonal">Seasonal</button>
+        <button data-sub="ask">Ask</button>
         <button data-sub="suppliers">Suppliers</button>
         <button data-sub="competitors">Competitors</button>
         <button data-sub="review">Competitor review</button>
@@ -470,6 +472,103 @@
         </div>
 
         <div id="srList"></div>
+      </div>
+
+      <!-- ····· Seasonal ····· -->
+      <div id="sub-seasonal" class="sub">
+        <p class="hint">
+          The same weekly look, pointed at the calendar. Christmas gets decided in
+          summer, not in November, so what matters here is not the date of the day
+          itself but the last date it is still worth committing to buy for it.
+        </p>
+
+        <div class="notice">
+          <p class="hint" style="margin:0">
+            <b>Seasonal stock is not like everyday stock.</b> An ordinary product that
+            sells slowly keeps sitting there. A Halloween product that has not sold by
+            1 November is worth roughly nothing until the same week next year. Packet
+            is not holding the stock on a dropship model, so most of that risk sits
+            with the supplier &mdash; but any minimum order or committed buy hands it
+            straight back.
+          </p>
+        </div>
+
+        <div class="bar">
+          <button class="btn ghost" id="seaRunBtn">Look for seasonal now</button>
+          <span class="hint" id="seaLastRun" style="margin:0"></span>
+        </div>
+
+        <h2>The calendar</h2>
+        <p class="hint">
+          Nearest deadline first. The two numbers on each row start blank on purpose:
+          nobody can tell you how long your supplier takes but your supplier, and a
+          plausible-looking guess would end up quoted back as though somebody had
+          checked it.
+        </p>
+        <div class="wrapscroll"><table id="tblSeasons"></table></div>
+
+        <h2>Worth selling</h2>
+        <div class="bar">
+          <select id="seaFilter" style="max-width:260px">
+            <option value="">Every season in range</option>
+          </select>
+        </div>
+        <div id="seaList"></div>
+
+        <h2>Gaps</h2>
+        <p class="hint">
+          What the competitors are selling for a season that none of our suppliers can
+          give us. Only useful while there is still time to go and find one, which is
+          why it sits next to the order-by dates. Counted from listings we have read
+          &mdash; it says what shops <i>do</i>, never how well any of it sells.
+        </p>
+        <div class="wrapscroll"><table id="tblGaps"></table></div>
+      </div>
+
+      <!-- ····· Ask ····· -->
+      <div id="sub-ask" class="sub">
+        <p class="hint">
+          Type an ordinary instruction and the tool works out what you meant, shows you
+          exactly what it would do, and waits. Nothing changes until you press the
+          button.
+        </p>
+
+        <div class="notice">
+          <p class="hint" style="margin:0 0 8px">
+            <b>What it can change:</b> competitors, suppliers, seasons, and the words
+            that make a product count as seasonal.
+          </p>
+          <p class="hint" style="margin:0">
+            <b>What it cannot, ever:</b> any fee, VAT rate, margin or threshold; whether
+            a supplier holds the UK Responsible Person role; and approving, rejecting or
+            listing a product. Those are typed in by hand, by a person, on the screens
+            where they live. The limit is set in the database, not in this page, so it
+            holds however the question is phrased.
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="askBox">What would you like it to do?</label>
+          <textarea id="askBox" rows="3" placeholder="e.g. Add Lookfantastic at lookfantastic.com as a competitor
+e.g. Start watching for Bonfire Night
+e.g. Add the word &quot;pumpkin spice&quot; to Halloween
+e.g. Stop scanning Boots"></textarea>
+        </div>
+
+        <div class="bar">
+          <button class="btn" id="askGo">Work out what that means</button>
+          <button class="btn ghost" id="askClear">Clear</button>
+        </div>
+
+        <div id="askProposal"></div>
+
+        <h2>What has been asked</h2>
+        <p class="hint">
+          Every question and every change, kept. Worth knowing while you and Scott share
+          one login: this records the account, not which of you typed it. Separate
+          logins would fix that properly, and take about ten minutes on the Users screen.
+        </p>
+        <div class="wrapscroll"><table id="tblAsked"></table></div>
       </div>
 
       <!-- ····· Suppliers ····· -->
@@ -699,6 +798,13 @@
             <input type="text" id="stTargetPct" style="max-width:none"></div>
           <div class="field"><label for="stMaxPer">How many to show per category</label>
             <input type="text" id="stMaxPer" style="max-width:none"></div>
+          <div class="field"><label for="stHorizon">How far ahead to look for seasons, weeks</label>
+            <input type="text" id="stHorizon" style="max-width:none">
+            <p class="hint" style="margin:6px 0 0">
+              How early a season starts appearing on the Seasonal tab. This one has a
+              sensible default of 26 because it only decides what is on the screen, not
+              what anything is worth &mdash; unlike everything above it.
+            </p></div>
         </div>
 
         <div class="bar"><button class="btn" id="stSave">Save the settings</button></div>
@@ -735,6 +841,10 @@
      the scheduled function that writes them, so the figure on screen and
      the figure in the database can never come from two different sums. -->
 <script src="packet-margin.js"></script>
+<!-- When a season actually lands, and working back from that, the last day it
+     is worth committing to buy for it. Shared with build-seasonal.js for the
+     same reason as the margin engine: one set of dates, not two. -->
+<script src="packet-seasons.js"></script>
 <script>
 (function () {
   'use strict';
@@ -1595,7 +1705,8 @@
   // the scheduled function uses too, so the figure on this screen and
   // the figure in the database always come from the same code.
   var sr = { settings: null, cats: [], sups: [], comps: [], opps: [], run: null,
-             profiles: [], market: null, parsed: null };
+             profiles: [], market: null, parsed: null,
+             seasons: [], terms: [], gaps: [], asked: [], proposal: null };
 
   var subBtns = document.querySelectorAll('.subnav button');
   for (var sb = 0; sb < subBtns.length; sb++) {
@@ -1638,7 +1749,11 @@
       db.from('opportunities').select('*').order('score', { ascending: false }),
       db.from('sourcing_runs').select('*').order('started_at', { ascending: false }).limit(1),
       db.from('latest_competitor_review').select('*'),
-      db.from('market_reviews').select('*').order('reviewed_at', { ascending: false }).limit(1)
+      db.from('market_reviews').select('*').order('reviewed_at', { ascending: false }).limit(1),
+      db.from('seasons').select('*').order('name'),
+      db.from('season_terms').select('*'),
+      db.from('season_gaps').select('*'),
+      db.from('assistant_requests').select('*').order('asked_at', { ascending: false }).limit(30)
     ]).then(function (r) {
       // 005 may not have been run yet. That is not worth an error —
       // the rest of the admin works perfectly well without it.
@@ -1653,6 +1768,16 @@
       // rest of the tool works perfectly well without the review.
       sr.profiles = (r[6] && r[6].data) || [];
       sr.market   = (r[7] && r[7].data && r[7].data[0]) || null;
+      // 007 and 008 may not have been run yet. Same reasoning again —
+      // everything above works perfectly well without them, and the
+      // two new tabs say plainly that they are waiting on a migration
+      // rather than just sitting there empty.
+      sr.seasons = (r[8]  && r[8].data)  || [];
+      sr.terms   = (r[9]  && r[9].data)  || [];
+      sr.gaps    = (r[10] && r[10].data) || [];
+      sr.asked   = (r[11] && r[11].data) || [];
+      sr.seasonsReady = !(r[8] && r[8].error);
+      sr.askReady     = !(r[11] && r[11].error);
 
       fillCategorySelect();
       fillSupplierSelect();
@@ -1662,6 +1787,10 @@
       renderCategories();
       fillSettingsForm();
       renderReview();
+      renderSeasons();
+      renderSeasonalList();
+      renderGaps();
+      renderAsked();
     });
   }
 
@@ -1700,8 +1829,12 @@
     var wantCat = document.getElementById('srCategory').value;
     var wantSt  = document.getElementById('srStatus').value;
 
+    // Seasonal rows live on their own tab, where the order-by date is
+    // the thing you read first. Mixed in here they would compete for
+    // attention with everyday products that have no deadline at all.
     var rows = sr.opps.filter(function (o) {
-      return (!wantCat || o.category === wantCat) && (!wantSt || o.status === wantSt);
+      return !o.season_id &&
+             (!wantCat || o.category === wantCat) && (!wantSt || o.status === wantSt);
     });
 
     if (!rows.length) {
@@ -1712,7 +1845,7 @@
       return;
     }
     box.innerHTML = rows.map(oppCard).join('');
-    wireOppButtons();
+    wireOppButtons(box);
   }
 
   function oppCard(o) {
@@ -1805,8 +1938,12 @@
   }
   function sum(k, v) { return '<tr><td>' + k + '</td><td>' + v + '</td></tr>'; }
 
-  function wireOppButtons() {
-    var btns = document.querySelectorAll('[data-decide]');
+  // Scoped to one list. The everyday shortlist and the seasonal list
+  // are both made of these cards and are both on the page at once, so
+  // wiring globally would bind every button twice and ask "why not?"
+  // twice on a single click.
+  function wireOppButtons(root) {
+    var btns = (root || document).querySelectorAll('[data-decide]');
     for (var i = 0; i < btns.length; i++) {
       btns[i].addEventListener('click', function () {
         var id = this.dataset.id, to = this.dataset.decide;
@@ -1851,6 +1988,363 @@
         note('srMsg', 'Could not reach the sourcing functions. Are they deployed?', 'err');
       });
   });
+
+  // ------------------------------------------------------------ seasonal
+  //
+  // The dates come from packet-seasons.js, which is the same file
+  // build-seasonal.js uses. One set of date rules, not two — same
+  // reasoning as sharing the margin engine.
+
+  function seasonBySlug(slug) {
+    for (var i = 0; i < sr.seasons.length; i++) {
+      if (sr.seasons[i].slug === slug) return sr.seasons[i];
+    }
+    return null;
+  }
+
+  function seasonById(id) {
+    for (var i = 0; i < sr.seasons.length; i++) {
+      if (sr.seasons[i].id === id) return sr.seasons[i];
+    }
+    return null;
+  }
+
+  var STAGE_LABEL = {
+    early:     ['dim', 'nothing to do yet'],
+    coming_up: ['mid', 'worth a look'],
+    act_now:   ['on',  'decide now'],
+    too_late:  ['off', 'past the order-by date']
+  };
+
+  function renderSeasons() {
+    var t = document.getElementById('tblSeasons');
+    if (!t) return;
+
+    if (!window.PacketSeasons) {
+      t.innerHTML = '<tr><td class="empty">packet-seasons.js has not loaded, so no dates ' +
+                    'can be worked out. Check it deployed alongside the page.</td></tr>';
+      return;
+    }
+    if (!sr.seasonsReady) {
+      t.innerHTML = '<tr><td class="empty">The seasonal calendar needs migration 007 ' +
+                    'running in Supabase first.</td></tr>';
+      return;
+    }
+    if (!sr.seasons.length) {
+      t.innerHTML = '<tr><td class="empty">No seasons on the calendar.</td></tr>';
+      return;
+    }
+
+    var rows = window.PacketSeasons.timeline(sr.seasons, new Date());
+
+    var html = '<tr><th>Season</th><th>Falls on</th><th>Order by</th><th>Selling from</th>' +
+               '<th>Supplier needs, weeks</th><th>Sell from, weeks before</th><th>Where we are</th></tr>';
+
+    rows.forEach(function (r) {
+      var s = r.season, w = r.window;
+      var termCount = sr.terms.filter(function (x) { return x.season_id === s.id; }).length;
+
+      var stage = w.ready
+        ? '<span class="tag ' + STAGE_LABEL[w.stage][0] + '">' + STAGE_LABEL[w.stage][1] + '</span>'
+        : '<span class="tag off">waiting on you</span>';
+
+      html += '<tr>' +
+        '<td><b>' + esc(s.name) + '</b>' +
+          (s.active ? '' : ' <span class="tag dim">paused</span>') +
+          '<div class="sup">' + termCount + ' word' + (termCount === 1 ? '' : 's') + '</div></td>' +
+        '<td>' + esc(w.eventDate || '—') + '</td>' +
+        '<td>' + (w.ready ? '<b>' + esc(w.orderByDate) + '</b>' : '—') + '</td>' +
+        '<td>' + esc(w.sellFromDate || '—') + '</td>' +
+        '<td><input type="text" size="4" data-lead="' + esc(s.id) + '" value="' +
+          (s.source_lead_weeks === null || s.source_lead_weeks === undefined ? '' : s.source_lead_weeks) +
+          '" placeholder="ask them"></td>' +
+        '<td><input type="text" size="4" data-sellwk="' + esc(s.id) + '" value="' +
+          (s.sell_from_weeks_before === null || s.sell_from_weeks_before === undefined ? '' : s.sell_from_weeks_before) +
+          '"></td>' +
+        '<td>' + stage + '</td>' +
+        '</tr>';
+
+      if (!w.ready) {
+        html += '<tr><td colspan="7" class="sup" style="padding-top:0">' +
+                esc(w.reasons.join(' ')) + '</td></tr>';
+      } else if (w.stage === 'act_now' || w.stage === 'coming_up') {
+        html += '<tr><td colspan="7" class="sup" style="padding-top:0">' +
+                esc(w.plain) + '</td></tr>';
+      }
+    });
+
+    html += '<tr><td colspan="7"><button class="btn" id="seaSaveLeads">Save the lead times</button></td></tr>';
+    t.innerHTML = html;
+
+    var save = document.getElementById('seaSaveLeads');
+    if (save) save.addEventListener('click', saveLeadTimes);
+
+    // The filter list only offers seasons that are actually in range.
+    var sel = document.getElementById('seaFilter');
+    var current = sel.value;
+    var live = rows.filter(function (r) { return r.window.ready; });
+    sel.innerHTML = '<option value="">Every season in range</option>' + live.map(function (r) {
+      return '<option value="' + esc(r.season.id) + '">' + esc(r.season.name) + '</option>';
+    }).join('');
+    sel.value = current;
+  }
+
+  // Saved one at a time rather than in a batch, because a bad number
+  // in one row should not silently discard the other five.
+  function saveLeadTimes() {
+    var leads = document.querySelectorAll('[data-lead]');
+    var jobs = [];
+
+    for (var i = 0; i < leads.length; i++) {
+      var id = leads[i].dataset.lead;
+      var lead = intOrNull(leads[i].value);
+      var sellEl = document.querySelector('[data-sellwk="' + id + '"]');
+      var sell = sellEl ? intOrNull(sellEl.value) : null;
+      jobs.push(db.from('seasons')
+        .update({ source_lead_weeks: lead, sell_from_weeks_before: sell })
+        .eq('id', id));
+    }
+
+    Promise.all(jobs).then(function (results) {
+      var bad = results.filter(function (r) { return r && r.error; });
+      if (bad.length) { note('srMsg', bad[0].error.message, 'err'); return; }
+      note('srMsg', 'Lead times saved. The order-by dates have moved with them.', 'ok');
+      loadSourcing();
+    });
+  }
+
+  function renderSeasonalList() {
+    var box = document.getElementById('seaList');
+    if (!box) return;
+
+    document.getElementById('seaLastRun').textContent = sr.run
+      ? 'Last run ' + fmt(sr.run.started_at) + ' · ' + sr.run.status
+      : 'Never run';
+
+    var want = document.getElementById('seaFilter').value;
+    var rows = sr.opps.filter(function (o) {
+      return o.season_id && (!want || o.season_id === want);
+    });
+
+    // Soonest deadline first. On this tab the date is the point.
+    rows.sort(function (a, b) {
+      if (a.order_by_date && b.order_by_date && a.order_by_date !== b.order_by_date) {
+        return a.order_by_date < b.order_by_date ? -1 : 1;
+      }
+      return (b.score || 0) - (a.score || 0);
+    });
+
+    if (!rows.length) {
+      box.innerHTML = '<div class="empty">' +
+        (sr.seasons.length
+          ? 'Nothing seasonal yet. Fill in the lead times above, then press “Look for seasonal now”. ' +
+            'A season with no lead time is skipped, and says so in the table.'
+          : 'No seasons on the calendar yet.') +
+        '</div>';
+      return;
+    }
+
+    box.innerHTML = rows.map(function (o) {
+      var s = seasonById(o.season_id);
+      var stage = STAGE_LABEL[o.season_stage] || ['dim', ''];
+      var strip = '<div class="sup" style="margin:0 0 6px">' +
+        '<span class="tag ' + stage[0] + '">' + esc(stage[1]) + '</span> ' +
+        esc(s ? s.name : 'season') +
+        (o.order_by_date ? ' · order by <b>' + esc(o.order_by_date) + '</b>' : '') +
+        '</div>';
+      return strip + oppCard(o);
+    }).join('');
+
+    wireOppButtons(box);
+  }
+
+  function renderGaps() {
+    var t = document.getElementById('tblGaps');
+    if (!t) return;
+
+    if (!sr.gaps.length) {
+      t.innerHTML = '<tr><td class="empty">Nothing yet. Run the seasonal look once ' +
+                    'there are competitors to read.</td></tr>';
+      return;
+    }
+
+    var html = '<tr><th>Season</th><th>Word</th><th>Shops selling it</th>' +
+               '<th>Their middle price</th><th>Our suppliers</th><th></th></tr>';
+
+    sr.gaps.forEach(function (g) {
+      var s = seasonById(g.season_id);
+      var isGap = g.n_supplier_products === 0;
+      html += '<tr>' +
+        '<td>' + esc(s ? s.name : '—') + '</td>' +
+        '<td>' + esc(g.term) + '</td>' +
+        '<td>' + g.n_competitor_stores + ' shop' + (g.n_competitor_stores === 1 ? '' : 's') +
+          ', ' + g.n_competitor_products + ' product' + (g.n_competitor_products === 1 ? '' : 's') + '</td>' +
+        '<td>' + money(g.competitor_median_pence) + '</td>' +
+        '<td>' + (isGap
+          ? '<span class="tag off">none</span>'
+          : g.n_supplier_products) + '</td>' +
+        '<td>' + (isGap
+          ? '<span class="sup">nobody we buy from lists one</span>'
+          : '') + '</td>' +
+        '</tr>';
+    });
+    t.innerHTML = html;
+  }
+
+  var seaRun = document.getElementById('seaRunBtn');
+  if (seaRun) seaRun.addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Working…';
+    callFn('scan-competitors', {})
+      .then(function () { return callFn('build-seasonal', {}); })
+      .then(function (res) {
+        btn.disabled = false; btn.textContent = 'Look for seasonal now';
+        if (res && res.blocked) {
+          note('srMsg', 'Waiting on: ' + (res.missing || []).join(', ') + '. Fill those in under Settings.', 'err');
+        } else if (res && res.ok) {
+          var msg = 'Looked at ' + res.seasons_live + ' season' +
+                    (res.seasons_live === 1 ? '' : 's') + ' and shortlisted ' +
+                    res.shortlisted + '.';
+          if (res.seasons_waiting && res.seasons_waiting.length) {
+            msg += ' Skipped, still waiting on lead times: ' + res.seasons_waiting.join(', ') + '.';
+          }
+          note('srMsg', msg, res.seasons_waiting && res.seasons_waiting.length ? 'err' : 'ok');
+        } else {
+          note('srMsg', 'That did not complete. Check the function logs in Netlify.', 'err');
+        }
+        loadSourcing();
+      }, function () {
+        btn.disabled = false; btn.textContent = 'Look for seasonal now';
+        note('srMsg', 'Could not reach the seasonal function. Is it deployed?', 'err');
+      });
+  });
+
+  var seaFilterEl = document.getElementById('seaFilter');
+  if (seaFilterEl) seaFilterEl.addEventListener('change', renderSeasonalList);
+
+
+  // ------------------------------------------------------------ the ask box
+  //
+  // Two round trips on purpose. The first works out what was meant and
+  // shows it. The second carries it out. Nothing is written in between,
+  // so reading the proposal and deciding not to bother costs nothing.
+
+  function renderAsked() {
+    var t = document.getElementById('tblAsked');
+    if (!t) return;
+
+    if (!sr.askReady) {
+      t.innerHTML = '<tr><td class="empty">The ask box needs migration 008 ' +
+                    'running in Supabase first.</td></tr>';
+      return;
+    }
+    if (!sr.asked.length) {
+      t.innerHTML = '<tr><td class="empty">Nothing asked yet.</td></tr>';
+      return;
+    }
+
+    var html = '<tr><th>When</th><th>Asked</th><th>What happened</th><th>Worked out by</th></tr>';
+    sr.asked.forEach(function (a) {
+      var outcome = a.status === 'applied'   ? '<span class="tag on">done</span>'
+                  : a.status === 'rejected'  ? '<span class="tag dim">not done</span>'
+                  : a.status === 'proposed'  ? '<span class="tag mid">waiting on you</span>'
+                  : a.status === 'not_understood' ? '<span class="tag off">not understood</span>'
+                  : '<span class="tag off">failed</span>';
+      html += '<tr>' +
+        '<td>' + fmt(a.asked_at) + '</td>' +
+        '<td>' + esc(a.question) + '</td>' +
+        '<td>' + outcome +
+          (a.result ? '<div class="sup">' + esc(a.result) + '</div>' : '') + '</td>' +
+        '<td>' + (a.parsed_by === 'pattern'
+          ? '<span class="tag dim">without AI</span>'
+          : a.parsed_by === 'ai' ? 'AI' : '—') + '</td>' +
+        '</tr>';
+    });
+    t.innerHTML = html;
+  }
+
+  var askGo = document.getElementById('askGo');
+  if (askGo) askGo.addEventListener('click', function () {
+    var q = document.getElementById('askBox').value.trim();
+    if (!q) { note('srMsg', 'Type something first.', 'err'); return; }
+
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Thinking…';
+
+    callFn('sourcing-assistant', { question: q }).then(function (res) {
+      btn.disabled = false; btn.textContent = 'Work out what that means';
+      var box = document.getElementById('askProposal');
+
+      if (!res || res.error) {
+        box.innerHTML = '<div class="notice warn">' +
+          esc((res && res.error) || 'That did not work. Nothing has been changed.') + '</div>';
+        return;
+      }
+
+      if (!res.understood) {
+        box.innerHTML = '<div class="notice warn">' + esc(res.message || '') + '</div>';
+        loadSourcing();
+        return;
+      }
+
+      sr.proposal = res.requestId;
+
+      box.innerHTML =
+        '<div class="panel">' +
+          '<h2>This is what I would do</h2>' +
+          (res.parsedBy === 'pattern'
+            ? '<p class="hint"><b>Worked out without AI.</b> The AI was unavailable, so this ' +
+              'came from the built-in patterns. Read it twice.</p>'
+            : '') +
+          '<pre style="white-space:pre-wrap;font:inherit;margin:0 0 12px">' +
+            esc(res.preview) + '</pre>' +
+          (res.dropped && res.dropped.length
+            ? '<div class="notice warn"><p class="hint" style="margin:0">' +
+              'Ignored, because it is outside what this box may change: ' +
+              esc(res.dropped.join(', ')) + '</p></div>'
+            : '') +
+          '<div class="bar">' +
+            '<button class="btn" id="askConfirm">Yes, do it</button>' +
+            '<button class="btn ghost" id="askReject">No</button>' +
+          '</div>' +
+        '</div>';
+
+      document.getElementById('askConfirm').addEventListener('click', function () {
+        var c = this;
+        c.disabled = true; c.textContent = 'Doing it…';
+        callFn('sourcing-assistant', { requestId: sr.proposal, confirm: true })
+          .then(function (r2) {
+            document.getElementById('askProposal').innerHTML = '';
+            document.getElementById('askBox').value = '';
+            if (r2 && r2.error) { note('srMsg', r2.error, 'err'); }
+            else if (r2 && r2.problems && r2.problems.length) {
+              note('srMsg', 'Partly done. ' + r2.problems.join(' '), 'err');
+            } else {
+              note('srMsg', 'Done. ' + ((r2 && r2.done) || []).join(' '), 'ok');
+            }
+            loadSourcing();
+          });
+      });
+
+      document.getElementById('askReject').addEventListener('click', function () {
+        callFn('sourcing-assistant', { requestId: sr.proposal, reject: true }).then(function () {
+          document.getElementById('askProposal').innerHTML = '';
+          note('srMsg', 'Left alone. Nothing was changed.', 'ok');
+          loadSourcing();
+        });
+      });
+    }, function () {
+      btn.disabled = false; btn.textContent = 'Work out what that means';
+      note('srMsg', 'Could not reach the assistant. Is it deployed?', 'err');
+    });
+  });
+
+  var askClear = document.getElementById('askClear');
+  if (askClear) askClear.addEventListener('click', function () {
+    document.getElementById('askBox').value = '';
+    document.getElementById('askProposal').innerHTML = '';
+  });
+
 
   // ------------------------------------------------------------ suppliers
   function renderSuppliers() {
@@ -2201,11 +2695,16 @@
     document.getElementById('stMinContrib').value = s.min_contribution_pence === null ? '' : s.min_contribution_pence;
     document.getElementById('stTargetPct').value = s.target_contribution_pct === null ? '' : s.target_contribution_pct;
     document.getElementById('stMaxPer').value    = s.max_candidates_per_category || 5;
+    document.getElementById('stHorizon').value   = s.seasonal_horizon_weeks || 26;
   }
 
   document.getElementById('stSave').addEventListener('click', function () {
     var vat = document.getElementById('stVatReg').value;
-    db.from('sourcing_settings').update({
+    // Only send the seasonal horizon if the column is actually there.
+    // Without it the whole save would be rejected on a database where
+    // 007 has not been run yet, taking the money settings down with it.
+    var hasHorizon = sr.settings && 'seasonal_horizon_weeks' in sr.settings;
+    var patch = {
       vat_registered: vat === '' ? null : vat === 'true',
       vat_rate: pctToRate(document.getElementById('stVatRate').value),
       payment_fee_pct: pctToRate(document.getElementById('stPayPct').value),
@@ -2218,7 +2717,12 @@
       min_contribution_pence: intOrNull(document.getElementById('stMinContrib').value),
       target_contribution_pct: parseFloat(document.getElementById('stTargetPct').value) || null,
       max_candidates_per_category: intOrNull(document.getElementById('stMaxPer').value) || 5
-    }).eq('id', 1).then(function (r) {
+    };
+    if (hasHorizon) {
+      patch.seasonal_horizon_weeks = intOrNull(document.getElementById('stHorizon').value) || 26;
+    }
+
+    db.from('sourcing_settings').update(patch).eq('id', 1).then(function (r) {
       if (r.error) { note('srMsg', r.error.message, 'err'); return; }
       note('srMsg', 'Settings saved.', 'ok');
       loadSourcing();
