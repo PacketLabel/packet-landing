@@ -2202,16 +2202,23 @@ e.g. Stop scanning Boots"></textarea>
     pin:       { w: 1000, h: 1500, label: 'Pin 1000 × 1500 — Pinterest' }
   };
 
+  // density: how much ink is on the card. The rotation uses it to avoid
+  // putting two heavy cards or two empty ones side by side, which is what
+  // actually makes a grid look composed.
+  // needs: 'list' = only offered when there are real list items;
+  //        'short' = only when the headline is four words or fewer.
   var LAYOUTS = {
-    statement: { label: 'Statement — centred, rules top and bottom', bgs: ['cream', 'sand', 'terracotta', 'brown'] },
-    editorial: { label: 'Editorial — ranged left, lots of air',      bgs: ['cream', 'sand', 'brown'] },
-    block:     { label: 'Colour block — band across the foot',       bgs: ['cream', 'sand'] },
-    number:    { label: 'Big number — one figure, one caption',      bgs: ['cream', 'terracotta', 'brown'] },
-    question:  { label: 'Question card — oversized mark behind',     bgs: ['cream', 'sand', 'brown'] },
-    list:      { label: 'Three lines — a short numbered list',       bgs: ['cream', 'sand', 'brown'] },
-    corner:    { label: 'Badge corner — off-centre, badge top right', bgs: ['cream', 'sand', 'terracotta', 'brown'] }
+    statement: { label: 'Statement — centred, framed by rules',   density: 'mid',   bgs: ['cream', 'sand', 'terracotta', 'brown'] },
+    whisper:   { label: 'Whisper — a few small words, lots of air', density: 'light', bgs: ['cream', 'sand', 'terracotta', 'brown'] },
+    shout:     { label: 'Shout — huge type, cropped at the edge', density: 'heavy', bgs: ['cream', 'sand', 'terracotta', 'brown'], needs: 'short' },
+    foot:      { label: 'Foot — text along the bottom, void above', density: 'light', bgs: ['cream', 'sand', 'terracotta', 'brown'] },
+    split:     { label: 'Split — a colour panel down one side',   density: 'heavy', bgs: ['cream', 'sand', 'brown'] },
+    band:      { label: 'Band — knocked out of a band through the middle', density: 'mid', bgs: ['cream', 'sand', 'terracotta'] },
+    vertical:  { label: 'Vertical — set sideways up the edge',    density: 'light', bgs: ['cream', 'sand', 'brown'] },
+    index:     { label: 'Index — a ruled, numbered list',         density: 'heavy', bgs: ['cream', 'sand', 'brown'], needs: 'list' }
   };
   var LAYOUT_KEYS = Object.keys(LAYOUTS);
+  var PALE = { cream: 1, sand: 1 };
 
   // Everything is drawn at twice the final size and shrunk on the way out.
   // Downscaling averages several rendered pixels into each exported one, so
@@ -2244,43 +2251,52 @@ e.g. Stop scanning Boots"></textarea>
     } catch (e) { /* private window, or storage off. Not worth failing over. */ }
   }
 
-  // The big-number layout blows the first word up to fill the frame. That
-  // works for "Twelve." and for "Boring is underrated." It does not work for
-  // "Some things wear out.", where the first word is doing no work and the
-  // result is a giant "Some". So it is only offered when the headline is
-  // short enough that its opening word is genuinely the point.
-  function numberLayoutSuits(head) {
-    var words = String(head || '').trim().split(/\s+/).filter(Boolean);
-    if (!words.length) return false;
-    if (/^[£$€]?[\d]/.test(words[0])) return true;
-    if (words.length === 1) return true;
-    // A short opening word is almost always a function word — "Pick", "Go",
-    // "Some" — and forty-point type makes it look like the point when it
-    // isn't. A long one can carry the frame on its own.
-    return words[0].replace(/[^A-Za-z]/g, '').length >= 6;
+  function layoutEligible(key, sizeKey, f) {
+    var L = LAYOUTS[key];
+    if (!L) return false;
+    if (sizeKey === 'landscape' && (key === 'index' || key === 'vertical' || key === 'split')) return false;
+    if (L.needs === 'list' && f.list.length < 2) return false;
+    if (L.needs === 'short') {
+      var words = String(f.head || '').trim().split(/\s+/).filter(Boolean);
+      if (!words.length || words.length > 4) return false;
+      // A one or two letter opening word set forty points high looks like a
+      // mistake, not a decision.
+      if (words[0].replace(/[^A-Za-z0-9]/g, '').length < 3) return false;
+    }
+    return true;
   }
 
+  // Picks a layout and ground that differs from the last one in BOTH how
+  // much ink is on it and whether it is pale or dark. That is the whole
+  // trick: a feed reads as varied because neighbouring posts contrast, not
+  // because there are lots of templates.
   function pickCombo(sizeKey) {
     var recent = recentCombos();
-    var head = (document.getElementById('imHead') || {}).value || '';
+    var f = imgFields();
+    var last = (recent[0] || '').split(':');
+    var lastDensity = LAYOUTS[last[0]] ? LAYOUTS[last[0]].density : null;
+    var lastPale = last[1] ? !!PALE[last[1]] : null;
+
     var pool = [];
     LAYOUT_KEYS.forEach(function (l) {
-      if (sizeKey === 'landscape' && (l === 'list' || l === 'block')) return;
-      if (l === 'number' && !numberLayoutSuits(head)) return;
-      if (l === 'list') {
-        var items = (document.getElementById('imList') || {}).value || '';
-        if (items.split(/\n|;/).filter(function (x) { return x.trim(); }).length < 2) return;
-      }
-      LAYOUTS[l].bgs.forEach(function (b) { pool.push({ layout: l, bg: b }); });
+      if (!layoutEligible(l, sizeKey, f)) return;
+      LAYOUTS[l].bgs.forEach(function (b) { pool.push({ layout: l, bg: b, density: LAYOUTS[l].density, pale: !!PALE[b] }); });
     });
-    var fresh = pool.filter(function (c) {
-      return recent.indexOf(c.layout + ':' + c.bg) === -1;
-    });
-    var from = fresh.length ? fresh : pool.filter(function (c) {
-      return (c.layout + ':' + c.bg) !== recent[0];
-    });
-    if (!from.length) from = pool;
-    return from[Math.floor(Math.random() * from.length)];
+    if (!pool.length) pool = [{ layout: 'statement', bg: 'cream', density: 'mid', pale: true }];
+
+    function notRecent(c) { return recent.indexOf(c.layout + ':' + c.bg) === -1; }
+
+    // Best: unseen recently, different density AND different tone.
+    var tiers = [
+      pool.filter(function (c) { return notRecent(c) && c.density !== lastDensity && c.pale !== lastPale; }),
+      pool.filter(function (c) { return notRecent(c) && (c.density !== lastDensity || c.pale !== lastPale); }),
+      pool.filter(notRecent),
+      pool
+    ];
+    for (var i = 0; i < tiers.length; i++) {
+      if (tiers[i].length) return tiers[i][Math.floor(Math.random() * tiers[i].length)];
+    }
+    return pool[0];
   }
 
   // ---- the logo files ---------------------------------------------------
@@ -2545,11 +2561,27 @@ e.g. Stop scanning Boots"></textarea>
     };
   }
 
+
   // ---- the layouts ------------------------------------------------------
-  // Each draws everything except the logo and returns where the logo goes:
-  // { x, y, anchor } with anchor 'center' | 'left' | 'right'.
+  // Rewritten 4 September 2026, after laying twenty-one of them out as a
+  // profile grid and admitting they all looked the same. The first set was
+  // seven variations on ONE composition: two lines of serif text in the
+  // middle of a flat colour with the logo underneath. A rule across the top
+  // or a quote mark behind it is decoration, not a different picture.
+  //
+  // These eight differ in SILHOUETTE — where the ink is and how much of it
+  // there is. Some are nearly empty, some fill the frame edge to edge, one
+  // runs sideways. That contrast between neighbouring posts is what makes a
+  // feed look composed rather than templated. The brand is held by the four
+  // things that never move: the palette, Lora, the real logo, and generous
+  // space.
+  //
+  // Each returns where the logo goes: { x, y, anchor } with anchor
+  // 'center' | 'left' | 'right'.
   var RENDER = {
 
+    // The classic. Centred, framed by two rules. Kept because it is the one
+    // that reads as "a statement" and a feed needs some of those.
     statement: function (ctx, S, f, C) {
       var pad = Math.round(S.w * 0.10), inner = S.w - pad * 2;
       ctx.strokeStyle = C.accent;
@@ -2562,9 +2594,9 @@ e.g. Stop scanning Boots"></textarea>
       var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.098), '600', 30, S.w);
       ctx.textAlign = 'center';
       var headLines = wrapLines(ctx, f.head, inner);
-      var sPx = Math.round(hPx * 0.62);
+      var sPx = Math.max(Math.round(hPx * 0.62), Math.round(S.w * 0.038));
       setType(ctx, '400', sPx, 0);
-      var subLines = wrapLines(ctx, f.sub, inner);
+      var subLines = f.sub ? wrapLines(ctx, f.sub, inner) : [];
 
       var lineH = Math.round(hPx * 1.16), subH = Math.round(sPx * 1.32);
       var blockH = headLines.length * lineH + (subLines.length ? subLines.length * subH + sPx * 0.5 : 0);
@@ -2574,7 +2606,6 @@ e.g. Stop scanning Boots"></textarea>
       setType(ctx, '600', hPx, displayTracking(hPx, S.w));
       headLines.forEach(function (l) { drawLine(ctx, l, S.w / 2, y, hPx, 'center'); y += lineH; });
       clearTracking(ctx);
-
       if (subLines.length) {
         y += Math.round(sPx * 0.5);
         ctx.fillStyle = C.accent;
@@ -2584,232 +2615,266 @@ e.g. Stop scanning Boots"></textarea>
       return { x: S.w / 2, y: Math.round(S.h * 0.925), anchor: 'center' };
     },
 
-    editorial: function (ctx, S, f, C) {
-      // Measure the whole block first, then sit it on the optical centre.
-      // The first version started at a fixed 30% and let the text run
-      // downwards, which left half the frame empty and read as lost the
-      // moment the image was shrunk to a thumbnail — which is exactly how
-      // anyone actually sees it in a feed.
-      var pad = Math.round(S.w * 0.11), inner = Math.round(S.w * 0.74);
-      var ePx = Math.round(S.w * 0.022);
-      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.095), '600', 30, S.w);
+    // Almost nothing. A few small words adrift in a huge empty field. Reads
+    // as confidence, and it is the card that gives every dense one next to
+    // it room to breathe.
+    whisper: function (ctx, S, f, C) {
+      var inner = Math.round(S.w * 0.56);
+      var hPx = Math.round(S.w * 0.044);
+      setType(ctx, '600', hPx, -0.004);
+      ctx.textAlign = 'center';
       var headLines = wrapLines(ctx, f.head, inner);
-      var lineH = Math.round(hPx * 1.12);
-
-      // A floor on the second line. Tying it purely to the headline meant a
-      // long headline shrank the sub to something unreadable.
-      var sPx = Math.max(Math.round(hPx * 0.52), Math.round(S.w * 0.038));
+      var sPx = Math.round(S.w * 0.030);
       setType(ctx, '400', sPx, 0);
       var subLines = f.sub ? wrapLines(ctx, f.sub, inner) : [];
-      var subH = Math.round(sPx * 1.34);
 
-      var blockH = (f.eyebrow ? Math.round(S.w * 0.055) : 0) +
-                   headLines.length * lineH +
-                   (subLines.length ? Math.round(sPx * 1.1) + subLines.length * subH : 0);
-      var y = Math.round(S.h * 0.44 - blockH / 2);
+      var lineH = Math.round(hPx * 1.34), subH = Math.round(sPx * 1.4);
+      var blockH = headLines.length * lineH + (subLines.length ? subLines.length * subH + sPx : 0);
+      var y = Math.round(S.h * 0.47 - blockH / 2);
+
+      ctx.fillStyle = C.ink;
+      setType(ctx, '600', hPx, -0.004);
+      headLines.forEach(function (l) { y += lineH; drawLine(ctx, l, S.w / 2, y, hPx, 'center'); });
+      if (subLines.length) {
+        ctx.fillStyle = C.accent;
+        setType(ctx, '400', sPx, 0);
+        y += Math.round(sPx * 0.9);
+        subLines.forEach(function (l) { y += subH; drawLine(ctx, l, S.w / 2, y, sPx, 'center'); });
+      }
+      return { x: S.w / 2, y: Math.round(S.h * 0.885), anchor: 'center', small: true };
+    },
+
+    // The opposite. One word per line, set as large as it will go, ranged
+    // left and allowed to run past the right edge. Cropping type on purpose
+    // is the single most effective way to stop a card looking like a slide.
+    shout: function (ctx, S, f, C) {
+      var pad = Math.round(S.w * 0.06);
+      var words = String(f.head || '').trim().split(/\s+/).filter(Boolean).slice(0, 4);
+      if (!words.length) return { x: S.w / 2, y: Math.round(S.h * 0.92), anchor: 'center' };
+
+      // Sized by BOTH constraints. The first version sized from the widest
+      // word alone, so a four-word headline made four enormous lines that
+      // ran off the bottom of the frame and straight through the second
+      // line. Cropping at the right edge is the effect; cropping at the
+      // bottom is a bug.
+      var longest = words.reduce(function (a, b) { return a.length >= b.length ? a : b; });
+      var widthTarget = (S.w - pad) * 1.04;
+      var heightTarget = S.h * (f.sub ? 0.66 : 0.74);
+      var px = Math.round(S.w * 0.30);
+      while (px > 40) {
+        setType(ctx, '600', px, -0.030);
+        var fitsWide = ctx.measureText(longest).width <= widthTarget;
+        var fitsTall = words.length * (px * 0.96) <= heightTarget;
+        if (fitsWide && fitsTall) break;
+        px -= Math.max(2, Math.round(px * 0.03));
+      }
+      var lineH = Math.round(px * 0.96);
+      var blockH = words.length * lineH;
+      var top = Math.round(S.h * (f.sub ? 0.44 : 0.47) - blockH / 2);
+      var y = top + Math.round(px * 0.74);
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = C.ink;
+      setType(ctx, '600', px, -0.030);
+      words.forEach(function (w) { drawLine(ctx, w, pad, y, px, 'left'); y += lineH; });
+      clearTracking(ctx);
+
+      if (f.sub) {
+        var sPx = Math.round(S.w * 0.036);
+        ctx.fillStyle = C.accent;
+        setType(ctx, '400', sPx, 0);
+        // Sits under the block wherever the block actually ended, never at a
+        // fixed height it might already be occupying.
+        var sy = Math.max(top + blockH + Math.round(sPx * 1.6), Math.round(S.h * 0.80));
+        wrapLines(ctx, f.sub, Math.round(S.w * 0.62)).forEach(function (l, i) {
+          drawLine(ctx, l, pad, sy + i * Math.round(sPx * 1.3), sPx, 'left');
+        });
+      }
+      return { x: S.w - pad, y: Math.round(S.h * 0.10), anchor: 'right', small: true };
+    },
+
+    // Everything pushed to the floor, a big void above it, logo small and
+    // high. Upside-down from the usual arrangement, which is the point.
+    foot: function (ctx, S, f, C) {
+      var pad = Math.round(S.w * 0.09), inner = Math.round(S.w * 0.78);
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.082), '600', 28, S.w);
+      var headLines = wrapLines(ctx, f.head, inner);
+      var sPx = Math.max(Math.round(hPx * 0.52), Math.round(S.w * 0.034));
+      setType(ctx, '400', sPx, 0);
+      var subLines = f.sub ? wrapLines(ctx, f.sub, inner) : [];
+
+      var lineH = Math.round(hPx * 1.12), subH = Math.round(sPx * 1.3);
+      var bottom = Math.round(S.h * 0.90);
+      var blockH = headLines.length * lineH + (subLines.length ? Math.round(sPx * 0.9) + subLines.length * subH : 0);
+      var y = bottom - blockH;
 
       if (f.eyebrow) {
-        y += Math.round(S.w * 0.030);
-        drawSmallCaps(ctx, f.eyebrow, pad, y, ePx, C.accent, 'left');
-        y += Math.round(S.w * 0.025);
+        drawSmallCaps(ctx, f.eyebrow, pad, y - Math.round(S.w * 0.030), Math.round(S.w * 0.021), C.accent, 'left');
       }
       ctx.textAlign = 'left';
       ctx.fillStyle = C.ink;
       setType(ctx, '600', hPx, displayTracking(hPx, S.w));
       headLines.forEach(function (l) { y += lineH; drawLine(ctx, l, pad, y, hPx, 'left'); });
       clearTracking(ctx);
-
       if (subLines.length) {
         ctx.fillStyle = C.accent;
         setType(ctx, '400', sPx, 0);
-        y += Math.round(sPx * 1.1);
+        y += Math.round(sPx * 0.9);
         subLines.forEach(function (l) { y += subH; drawLine(ctx, l, pad, y, sPx, 'left'); });
       }
-      return { x: pad, y: Math.round(S.h * 0.90), anchor: 'left' };
+      return { x: pad, y: Math.round(S.h * 0.095), anchor: 'left', small: true };
     },
 
-    block: function (ctx, S, f, C) {
-      var bandTop = Math.round(S.h * 0.78);
-      ctx.fillStyle = BRAND.terracotta;
-      ctx.fillRect(0, bandTop, S.w, S.h - bandTop);
+    // A hard vertical edge down the frame. Two colours meeting is a very
+    // different shape from text floating on one.
+    split: function (ctx, S, f, C) {
+      var edge = Math.round(S.w * 0.34);
+      ctx.fillStyle = C.dark ? BRAND.cream : BRAND.terracotta;
+      ctx.fillRect(0, 0, edge, S.h);
 
-      var pad = Math.round(S.w * 0.11), inner = S.w - pad * 2;
-      var y = Math.round(S.h * 0.30);
-      if (f.eyebrow) {
-        drawSmallCaps(ctx, f.eyebrow, S.w / 2, y, Math.round(S.w * 0.022), C.accent, 'center');
-        y += Math.round(S.w * 0.05);
-      }
-      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.092), '600', 30, S.w);
-      ctx.textAlign = 'center';
+      var pad = edge + Math.round(S.w * 0.075);
+      var inner = S.w - pad - Math.round(S.w * 0.075);
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.070), '600', 24, S.w);
+      var headLines = wrapLines(ctx, f.head, inner);
+      var sPx = Math.max(Math.round(hPx * 0.55), Math.round(S.w * 0.030));
+      setType(ctx, '400', sPx, 0);
+      var subLines = f.sub ? wrapLines(ctx, f.sub, inner) : [];
+      var lineH = Math.round(hPx * 1.14), subH = Math.round(sPx * 1.32);
+      var blockH = headLines.length * lineH + (subLines.length ? Math.round(sPx * 1.0) + subLines.length * subH : 0);
+      var y = Math.round(S.h * 0.46 - blockH / 2);
+
+      ctx.textAlign = 'left';
       ctx.fillStyle = C.ink;
       setType(ctx, '600', hPx, displayTracking(hPx, S.w));
-      var lineH = Math.round(hPx * 1.12);
-      wrapLines(ctx, f.head, inner).forEach(function (l) { y += lineH; drawLine(ctx, l, S.w / 2, y, hPx, 'center'); });
+      headLines.forEach(function (l) { y += lineH; drawLine(ctx, l, pad, y, hPx, 'left'); });
       clearTracking(ctx);
-
-      if (f.sub) {
-        var sPx = Math.round(hPx * 0.55);
-        ctx.fillStyle = BRAND.brown;
+      if (subLines.length) {
+        ctx.fillStyle = C.accent;
         setType(ctx, '400', sPx, 0);
-        y += Math.round(sPx * 1.3);
-        wrapLines(ctx, f.sub, inner).forEach(function (l) { y += Math.round(sPx * 1.3); drawLine(ctx, l, S.w / 2, y, sPx, 'center'); });
+        y += Math.round(sPx * 1.0);
+        subLines.forEach(function (l) { y += subH; drawLine(ctx, l, pad, y, sPx, 'left'); });
       }
-      return { x: S.w / 2, y: Math.round(bandTop + (S.h - bandTop) / 2), anchor: 'center', onBand: true };
+      // Logo lives in the colour panel, so it always needs the pale mark on
+      // terracotta and the dark one on cream.
+      return { x: Math.round(edge / 2), y: Math.round(S.h * 0.90), anchor: 'center',
+               panel: C.dark ? 'pale' : 'dark', panelWidth: edge };
     },
 
-    number: function (ctx, S, f, C) {
-      var big = (f.head || '').split(/\s+/)[0] || f.head || '';
-      var rest = (f.head || '').split(/\s+/).slice(1).join(' ');
+    // A wide band through the middle with the words knocked out of it.
+    // Heavy in the centre, empty top and bottom.
+    band: function (ctx, S, f, C) {
+      var top = Math.round(S.h * 0.33), bottom = Math.round(S.h * 0.67);
+      ctx.fillStyle = C.dark ? BRAND.cream : BRAND.brown;
+      ctx.fillRect(0, top, S.w, bottom - top);
+
+      var ink = C.dark ? BRAND.brown : BRAND.cream;
+      var accent = C.dark ? BRAND.terracotta : BRAND.sand;
       var pad = Math.round(S.w * 0.10), inner = S.w - pad * 2;
 
-      var bPx = fitSize(ctx, big, inner, Math.round(S.w * 0.34), '600', 60, S.w);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = C.ink;
-      setType(ctx, '600', bPx, displayTracking(bPx, S.w));
-      var y = Math.round(S.h * 0.44);
-      drawLine(ctx, big, S.w / 2, y, bPx, 'center');
-      clearTracking(ctx);
-
-      ctx.strokeStyle = C.accent;
-      ctx.lineWidth = Math.max(2, Math.round(S.w / 400));
-      ctx.beginPath();
-      ctx.moveTo(S.w / 2 - S.w * 0.09, y + Math.round(S.w * 0.045));
-      ctx.lineTo(S.w / 2 + S.w * 0.09, y + Math.round(S.w * 0.045));
-      ctx.stroke();
-
-      var cPx = Math.round(S.w * 0.048);
-      y += Math.round(S.w * 0.115);
-      if (rest) {
-        ctx.fillStyle = C.ink;
-        setType(ctx, '600', cPx, -0.006);
-        wrapLines(ctx, rest, inner).forEach(function (l) { drawLine(ctx, l, S.w / 2, y, cPx, 'center'); y += Math.round(cPx * 1.3); });
-        clearTracking(ctx);
-        y += Math.round(cPx * 0.35);
-      }
-      if (f.sub) {
-        var s2 = Math.round(cPx * (rest ? 0.86 : 1));
-        ctx.fillStyle = C.accent;
-        setType(ctx, '400', s2, 0);
-        wrapLines(ctx, f.sub, inner).forEach(function (l) { drawLine(ctx, l, S.w / 2, y, s2, 'center'); y += Math.round(s2 * 1.34); });
-      }
-      return { x: S.w / 2, y: Math.round(S.h * 0.925), anchor: 'center' };
-    },
-
-    question: function (ctx, S, f, C) {
-      var glyph = /\?\s*$/.test(f.head || '') ? '?' : '“';
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.fillStyle = C.faint;
-      setType(ctx, '600', Math.round(S.w * 0.9), 0);
-      ctx.fillText(glyph, S.w / 2, Math.round(S.h * 0.78));
-      ctx.restore();
-      clearTracking(ctx);
-
-      var pad = Math.round(S.w * 0.12), inner = S.w - pad * 2;
-      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.088), '600', 30, S.w);
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.070), '600', 24, S.w);
       ctx.textAlign = 'center';
       var headLines = wrapLines(ctx, f.head, inner);
-      var sPx = Math.round(hPx * 0.6);
+      var sPx = Math.max(Math.round(hPx * 0.55), Math.round(S.w * 0.030));
       setType(ctx, '400', sPx, 0);
-      var subLines = wrapLines(ctx, f.sub, inner);
-      var lineH = Math.round(hPx * 1.16), subH = Math.round(sPx * 1.32);
-      var blockH = headLines.length * lineH + (subLines.length ? subLines.length * subH + sPx * 0.6 : 0);
-      var y = Math.round(S.h * 0.47 - blockH / 2 + lineH * 0.8);
+      var subLines = f.sub ? wrapLines(ctx, f.sub, inner) : [];
+      var lineH = Math.round(hPx * 1.14), subH = Math.round(sPx * 1.3);
+      var blockH = headLines.length * lineH + (subLines.length ? Math.round(sPx * 0.8) + subLines.length * subH : 0);
+      var y = Math.round((top + bottom) / 2 - blockH / 2 + lineH * 0.74);
 
-      ctx.fillStyle = C.ink;
+      ctx.fillStyle = ink;
       setType(ctx, '600', hPx, displayTracking(hPx, S.w));
       headLines.forEach(function (l) { drawLine(ctx, l, S.w / 2, y, hPx, 'center'); y += lineH; });
       clearTracking(ctx);
       if (subLines.length) {
-        y += Math.round(sPx * 0.6);
-        ctx.fillStyle = C.accent;
+        y += Math.round(sPx * 0.8);
+        ctx.fillStyle = accent;
         setType(ctx, '400', sPx, 0);
         subLines.forEach(function (l) { drawLine(ctx, l, S.w / 2, y, sPx, 'center'); y += subH; });
       }
-      return { x: S.w / 2, y: Math.round(S.h * 0.93), anchor: 'center' };
+      return { x: S.w / 2, y: Math.round(S.h * 0.855), anchor: 'center', small: true };
     },
 
-    list: function (ctx, S, f, C) {
-      var pad = Math.round(S.w * 0.12), inner = S.w - pad * 2;
-      var y = Math.round(S.h * 0.24);
-
-      if (f.eyebrow) {
-        drawSmallCaps(ctx, f.eyebrow, pad, y, Math.round(S.w * 0.022), C.accent, 'left');
-        y += Math.round(S.w * 0.05);
-      }
-      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.072), '600', 26, S.w);
+    // Sideways up the left edge. Nothing else in the set has this outline,
+    // which is the whole reason it is here.
+    vertical: function (ctx, S, f, C) {
+      var hPx = Math.round(S.w * 0.062);
+      ctx.save();
+      ctx.translate(Math.round(S.w * 0.20), Math.round(S.h * 0.92));
+      ctx.rotate(-Math.PI / 2);
       ctx.textAlign = 'left';
       ctx.fillStyle = C.ink;
       setType(ctx, '600', hPx, displayTracking(hPx, S.w));
-      wrapLines(ctx, f.head, inner).forEach(function (l) { y += Math.round(hPx * 1.12); drawLine(ctx, l, pad, y, hPx, 'left'); });
+      var maxLen = Math.round(S.h * 0.84);
+      var lines = wrapLines(ctx, f.head, maxLen);
+      lines.forEach(function (l, i) { ctx.fillText(l, 0, i * Math.round(hPx * 1.22)); });
       clearTracking(ctx);
-
-      // Only a real list gets numbers. Falling back to the second line put a
-      // lonely "1" next to a sentence that was never a list item.
-      var items = f.list.length > 1 ? f.list : [];
-      var iPx = Math.round(S.w * 0.046);
-      y += Math.round(S.w * 0.055);
-
-      if (!items.length) {
-        if (f.sub) {
-          var sPx = Math.max(Math.round(hPx * 0.55), Math.round(S.w * 0.038));
-          ctx.fillStyle = C.accent;
-          setType(ctx, '400', sPx, 0);
-          wrapLines(ctx, f.sub, inner).forEach(function (l) { drawLine(ctx, l, pad, y, sPx, 'left'); y += Math.round(sPx * 1.32); });
-        }
-        return { x: pad, y: Math.round(S.h * 0.90), anchor: 'left' };
-      }
-
-      items.forEach(function (item, i) {
-        ctx.fillStyle = C.accent;
-        setType(ctx, '600', iPx, 0);
-        ctx.fillText(String(i + 1), pad, y);
-        ctx.fillStyle = C.ink;
-        setType(ctx, '400', iPx, 0);
-        var indent = pad + Math.round(S.w * 0.055);
-        wrapLines(ctx, item, inner - Math.round(S.w * 0.055)).forEach(function (l, k) {
-          ctx.fillText(l, indent, y + k * Math.round(iPx * 1.28));
-          if (k) y += Math.round(iPx * 1.28);
-        });
-        y += Math.round(iPx * 1.9);
-      });
-      return { x: pad, y: Math.round(S.h * 0.90), anchor: 'left' };
-    },
-
-    corner: function (ctx, S, f, C) {
-      var pad = Math.round(S.w * 0.11), inner = Math.round(S.w * 0.72);
-      var y = Math.round(S.h * 0.44);
-
-      if (f.eyebrow) {
-        drawSmallCaps(ctx, f.eyebrow, pad, y, Math.round(S.w * 0.022), C.accent, 'left');
-        y += Math.round(S.w * 0.05);
-      }
-      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.088), '600', 28, S.w);
-      ctx.textAlign = 'left';
-      ctx.fillStyle = C.ink;
-      setType(ctx, '600', hPx, displayTracking(hPx, S.w));
-      wrapLines(ctx, f.head, inner).forEach(function (l) { y += Math.round(hPx * 1.12); drawLine(ctx, l, pad, y, hPx, 'left'); });
-      clearTracking(ctx);
-
       if (f.sub) {
-        var sPx = Math.max(Math.round(hPx * 0.54), Math.round(S.w * 0.038));
+        var sPx = Math.round(S.w * 0.038);
         ctx.fillStyle = C.accent;
         setType(ctx, '400', sPx, 0);
-        y += Math.round(sPx * 1.25);
-        wrapLines(ctx, f.sub, inner).forEach(function (l) { y += Math.round(sPx * 1.32); drawLine(ctx, l, pad, y, sPx, 'left'); });
+        var base = lines.length * Math.round(hPx * 1.22) + Math.round(sPx * 1.1);
+        wrapLines(ctx, f.sub, maxLen).forEach(function (l, i) {
+          ctx.fillText(l, 0, base + i * Math.round(sPx * 1.32));
+        });
       }
-      return { x: S.w - pad, y: Math.round(S.h * 0.13), anchor: 'right', forceBadge: true };
+      ctx.restore();
+      return { x: S.w - Math.round(S.w * 0.09), y: Math.round(S.h * 0.90), anchor: 'right', small: true };
+    },
+
+    // Dense and ruled, like a contents page. The busiest card in the set.
+    index: function (ctx, S, f, C) {
+      var pad = Math.round(S.w * 0.10), inner = S.w - pad * 2;
+      var y = Math.round(S.h * 0.18);
+
+      if (f.eyebrow) {
+        drawSmallCaps(ctx, f.eyebrow, pad, y, Math.round(S.w * 0.021), C.accent, 'left');
+        y += Math.round(S.w * 0.045);
+      }
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.062), '600', 22, S.w);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = C.ink;
+      setType(ctx, '600', hPx, displayTracking(hPx, S.w));
+      wrapLines(ctx, f.head, inner).forEach(function (l) { y += Math.round(hPx * 1.12); drawLine(ctx, l, pad, y, hPx, 'left'); });
+      clearTracking(ctx);
+
+      var items = f.list.length ? f.list : (f.sub ? [f.sub] : []);
+      var iPx = Math.round(S.w * 0.042);
+      y += Math.round(S.w * 0.045);
+      ctx.lineWidth = Math.max(1, Math.round(S.w / 900));
+      items.forEach(function (item, i) {
+        ctx.strokeStyle = C.accent;
+        ctx.globalAlpha = 0.45;
+        ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(S.w - pad, y); ctx.stroke();
+        ctx.globalAlpha = 1;
+        y += Math.round(iPx * 1.15);
+        ctx.fillStyle = C.accent;
+        setUIType(ctx, Math.round(iPx * 0.62), 0.12);
+        ctx.fillText(('0' + (i + 1)).slice(-2), pad, y);
+        clearTracking(ctx);
+        ctx.fillStyle = C.ink;
+        setType(ctx, '400', iPx, 0);
+        wrapLines(ctx, item, inner - Math.round(S.w * 0.09)).forEach(function (l, k) {
+          if (k) y += Math.round(iPx * 1.24);
+          ctx.fillText(l, pad + Math.round(S.w * 0.09), y);
+        });
+        y += Math.round(iPx * 1.05);
+      });
+      ctx.strokeStyle = C.accent;
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(S.w - pad, y); ctx.stroke();
+      ctx.globalAlpha = 1;
+      return { x: S.w - pad, y: Math.round(S.h * 0.925), anchor: 'right', small: true };
     }
   };
 
   function currentLayout(sizeKey) {
     var chosen = document.getElementById('imLayout').value;
-    if (chosen && chosen !== 'auto') {
+    if (chosen && chosen !== 'auto' && LAYOUTS[chosen]) {
       var bg = document.getElementById('imBg').value;
       if (LAYOUTS[chosen].bgs.indexOf(bg) === -1) bg = LAYOUTS[chosen].bgs[0];
       return { layout: chosen, bg: bg, auto: false };
     }
-    if (!state.imCombo) state.imCombo = pickCombo(sizeKey);
+    if (!state.imCombo || !LAYOUTS[state.imCombo.layout]) state.imCombo = pickCombo(sizeKey);
     return { layout: state.imCombo.layout, bg: state.imCombo.bg, auto: true };
   }
 
@@ -2847,14 +2912,20 @@ e.g. Stop scanning Boots"></textarea>
 
     var noteEl = document.getElementById('imNote');
     var markPref = document.getElementById('imMark').value;
-    var label = LAYOUTS[combo.layout].label.split(' — ')[0] +
+    // A post saved before the layouts were rewritten carries a name that no
+    // longer exists. Fall back rather than throwing — an old draft should
+    // still open, just in the nearest current layout.
+    var meta = LAYOUTS[combo.layout] || LAYOUTS.statement;
+    var label = meta.label.split(' — ')[0] +
                 (combo.auto ? ' · picked for you' : ' · your choice');
 
     if (markPref === 'none') {
       noteEl.textContent = label;
     } else {
       var useBadge = markPref === 'badge' || slot.forceBadge;
-      var onDark = slot.onBand ? true : C.dark;
+      // slot.panel means the mark is sitting inside a coloured panel, so it
+      // takes its colour from the panel rather than from the page ground.
+      var onDark = slot.panel ? (slot.panel === 'pale') : C.dark;
       var file = useBadge ? 'packet-badge.png'
                : (onDark ? 'packet-wordmark-light.png' : 'packet-wordmark-dark.png');
       var img = marks[file];
@@ -2862,7 +2933,11 @@ e.g. Stop scanning Boots"></textarea>
         noteEl.textContent = 'Logo file assets/' + file + ' is missing — drawn without it rather than faking it.';
       } else {
         noteEl.textContent = label + ' · logo: ' + file + ', the file from the Logo folder.';
-        var targetW = Math.round(S.w * (useBadge ? 0.15 : (slot.onBand ? 0.30 : 0.26)));
+        // Sparse layouts get a smaller mark. A full-width wordmark on a card
+        // holding four words is the loudest thing on it.
+        var base = slot.small ? 0.17 : 0.26;
+        if (slot.panelWidth) base = Math.min(base, (slot.panelWidth * 0.62) / S.w);
+        var targetW = Math.round(S.w * (useBadge ? (slot.small ? 0.115 : 0.15) : base));
         var scale = targetW / img.width;
         var w = targetW, h = Math.round(img.height * scale);
         var x = slot.anchor === 'left' ? slot.x
