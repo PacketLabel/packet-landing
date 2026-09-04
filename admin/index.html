@@ -242,6 +242,8 @@
       <button data-page="subscribers">Subscribers</button>
       <button data-page="assessment">Assessment</button>
       <button data-page="sourcing">Sourcing</button>
+      <button data-page="costs">Costs</button>
+      <button data-page="finds">Finds</button>
       <button data-page="social">Social</button>
       <button data-page="traffic">Traffic</button>
       <button data-page="users">Users</button>
@@ -429,6 +431,172 @@
       <h2>Campaigns</h2>
       <div class="wrapscroll"><table id="tblUtm"></table></div>
     </section>
+    <!-- ---------- Costs ---------- -->
+    <!-- Real supplier cost prices, and the returns position that sits
+         behind each one. Added 2 September 2026 after the first search
+         of the Avasam, Syncee and AppScenic catalogues.
+
+         Two rules this page exists to enforce, both learned that day:
+           - A price quoted in dollars is not a cost in pence. Lines
+             without a captured exchange rate show as blocked, not as
+             cheap.
+           - A supplier who will not take a non-faulty return turns a
+             change-of-mind refund into a total loss of goods cost.
+             That is shown on the same row as the price, because the
+             two facts are only meaningful together. -->
+    <section id="page-costs" class="page">
+      <h1>Costs</h1>
+      <p class="hint">
+        What Packet would actually pay, per pack and per unit, landed. Blank
+        figures are gaps, not zeroes &mdash; the reason is in the last column.
+        Nothing here is an estimate: every price was read from a supplier's own
+        product page on the date shown.
+      </p>
+
+      <h2>Suppliers</h2>
+      <p class="hint">
+        <strong>Returns</strong> is the column that matters most. &ldquo;No&rdquo;
+        means a customer changing their mind costs Packet the full goods price,
+        because the supplier will not take the item back and Packet must still
+        refund in full under the Consumer Contracts Regulations.
+      </p>
+      <div class="wrapscroll"><table id="tblSuppliers"></table></div>
+
+      <h2>Costed products</h2>
+      <div class="wrapscroll"><table id="tblCosts"></table></div>
+
+      <p class="hint" id="costsNote"></p>
+    </section>
+
+
+    <!-- ---------- Finds ---------- -->
+    <!-- The shelf-filling exercise. Not the sourcing engine and not the
+         margin engine: raw leads, typed in by two people during the week,
+         with three facts each — what it is, what it costs, where it was
+         seen. Anything here has been costed by nobody and approved by
+         nobody. It becomes an opportunity later, by hand, or it does not. -->
+    <section id="page-finds" class="page">
+      <h1>Finds</h1>
+      <p class="hint">
+        Anything either of you sees that might be worth selling &mdash; a catalogue
+        listing, a competitor&rsquo;s shop, a shelf in a shop. Three facts: what it is,
+        what it costs, and a link so the price can be checked again later.
+        Nothing here is costed, approved or committed to.
+      </p>
+
+      <div class="cards" id="findsCards"></div>
+      <p class="hint" id="findsProgress"></p>
+
+      <div id="findsMsg" class="msg"></div>
+
+      <h2>Add a find</h2>
+      <div class="panel">
+        <div class="grid2">
+          <div class="field">
+            <label for="fTitle">What is it</label>
+            <input type="text" id="fTitle" placeholder="e.g. Microfibre cloths, 50 pack, 30x30cm">
+          </div>
+          <div class="field">
+            <label for="fCategory">Category</label>
+            <select id="fCategory"></select>
+          </div>
+          <div class="field">
+            <label for="fUrl">Link to the product</label>
+            <input type="text" id="fUrl" placeholder="https://">
+          </div>
+          <div class="field">
+            <label for="fSeen">Where you saw it</label>
+            <select id="fSeen">
+              <option value="">&mdash;</option>
+              <option value="avasam">Avasam</option>
+              <option value="syncee">Syncee</option>
+              <option value="appscenic">AppScenic</option>
+              <option value="amazon">Amazon</option>
+              <option value="ebay">eBay</option>
+              <option value="competitor">A competitor&rsquo;s shop</option>
+              <option value="high-street">High street / in a shop</option>
+              <option value="search">Ordinary web search</option>
+              <option value="other">Somewhere else</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fCost">Cost</label>
+            <input type="text" id="fCost" placeholder="12.28 &mdash; leave blank if you have not got one">
+          </div>
+          <div class="field">
+            <label for="fCurrency">Currency</label>
+            <select id="fCurrency">
+              <option value="GBP">&pound; GBP</option>
+              <option value="USD">$ USD</option>
+              <option value="EUR">&euro; EUR</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fBasis">Is that price ex or inc VAT</label>
+            <select id="fBasis">
+              <option value="unknown">Do not know</option>
+              <option value="ex_vat">Ex VAT (a trade price)</option>
+              <option value="inc_vat">Inc VAT (a shop price)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fPack">How many in the pack</label>
+            <input type="text" id="fPack" placeholder="50">
+          </div>
+        </div>
+        <div class="field">
+          <label for="fNotes">Anything worth remembering</label>
+          <textarea id="fNotes" rows="2" placeholder="Ships from where, returns position, who else sells it&hellip;"></textarea>
+        </div>
+        <div class="bar">
+          <button class="btn" id="fSave">Save find</button>
+          <span class="hint" style="margin:0">
+            Currency and VAT basis are asked every time on purpose &mdash; a dollar price
+            entered as sterling overstates margin by about a quarter, and mixing ex-VAT
+            with inc-VAT prices is what went wrong in the Quotes sheet.
+          </span>
+        </div>
+      </div>
+
+      <h2>Add a category</h2>
+      <div class="panel">
+        <div class="grid2">
+          <div class="field">
+            <label for="cLabel">Category name</label>
+            <input type="text" id="cLabel" placeholder="e.g. Bathroom and towels">
+          </div>
+          <div class="field">
+            <label for="cRp">Is anything in it applied to the body?</label>
+            <select id="cRp">
+              <option value="">Choose one</option>
+              <option value="no">No &mdash; not applied to the body</option>
+              <option value="yes">Yes &mdash; skin, hair, nails, mouth or fragrance</option>
+            </select>
+          </div>
+        </div>
+        <div class="notice warn" id="cRpWarn" style="display:none">
+          Anything applied to the body is a cosmetic under the UK Cosmetics Regulation.
+          It needs a UK <strong>Responsible Person</strong>, a safety assessment and product
+          notification before it can be sold. That works only by buying from a UK supplier
+          who already holds that role &mdash; own-brand puts the entire burden on Packet.
+          The category will be created with that flag set, and the sourcing tool will refuse
+          to shortlist anything in it from a supplier who does not hold RP.
+          This is a prompt for a solicitor, not advice.
+        </div>
+        <div class="bar">
+          <button class="btn ghost" id="cSave">Add category</button>
+        </div>
+      </div>
+
+      <h2>What has been found</h2>
+      <div class="bar">
+        <label class="tick" style="margin:0">
+          <input type="checkbox" id="fShowRejected"> Show rejected
+        </label>
+      </div>
+      <div id="findsList"></div>
+    </section>
+
     <!-- ---------- Sourcing ---------- -->
     <!-- Watches competitors and suppliers, and proposes things worth
          selling. It proposes. Every row on the shortlist waits for a
@@ -851,7 +1019,7 @@ e.g. Stop scanning Boots"></textarea>
 
   var cfg = window.PACKET_CONFIG || {};
   var db  = null;
-  var state = { subs: [], views: [], assess: [], posts: [], role: null, email: null, id: null };
+  var state = { subs: [], views: [], assess: [], posts: [], finds: [], findCats: [], role: null, email: null, id: null };
 
   var loginPage = document.getElementById('loginPage');
   var app       = document.getElementById('app');
@@ -1112,7 +1280,7 @@ e.g. Stop scanning Boots"></textarea>
       }
 
       var hash = (window.location.hash || '').replace('#', '');
-      var pages = ['overview', 'subscribers', 'assessment', 'sourcing', 'social', 'traffic'];
+      var pages = ['overview', 'subscribers', 'assessment', 'sourcing', 'costs', 'finds', 'social', 'traffic'];
       if (state.role === 'owner') pages.push('users');
       showPage(pages.indexOf(hash) > -1 ? hash : 'overview');
 
@@ -1165,8 +1333,115 @@ e.g. Stop scanning Boots"></textarea>
       renderSocial();
       renderTraffic();
       loadUsers();
+      // Finds goes first of the three. These are plain synchronous calls, so a
+      // throw inside one of them stops the ones after it — and Finds is the page
+      // two people are relying on this week.
+      loadFinds();
       loadSourcing();
+      loadCosts();
     });
+  }
+
+  // ----------------------------------------------------------------- costs
+  // Reads the supplier_product_costs view from 009, which does the landed
+  // cost arithmetic in SQL. Deliberately not recomputed here: money maths
+  // lives in one place, and a view can be checked by a person with a
+  // spreadsheet. If 009 has not been run this fails quietly — the rest of
+  // the admin works fine without it.
+  function loadCosts() {
+    Promise.all([
+      db.from('suppliers')
+        .select('name,sourcing_platform,platform_supplier_ref,ships_from_country,' +
+                'accepts_non_faulty_returns,return_shipping_paid_by,price_change_notice_days,' +
+                'quote_currency,status,legal_entity_name,companies_house_number,notes')
+        .order('name'),
+      db.from('supplier_product_costs')
+        .select('*')
+        .order('supplier_name')
+    ]).then(function (r) {
+      renderSuppliers((r[0] && r[0].data) || []);
+      renderCosts((r[1] && r[1].data) || []);
+      var missing = (r[0] && r[0].error) || (r[1] && r[1].error);
+      var el = document.getElementById('costsNote');
+      if (el) {
+        el.innerHTML = missing
+          ? 'Nothing to show yet. Has <code>009_supplier_costs.sql</code> been run?'
+          : 'Landed cost = trade price + delivery to the customer, ex VAT. Retail benchmarks '
+          + 'in the research reports are inclusive of VAT — reconcile the two before treating '
+          + 'the gap as margin.';
+      }
+    });
+  }
+
+  // Returns position first, price second. That ordering is the point of
+  // the page: a cheap product from a supplier who refuses returns is not
+  // cheap.
+  function returnsCell(v) {
+    if (v === true)  return '<span class="ok">Yes</span>';
+    if (v === false) return '<span class="err">No &mdash; full loss on a change of mind</span>';
+    return '<span class="hint">Not asked</span>';
+  }
+
+  function renderSuppliers(rows) {
+    var t = document.getElementById('tblSuppliers');
+    if (!t) return;
+    if (!rows.length) { t.innerHTML = '<tr><td>No suppliers recorded yet.</td></tr>'; return; }
+    var h = '<tr><th>Supplier</th><th>Found via</th><th>Ships from</th><th>Quotes in</th>'
+          + '<th>Takes non-faulty returns?</th><th>Return postage</th>'
+          + '<th>Price notice</th><th>Status</th></tr>';
+    rows.forEach(function (s) {
+      h += '<tr>'
+        + '<td>' + esc(s.name)
+            + (s.legal_entity_name
+                ? '<br><span class="hint">' + esc(s.legal_entity_name)
+                  + (s.companies_house_number ? ' &middot; ' + esc(s.companies_house_number) : '')
+                  + '</span>'
+                : '<br><span class="hint">Legal entity not established</span>')
+          + '</td>'
+        + '<td>' + esc(s.sourcing_platform || '—')
+            + (s.platform_supplier_ref ? '<br><span class="hint">' + esc(s.platform_supplier_ref) + '</span>' : '')
+          + '</td>'
+        + '<td>' + esc(s.ships_from_country || '—') + '</td>'
+        + '<td>' + esc(s.quote_currency || '—') + '</td>'
+        + '<td>' + returnsCell(s.accepts_non_faulty_returns) + '</td>'
+        + '<td>' + esc(s.return_shipping_paid_by || 'unknown') + '</td>'
+        + '<td>' + (s.price_change_notice_days === 0
+                     ? '<span class="err">None &mdash; real time</span>'
+                     : (s.price_change_notice_days == null
+                         ? '—' : esc(s.price_change_notice_days) + ' days')) + '</td>'
+        + '<td>' + esc(s.status) + '</td>'
+        + '</tr>';
+    });
+    t.innerHTML = h;
+  }
+
+  function renderCosts(rows) {
+    var t = document.getElementById('tblCosts');
+    if (!t) return;
+    if (!rows.length) { t.innerHTML = '<tr><td>No costed products yet.</td></tr>'; return; }
+    var h = '<tr><th>Product</th><th>Supplier</th><th>Pack</th><th>Quoted</th>'
+          + '<th>Landed</th><th>Per unit</th><th>Verified</th><th>Why blank</th></tr>';
+    rows.forEach(function (p) {
+      var quoted = p.source_price_minor == null
+        ? '—'
+        : (p.source_currency === 'GBP' ? '£' : (p.source_currency === 'USD' ? '$' : '€'))
+          + (p.source_price_minor / 100).toFixed(2);
+      h += '<tr>'
+        + '<td>' + esc(p.title) + '<br><span class="hint">' + esc(p.sku) + '</span></td>'
+        + '<td>' + esc(p.supplier_name) + '</td>'
+        + '<td>' + (p.pack_quantity == null ? '—' : esc(p.pack_quantity)) + '</td>'
+        + '<td>' + quoted + '</td>'
+        + '<td>' + money(p.landed_cost_pence) + '</td>'
+        + '<td>' + (p.landed_cost_per_unit_pence == null
+                     ? '—'
+                     : (Number(p.landed_cost_per_unit_pence)).toFixed(2) + 'p') + '</td>'
+        + '<td>' + (p.price_verified_on_product_page
+                     ? '<span class="ok">Product page</span>'
+                     : '<span class="hint">Listing only</span>') + '</td>'
+        + '<td>' + (p.blocked_reason ? '<span class="err">' + esc(p.blocked_reason) + '</span>' : '—') + '</td>'
+        + '</tr>';
+    });
+    t.innerHTML = h;
   }
 
   document.getElementById('refreshBtn').addEventListener('click', loadAll);
@@ -1737,6 +2012,322 @@ e.g. Stop scanning Boots"></textarea>
         headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
         body: JSON.stringify(body || {})
       }).then(function (r) { return r.json(); });
+    });
+  }
+
+  // ------------------------------------------------------------------ finds
+  // The shelf-filling exercise, added 4 September 2026.
+  //
+  // Deliberately the dumbest page in the admin. It does no arithmetic on
+  // money beyond dividing a pack price by a pack quantity, it scores
+  // nothing, and it recommends nothing — because the question it exists to
+  // answer is not "is this product any good" but "does a range of this size
+  // exist at all". Catalogue Search 006 searched three platforms for four
+  // products and found one. Fifty finds in a week either settles that or
+  // settles it the other way, and either answer is worth having.
+  //
+  // It will not convert currencies. Syncee and AppScenic quote in dollars
+  // and no exchange rate has been captured, so a dollar price stays a dollar
+  // price on screen with the symbol showing. Inventing a rate is how a
+  // shortlist quietly acquires a 25% error.
+
+  var FINDS_TARGET   = 50;
+  var FINDS_DEADLINE = '2026-09-11';   // Friday
+  var findsWired     = false;
+
+  function findsSymbol(ccy) {
+    return ccy === 'USD' ? '$' : (ccy === 'EUR' ? '€' : '£');
+  }
+
+  function findsBasisTag(b) {
+    if (b === 'ex_vat')  return '<span class="hint">ex VAT</span>';
+    if (b === 'inc_vat') return '<span class="hint">inc VAT</span>';
+    return '<span class="tag off">VAT basis unknown</span>';
+  }
+
+  function findsCost(f) {
+    if (f.cost_minor === null || f.cost_minor === undefined) {
+      return '<span class="hint">no price yet</span>';
+    }
+    var sym = findsSymbol(f.cost_currency);
+    var main = sym + (f.cost_minor / 100).toFixed(2);
+    var per = '';
+    if (f.pack_quantity && f.pack_quantity > 1) {
+      var each = f.cost_minor / f.pack_quantity;
+      per = '<br><span class="hint">' + f.pack_quantity + ' pack &middot; ' + sym +
+            (each / 100).toFixed(each < 100 ? 3 : 2) + ' each</span>';
+    }
+    return main + ' ' + findsBasisTag(f.cost_basis) + per;
+  }
+
+  function findsDaysLeft() {
+    var end = new Date(FINDS_DEADLINE + 'T23:59:59Z').getTime();
+    var now = Date.now();
+    return Math.max(0, Math.ceil((end - now) / 86400000));
+  }
+
+  function loadFinds() {
+    wireFinds();
+    Promise.all([
+      db.from('category_settings')
+        .select('category,label,requires_uk_rp,compliance_note')
+        .eq('active', true)
+        .order('label'),
+      db.from('product_finds')
+        .select('*')
+        .order('created_at', { ascending: false })
+    ]).then(function (r) {
+      if ((r[1] && r[1].error) || (r[0] && r[0].error)) {
+        document.getElementById('findsList').innerHTML =
+          '<div class="notice warn">Nothing to show yet. Has <code>010_product_finds.sql</code> been run in Supabase?</div>';
+        return;
+      }
+      state.findCats = (r[0] && r[0].data) || [];
+      state.finds    = (r[1] && r[1].data) || [];
+      fillFindCategories();
+      renderFindsCards();
+      renderFinds();
+    });
+  }
+
+  function fillFindCategories() {
+    var sel = document.getElementById('fCategory');
+    if (!sel) return;
+    var keep = sel.value;
+    var h = '<option value="">Choose a category</option>';
+    state.findCats.forEach(function (c) {
+      h += '<option value="' + esc(c.category) + '">' + esc(c.label) +
+           (c.requires_uk_rp ? ' — needs a Responsible Person' : '') + '</option>';
+    });
+    sel.innerHTML = h;
+    if (keep) sel.value = keep;
+  }
+
+  function renderFindsCards() {
+    var live = state.finds.filter(function (f) { return f.status !== 'rejected'; });
+    var priced = live.filter(function (f) { return f.cost_minor !== null && f.cost_minor !== undefined; });
+    var cats = {};
+    live.forEach(function (f) { if (f.category) cats[f.category] = 1; });
+    var days = findsDaysLeft();
+
+    var c = document.getElementById('findsCards');
+    if (c) {
+      c.innerHTML =
+        '<div class="card"><div class="n">' + live.length + ' / ' + FINDS_TARGET + '</div><div class="l">Found</div></div>' +
+        '<div class="card"><div class="n">' + Object.keys(cats).length + '</div><div class="l">Categories used</div></div>' +
+        '<div class="card"><div class="n">' + priced.length + '</div><div class="l">With a price</div></div>' +
+        '<div class="card"><div class="n">' + days + '</div><div class="l">Days left</div></div>';
+    }
+
+    var p = document.getElementById('findsProgress');
+    if (!p) return;
+    var short = FINDS_TARGET - live.length;
+    if (short <= 0) {
+      p.innerHTML = 'Target met. The useful question now is whether the range is <em>deep</em> ' +
+        'as well as wide &mdash; how many of these sit in the same category, from the same place.';
+    } else {
+      var perDay = days > 0 ? Math.ceil(short / days) : short;
+      p.innerHTML = short + ' to go by Friday 11 September' +
+        (days > 0 ? ' &mdash; about ' + perDay + ' a day between the two of you.' : '.') +
+        ' A find with no price still counts: <span class="hint">where it was seen matters more than what it cost.</span>';
+    }
+  }
+
+  function renderFinds() {
+    var wrap = document.getElementById('findsList');
+    if (!wrap) return;
+    var showRejected = document.getElementById('fShowRejected').checked;
+    var rows = state.finds.filter(function (f) {
+      return showRejected || f.status !== 'rejected';
+    });
+
+    if (!rows.length) {
+      wrap.innerHTML = '<div class="empty">Nothing found yet. Add the first one above.</div>';
+      return;
+    }
+
+    // Group by category, uncategorised last.
+    var byCat = {};
+    rows.forEach(function (f) {
+      var k = f.category || '';
+      (byCat[k] = byCat[k] || []).push(f);
+    });
+
+    var order = state.findCats.map(function (c) { return c.category; })
+      .filter(function (k) { return byCat[k]; });
+    if (byCat['']) order.push('');
+
+    var html = '';
+    order.forEach(function (k) {
+      var cat = null;
+      for (var i = 0; i < state.findCats.length; i++) {
+        if (state.findCats[i].category === k) { cat = state.findCats[i]; break; }
+      }
+      var label = cat ? cat.label : 'No category set';
+      html += '<h2>' + esc(label) + ' <span class="hint">&middot; ' + byCat[k].length + '</span></h2>';
+
+      if (cat && cat.requires_uk_rp) {
+        html += '<div class="notice warn">Applied to the body. Nothing in this category can be ' +
+                'listed unless the supplier already holds the UK Responsible Person role for it. ' +
+                'A prompt for a solicitor, not advice.</div>';
+      }
+
+      html += '<div class="wrapscroll"><table><tr>' +
+              '<th>Product</th><th>Cost</th><th>Seen at</th><th>Found by</th><th>Link</th><th></th></tr>';
+
+      byCat[k].forEach(function (f) {
+        html += '<tr' + (f.status === 'rejected' ? ' style="opacity:.5"' : '') + '>' +
+          '<td>' + esc(f.title) +
+            (f.status === 'shortlisted' ? ' <span class="tag on">shortlisted</span>' : '') +
+            (f.status === 'rejected' ? ' <span class="tag off">rejected</span>' : '') +
+            (f.notes ? '<br><span class="hint">' + esc(f.notes) + '</span>' : '') +
+          '</td>' +
+          '<td>' + findsCost(f) + '</td>' +
+          '<td>' + esc(f.seen_at || '—') + '</td>' +
+          '<td><span class="hint">' + esc((f.found_by_email || '').split('@')[0] || '—') + '</span></td>' +
+          '<td><a href="' + esc(f.url) + '" target="_blank" rel="noopener noreferrer">open</a></td>' +
+          '<td>' +
+            (f.status !== 'shortlisted'
+              ? '<button class="link" data-find="' + f.id + '" data-to="shortlisted">shortlist</button> '
+              : '<button class="link" data-find="' + f.id + '" data-to="new">un-shortlist</button> ') +
+            (f.status !== 'rejected'
+              ? '<button class="link danger" data-find="' + f.id + '" data-to="rejected">reject</button>'
+              : '<button class="link" data-find="' + f.id + '" data-to="new">restore</button>') +
+          '</td>' +
+          '</tr>';
+      });
+
+      html += '</table></div>';
+    });
+
+    wrap.innerHTML = html;
+
+    var btns = wrap.querySelectorAll('button[data-find]');
+    for (var b = 0; b < btns.length; b++) {
+      btns[b].addEventListener('click', function () {
+        setFindStatus(this.dataset.find, this.dataset.to);
+      });
+    }
+  }
+
+  function setFindStatus(id, status) {
+    db.from('product_finds').update({ status: status }).eq('id', id).then(function (r) {
+      if (r.error) { note('findsMsg', r.error.message, 'err'); return; }
+      loadFinds();
+    });
+  }
+
+  // Money in, as a person types it. Accepts "12.28", "£12.28", "12".
+  // Returns minor units, or null for blank, or NaN for nonsense.
+  function parseMoneyMinor(raw) {
+    var t = String(raw == null ? '' : raw).replace(/[£$€,\s]/g, '');
+    if (!t) return null;
+    if (!/^\d+(\.\d{1,2})?$/.test(t)) return NaN;
+    return Math.round(parseFloat(t) * 100);
+  }
+
+  function saveFind() {
+    var title = document.getElementById('fTitle').value.trim();
+    var url   = document.getElementById('fUrl').value.trim();
+    var cat   = document.getElementById('fCategory').value;
+    var cost  = parseMoneyMinor(document.getElementById('fCost').value);
+    var pack  = document.getElementById('fPack').value.trim();
+
+    if (!title) { note('findsMsg', 'It needs a name, even a rough one.', 'err'); return; }
+    if (!url)   { note('findsMsg', 'It needs a link. Prices on these sites change without notice, and without a link nobody can check this one again.', 'err'); return; }
+    if (!/^https?:\/\//i.test(url)) { note('findsMsg', 'The link needs to start with http:// or https://', 'err'); return; }
+    if (isNaN(cost)) { note('findsMsg', 'That cost is not a number. Type it like 12.28, or leave it blank.', 'err'); return; }
+    if (pack && !/^\d+$/.test(pack)) { note('findsMsg', 'Pack quantity should be a whole number.', 'err'); return; }
+
+    var row = {
+      title:          title,
+      category:       cat || null,
+      cost_minor:     cost,
+      cost_currency:  document.getElementById('fCurrency').value,
+      cost_basis:     document.getElementById('fBasis').value,
+      pack_quantity:  pack ? parseInt(pack, 10) : null,
+      url:            url,
+      seen_at:        document.getElementById('fSeen').value || null,
+      notes:          document.getElementById('fNotes').value.trim() || null,
+      found_by:       state.id,
+      found_by_email: state.email
+    };
+
+    document.getElementById('fSave').disabled = true;
+    db.from('product_finds').insert(row).then(function (r) {
+      document.getElementById('fSave').disabled = false;
+      if (r.error) {
+        note('findsMsg',
+          (r.error.code === '23505')
+            ? 'That link is already on the list — one of you has found it already.'
+            : r.error.message,
+          'err');
+        return;
+      }
+      ['fTitle', 'fUrl', 'fCost', 'fPack', 'fNotes'].forEach(function (id) {
+        document.getElementById(id).value = '';
+      });
+      note('findsMsg', 'Saved.', 'ok');
+      document.getElementById('fTitle').focus();
+      loadFinds();
+    });
+  }
+
+  function saveCategory() {
+    var label = document.getElementById('cLabel').value.trim();
+    var rp    = document.getElementById('cRp').value;
+
+    if (!label) { note('findsMsg', 'The category needs a name.', 'err'); return; }
+    if (!rp)    { note('findsMsg', 'Answer the body-applied question first — it decides whether a Responsible Person is needed, and it cannot be left blank.', 'err'); return; }
+
+    var slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+    if (!slug) { note('findsMsg', 'That name will not make a usable category code. Try plain words.', 'err'); return; }
+
+    var row = {
+      category:          slug,
+      label:             label,
+      requires_uk_rp:    rp === 'yes',
+      compliance_regime: rp === 'yes' ? 'UK Cosmetics Regulation' : 'General product safety',
+      compliance_note:   rp === 'yes'
+        ? 'Applied to the body. Needs a UK Responsible Person, a safety assessment and product notification. Added from the Finds page on ' + new Date().toISOString().slice(0, 10) + '.'
+        : 'Added from the Finds page on ' + new Date().toISOString().slice(0, 10) + '. Compliance regime not yet reviewed — confirm before listing.'
+    };
+
+    document.getElementById('cSave').disabled = true;
+    db.from('category_settings').insert(row).then(function (r) {
+      document.getElementById('cSave').disabled = false;
+      if (r.error) {
+        note('findsMsg',
+          (r.error.code === '23505') ? 'There is already a category with that name.'
+          : (r.error.code === '42501') ? 'Only an owner can add a category. Has 010_product_finds.sql been run?'
+          : r.error.message, 'err');
+        return;
+      }
+      document.getElementById('cLabel').value = '';
+      document.getElementById('cRp').value = '';
+      document.getElementById('cRpWarn').style.display = 'none';
+      note('findsMsg', 'Category added.', 'ok');
+      loadFinds();
+    });
+  }
+
+  function wireFinds() {
+    if (findsWired) return;
+    findsWired = true;
+    var save = document.getElementById('fSave');
+    if (!save) return;
+    save.addEventListener('click', saveFind);
+    document.getElementById('cSave').addEventListener('click', saveCategory);
+    document.getElementById('fShowRejected').addEventListener('change', renderFinds);
+    document.getElementById('cRp').addEventListener('change', function () {
+      document.getElementById('cRpWarn').style.display = this.value === 'yes' ? 'block' : 'none';
+    });
+    // Enter in any of the short fields saves, because this page is going to
+    // be used at speed with a catalogue open in the next tab.
+    ['fTitle', 'fUrl', 'fCost', 'fPack'].forEach(function (id) {
+      document.getElementById(id).addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') saveFind();
+      });
     });
   }
 
