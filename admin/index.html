@@ -334,49 +334,110 @@
     <section id="page-social" class="page">
       <h1>Social studio</h1>
       <p class="hint">
-        Drafts an Instagram post from rough notes, in Packet&rsquo;s voice and
-        inside Packet&rsquo;s rules. It never posts anything &mdash; you copy the
+        Write the idea once. It drafts the Instagram post, and the tabs give you the
+        same idea rewritten properly for the other platforms &mdash; each one written
+        when you ask for it, not all at once. It never posts anything: you copy the
         draft out and post it yourself.
       </p>
 
       <div id="aiState" class="msg"></div>
 
-      <div class="cards" style="grid-template-columns:1fr">
-        <div class="card">
-          <div class="field">
-            <label for="soBrief">What is the post about?</label>
-            <textarea id="soBrief" rows="3" placeholder="e.g. ask people what they can never find when they go looking"></textarea>
-          </div>
-          <div class="field">
-            <label for="soKind">What kind of post</label>
-            <select id="soKind">
-              <option value="question">A question &mdash; something we can take notes from</option>
-              <option value="useful">Something useful &mdash; a fact about the products themselves</option>
-              <option value="light">Something light &mdash; a Friday one</option>
-            </select>
-          </div>
-          <div class="bar">
-            <button class="btn" id="soDraft">Draft it</button>
-            <button class="btn ghost" id="soTemplate">Use a template instead</button>
-          </div>
+      <div class="panel">
+        <div class="field">
+          <label for="soBrief">What is the post about?</label>
+          <textarea id="soBrief" rows="3" placeholder="e.g. ask people what they can never find when they go looking"></textarea>
+        </div>
+        <div class="field" style="max-width:420px">
+          <label for="soKind">What kind of post</label>
+          <select id="soKind">
+            <option value="question">A question &mdash; something we can take notes from</option>
+            <option value="useful">Something useful &mdash; a fact about the products themselves</option>
+            <option value="light">Something light &mdash; a Friday one</option>
+          </select>
+        </div>
+        <div class="bar">
+          <button class="btn" id="soDraft">Draft it</button>
+          <button class="btn ghost" id="soTemplate">Use a template instead</button>
+          <span class="hint" id="soHow" style="margin:0"></span>
         </div>
       </div>
 
       <div id="soResultWrap" style="display:none">
-        <h2>Draft</h2>
-        <div class="card">
-          <div class="field">
-            <label for="soBody">Caption</label>
-            <textarea id="soBody" rows="8"></textarea>
-          </div>
-          <div class="field">
-            <label for="soTags">Hashtags</label>
-            <input type="text" id="soTags">
+        <div class="subnav" id="soTabs">
+          <button data-tab="instagram" class="active">Instagram</button>
+          <button data-tab="facebook">Facebook</button>
+          <button data-tab="tiktok">TikTok</button>
+          <button data-tab="pinterest">Pinterest</button>
+        </div>
+        <div id="soCard"></div>
+      </div>
+
+      <!-- ---------- Image maker ---------- -->
+      <!-- Renders the graphic on a canvas rather than generating a picture.
+           That is deliberate and it is the only way to keep the promise that
+           the logo on a Packet image is a REAL Packet logo: the wordmark and
+           badge are the actual files from the project Logo folder, composited
+           in. The word "Packet" is never typed out in a font, because a
+           lookalike is not the logo. -->
+      <div id="soImageWrap" style="display:none">
+        <h2>Image</h2>
+        <p class="hint">
+          Seven layouts. It picks one you have not had recently so a run of posts
+          does not all look the same &mdash; or set the layout yourself and it stays put.
+          The logo is the real file from the Logo folder, dropped in &mdash; not typed
+          &mdash; and it swaps to the pale version on a dark background.
+        </p>
+        <div class="panel">
+          <div class="grid2">
+            <div class="field">
+              <label for="imEyebrow">Small line above (optional)</label>
+              <input type="text" id="imEyebrow" placeholder="Worth knowing">
+            </div>
+            <div class="field">
+              <label for="imHead">Headline</label>
+              <input type="text" id="imHead" placeholder="Pick one.">
+            </div>
+            <div class="field">
+              <label for="imSub">Second line</label>
+              <input type="text" id="imSub" placeholder="You can't pick both.">
+            </div>
+            <div class="field">
+              <label for="imList">Three short lines (optional)</label>
+              <textarea id="imList" rows="3" placeholder="One per line &mdash; only used by the list layout"></textarea>
+            </div>
+            <div class="field">
+              <label for="imLayout">Layout</label>
+              <select id="imLayout"></select>
+            </div>
+            <div class="field">
+              <label for="imSize">Size</label>
+              <select id="imSize"></select>
+            </div>
+            <div class="field">
+              <label for="imBg">Background</label>
+              <select id="imBg">
+                <option value="cream">Cream</option>
+                <option value="sand">Sand</option>
+                <option value="terracotta">Terracotta</option>
+                <option value="brown">Brown</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="imMark">Logo</label>
+              <select id="imMark">
+                <option value="wordmark">Wordmark</option>
+                <option value="badge">Round badge</option>
+                <option value="none">No logo</option>
+              </select>
+            </div>
           </div>
           <div class="bar">
-            <button class="btn" id="soSave">Save draft</button>
-            <button class="btn ghost" id="soCopy">Copy caption</button>
-            <span class="hint" id="soHow" style="margin:0"></span>
+            <button class="btn" id="imDownload">Download the image</button>
+            <button class="btn ghost" id="imShuffle">Redesign it</button>
+            <span class="hint" id="imNote" style="margin:0"></span>
+          </div>
+          <div style="margin-top:14px;text-align:center;background:rgba(58,46,39,.05);padding:16px;border-radius:3px">
+            <canvas id="imCanvas" style="max-width:100%;height:auto;border:1px solid var(--line);background:#fff"></canvas>
           </div>
         </div>
       </div>
@@ -1312,7 +1373,7 @@ e.g. Stop scanning Boots"></textarea>
                 'code_email_error,consent_marketing,utm_source,created_at')
         .order('created_at', { ascending: false }),
       db.from('social_posts')
-        .select('id,channel,brief,body,hashtags,status,ai_used,created_at')
+        .select('id,channel,brief,body,hashtags,title,extra,batch_id,post_kind,image_layout,image_bg,image_head,image_sub,image_eyebrow,image_list,status,ai_used,created_at')
         .order('created_at', { ascending: false }),
       db.from('app_settings').select('key,value').eq('key', 'brand_voice')
     ]).then(function (r) {
@@ -1683,11 +1744,19 @@ e.g. Stop scanning Boots"></textarea>
   });
 
   // ------------------------------------------------------------ social studio
-  // One proxy, many features — every AI call in this app goes through
-  // /.netlify/functions/ai. It returns { fallback: true } when the key is
-  // missing or the request fails, and the caller then uses a built-in
-  // template. Nobody should ever see a broken button because an environment
-  // variable was not set.
+  // One idea, one post at a time. Instagram is drafted on the button; the
+  // other platforms are written only when their tab is clicked, and then
+  // cached. Four posts up front looked thorough and mostly went unread.
+  //
+  // These are NOT the same words reposted. A caption that works on Instagram
+  // reads as try-hard on Facebook and is useless on Pinterest, which is a
+  // search engine wearing a scrapbook's clothes. Each platform gets its own
+  // system prompt, its own fields and its own fallback template.
+  //
+  // Every AI call goes through /.netlify/functions/ai, which returns
+  // { fallback: true } when the key is missing or the request fails. The
+  // caller then uses a built-in template. Nobody should ever see a broken
+  // button because an environment variable was not set.
   function callAI(system, prompt, maxTokens) {
     return fetch('/.netlify/functions/ai', {
       method: 'POST',
@@ -1701,147 +1770,969 @@ e.g. Stop scanning Boots"></textarea>
     }).catch(function () { return null; });
   }
 
-  // The rules are not decoration — they are the ones already agreed for the
-  // Instagram plan, and they live in app_settings so they can be changed
-  // without a redeploy.
   var VOICE_FALLBACK =
     'Warm, plain, UK English. Never claim a product does anything to skin or hair. ' +
     'Never imply how many people work at Packet. Never suggest Packet is undecided ' +
     'or waiting to be told what to sell. Never hand someone a reason not to buy.';
 
-  function socialSystem() {
-    return 'You write Instagram captions for Packet, a new UK online shop that is not open yet ' +
+  // Character limits checked 4 September 2026. Guides on screen, not gates —
+  // the counter turns red and the draft still saves, because a limit that
+  // silently eats your work is worse than one you can see and ignore.
+  // Facebook's real cap is 63,206, which nobody meets; the soft number is
+  // where the feed hides the rest behind "See more", which is the one that
+  // actually matters.
+  var PLATFORMS = {
+    instagram: {
+      label: 'Instagram', bodyLabel: 'Caption', limit: 2200, soft: 300,
+      tags: true, title: false, extra: false,
+      sizes: ['square', 'story'],
+      steer: 'Write an Instagram caption. Two or three short paragraphs with a blank line ' +
+             'between each. The first line has to earn the tap on "more" - no wind-up. No emoji.'
+    },
+    facebook: {
+      label: 'Facebook', bodyLabel: 'Post', limit: 63206, soft: 400,
+      tags: false, title: false, extra: false,
+      sizes: ['landscape', 'square'],
+      steer: 'Write a Facebook post. Plainer and more conversational than Instagram, and it may ' +
+             'be a little longer. Almost no hashtags - they read as spam here. Anything past ' +
+             'about 400 characters is hidden behind "See more", so put the point first.'
+    },
+    tiktok: {
+      label: 'TikTok', bodyLabel: 'Caption', limit: 4000, soft: 150,
+      tags: true, title: 'Spoken hook — the first three seconds', titleLimit: 120,
+      extra: 'On-screen text', sizes: ['story'],
+      steer: 'This is a brief for a short video, not a caption on its own. Give a spoken hook for ' +
+             'the first three seconds that stops someone scrolling, three or four short lines of ' +
+             'on-screen text, and a caption. Talk like a person on camera, not an advert.'
+    },
+    pinterest: {
+      label: 'Pinterest', bodyLabel: 'Pin description', limit: 500, soft: 500,
+      tags: false, title: 'Pin title', titleLimit: 100, extra: 'Keywords',
+      sizes: ['pin', 'story'],
+      steer: 'Pinterest is a search engine, not a feed - a pin keeps working for months, so write ' +
+             'for someone typing a query rather than someone scrolling. Put the words a person ' +
+             'would actually search into the first fifty characters of the description. Give a ' +
+             'plain, literal pin title of 100 characters or fewer, and a short comma-separated ' +
+             'list of search terms. No hashtags.'
+    }
+  };
+
+  function socialSystem(platform) {
+    var p = PLATFORMS[platform];
+    return 'You write social posts for Packet, a new UK online shop that is not open yet ' +
       'and has not chosen what it sells.\n\n' +
-      'VOICE AND RULES — these are absolute:\n' + (state.voice || VOICE_FALLBACK) + '\n\n' +
+      'VOICE AND RULES - these are absolute:\n' + (state.voice || VOICE_FALLBACK) + '\n\n' +
       'ALSO:\n' +
       '- Never state a launch date, a price or a discount.\n' +
       '- Never say what Packet has decided, or imply followers decide what it stocks.\n' +
       '- Never publish poll results or numbers.\n' +
-      '- Two or three short paragraphs, a blank line between each. No emoji.\n' +
       '- Sound like one person talking, not a brand.\n\n' +
-      'Return ONLY the caption, then a final line beginning "HASHTAGS: " with four to six ' +
-      'lowercase hashtags.';
+      'THIS POST IS FOR ' + p.label.toUpperCase() + '.\n' + p.steer + '\n\n' +
+      'Return the fields below and nothing else. Omit a field entirely if it does not apply.\n' +
+      (p.title ? 'TITLE: one line\n' : '') +
+      'BODY:\n(the post itself, which may run over several lines)\n' +
+      (p.tags ? 'HASHTAGS: four to six lowercase hashtags on one line\n' : '') +
+      (p.extra ? 'EXTRA: ' + p.extra.toLowerCase() + ', on one line\n' : '') +
+      'IMAGE: four parts separated by pipes, for the graphic - short, plain, no hashtags.\n' +
+      '  1. a headline of three to five words\n' +
+      '  2. a second line of five or six words\n' +
+      '  3. a two or three word label for above the headline, or blank\n' +
+      '  4. three very short list items separated by semicolons, or blank\n' +
+      'Example: Pick one.|You cannot pick both.|Worth knowing|Cheaper; faster; lasts longer\n';
   }
 
   var KIND_STEER = {
     question: 'Write a question post. It should be easy to answer in a comment, and it must ask ' +
               'about the reader, never about what Packet should sell.',
-    useful:   'Write a genuinely useful post — a fact about the products themselves, not about ' +
+    useful:   'Write a genuinely useful post - a fact about the products themselves, not about ' +
               'Packet. No claims about what anything does to a person.',
     light:    'Write a light, warm post. Funny is fine. It should not sell anything.'
   };
 
-  // The non-AI path. Deliberately plain — it should be usable, not clever.
-  function socialTemplate(brief, kind) {
+  // The non-AI path, one per platform. Deliberately plain - it should be
+  // usable, not clever, and it is what you see when the API key is missing.
+  function socialTemplate(platform, brief, kind) {
     var b = (brief || 'what you buy without thinking about it').trim().replace(/\.$/, '');
+    var cap = b.charAt(0).toUpperCase() + b.slice(1);
+    var img = { head: 'Pick one.', sub: 'You can’t pick both.', eyebrow: '', list: [] };
+
+    if (platform === 'pinterest') {
+      return { title: cap.slice(0, 100),
+               body: cap + '. [One plain sentence saying what this is and who it is for — ' +
+                     'put the words someone would search in this first line.]\n\n' +
+                     '[A second sentence with the detail.]',
+               extra: '[six or seven search terms, comma separated]', image: img };
+    }
+    if (platform === 'tiktok') {
+      return { title: '[Say this in the first three seconds: ' + b + ']',
+               body: cap + '.\n\n[One line of caption.]',
+               tags: '#ukshopping #packet #newshop',
+               extra: '[Three or four short lines of on-screen text]', image: img };
+    }
+    if (platform === 'facebook') {
+      return { body: cap + '.\n\n[Two or three plain sentences. Put the point in the first line — ' +
+                     'the rest is hidden behind See more.]\n\nGo on then.', image: img };
+    }
     if (kind === 'useful') {
       return { body: 'Something worth knowing about ' + b + '.\n\n' +
                      '[Put the actual fact here — one or two plain sentences.]\n\n' +
                      'Worth knowing before your next order.',
-               tags: '#ukshopping #packet #knowyourstuff #newshop' };
+               tags: '#ukshopping #packet #knowyourstuff #newshop',
+               image: { head: 'Worth knowing.', sub: 'Before your next order.', eyebrow: 'Useful', list: [] } };
     }
     if (kind === 'light') {
-      return { body: b.charAt(0).toUpperCase() + b.slice(1) + '.\n\n' +
-                     '[One honest line about it.]\n\n' +
-                     'Go on then.',
-               tags: '#fridayfeeling #ukshopping #packet' };
+      return { body: cap + '.\n\n[One honest line about it.]\n\nGo on then.',
+               tags: '#fridayfeeling #ukshopping #packet', image: img };
     }
-    return { body: b.charAt(0).toUpperCase() + b.slice(1) + '?\n\n' +
-                   'Nothing is too petty. The small stuff is usually the real stuff.\n\n' +
-                   'Go on then.',
-             tags: '#ukshopping #onlineshopping #packet #newshop' };
+    return { body: cap + '?\n\nNothing is too petty. The small stuff is usually the real stuff.\n\nGo on then.',
+             tags: '#ukshopping #onlineshopping #packet #newshop',
+             image: { head: 'Go on then.', sub: 'Nothing is too petty.', eyebrow: '', list: [] } };
   }
 
+  // Pulls the labelled fields back out. Tolerant on purpose: a model that
+  // forgets a label should cost us a field, not the whole draft.
   function splitDraft(text) {
-    var m = /(^|\n)\s*HASHTAGS:\s*(.+)\s*$/i.exec(text);
-    if (!m) return { body: text.trim(), tags: '' };
-    return { body: text.slice(0, m.index).trim(), tags: m[2].trim() };
+    var out = { title: '', body: '', tags: '', extra: '', image: null };
+    var t = String(text || '').replace(/\r/g, '');
+
+    var m = /^\s*TITLE:\s*(.+)$/im.exec(t);
+    if (m) { out.title = m[1].trim(); t = t.replace(m[0], ''); }
+
+    m = /^\s*HASHTAGS:\s*(.+)$/im.exec(t);
+    if (m) { out.tags = m[1].trim(); t = t.replace(m[0], ''); }
+
+    m = /^\s*IMAGE:\s*(.+)$/im.exec(t);
+    if (m) {
+      var bits = m[1].split('|');
+      out.image = {
+        head:    (bits[0] || '').trim(),
+        sub:     (bits[1] || '').trim(),
+        eyebrow: (bits[2] || '').trim(),
+        list:    (bits[3] || '').split(';').map(function (x) { return x.trim(); }).filter(Boolean)
+      };
+      t = t.replace(m[0], '');
+    }
+
+    m = /^\s*EXTRA:\s*([\s\S]+?)(?=\n\s*[A-Z]{4,}:|$)/i.exec(t);
+    if (m) { out.extra = m[1].trim(); t = t.replace(m[0], ''); }
+
+    out.body = t.replace(/^\s*BODY:\s*/im, '').trim();
+    return out;
   }
 
-  function showDraft(d, aiUsed) {
-    document.getElementById('soBody').value = d.body;
-    document.getElementById('soTags').value = d.tags;
-    document.getElementById('soResultWrap').style.display = 'block';
-    document.getElementById('soHow').textContent = aiUsed
-      ? 'Drafted by AI. Read it before it goes anywhere.'
-      : 'Template — AI is not switched on. Fill in the bracketed parts.';
-    state.lastAiUsed = !!aiUsed;
+  // ---- the one card on screen -----------------------------------------
+  function renderCard(key) {
+    var p = PLATFORMS[key];
+    var d = (state.soDrafts || {})[key];
+    var wrap = document.getElementById('soCard');
+
+    if (!d) {
+      wrap.innerHTML = '<div class="panel"><p class="hint" style="margin:0">' +
+        'Nothing written for ' + esc(p.label) + ' yet.</p>' +
+        '<div class="bar"><button class="btn" id="soWrite">Write the ' + esc(p.label) + ' one</button></div></div>';
+      document.getElementById('soWrite').addEventListener('click', function () { writeFor(key, true); });
+      return;
+    }
+
+    var h = '<div class="panel" data-plat="' + key + '">' +
+      '<p class="hint">' + (d.ai ? 'Drafted by AI. Read it before it goes anywhere.'
+                                 : 'Template — AI is not switched on. Fill in the bracketed parts.') + '</p>';
+
+    if (p.title) {
+      h += '<div class="field"><label>' + esc(p.title) + '</label>' +
+        '<input type="text" class="soF" data-f="title" style="width:100%" value="' + esc(d.title || '') + '">' +
+        '<span class="hint soCount" data-limit="' + (p.titleLimit || 0) + '" data-for="title"></span></div>';
+    }
+    h += '<div class="field"><label>' + esc(p.bodyLabel) + '</label>' +
+      '<textarea class="soF" data-f="body" rows="8">' + esc(d.body || '') + '</textarea>' +
+      '<span class="hint soCount" data-limit="' + p.limit + '" data-soft="' + p.soft + '" data-for="body"></span></div>';
+    if (p.tags) {
+      h += '<div class="field"><label>Hashtags</label>' +
+        '<input type="text" class="soF" data-f="tags" style="width:100%" value="' + esc(d.tags || '') + '"></div>';
+    }
+    if (p.extra) {
+      h += '<div class="field"><label>' + esc(p.extra) + '</label>' +
+        '<textarea class="soF" data-f="extra" rows="3">' + esc(d.extra || '') + '</textarea></div>';
+    }
+    h += '<div class="bar">' +
+      '<button class="btn" id="soSave">Save this draft</button>' +
+      '<button class="btn ghost" id="soCopy">Copy</button>' +
+      '<button class="btn ghost" id="soRedo">Write it again</button>' +
+      '</div></div>';
+
+    wrap.innerHTML = h;
+
+    var counts = wrap.querySelectorAll('.soCount');
+    for (var i = 0; i < counts.length; i++) {
+      (function (span) {
+        var panel = span.closest('.panel');
+        var field = panel.querySelector('[data-f="' + span.dataset.for + '"]');
+        function upd() {
+          var n = field.value.length;
+          var limit = parseInt(span.dataset.limit, 10) || 0;
+          var soft  = parseInt(span.dataset.soft, 10) || 0;
+          var txt = n + ' characters';
+          if (limit) txt += ' of ' + limit;
+          if (soft && n > soft && (!limit || n <= limit)) txt += ' — past ' + soft + ' it gets cut off in the feed';
+          span.textContent = txt;
+          span.style.color = (limit && n > limit) ? 'var(--warn)' : '';
+        }
+        field.addEventListener('input', upd);
+        upd();
+      }(counts[i]));
+    }
+
+    document.getElementById('soSave').addEventListener('click', function () { saveDraft(key); });
+    document.getElementById('soCopy').addEventListener('click', function () { copyDraft(key); });
+    document.getElementById('soRedo').addEventListener('click', function () { writeFor(key, true); });
+
+    setImageSizes(key);
+    if (d.image) {
+      document.getElementById('imHead').value    = d.image.head || '';
+      document.getElementById('imSub').value     = d.image.sub || '';
+      document.getElementById('imEyebrow').value = d.image.eyebrow || '';
+      document.getElementById('imList').value    = (d.image.list || []).join('\n');
+      // A new draft gets a new look. Clearing the remembered pick is what
+      // makes the rotation happen without anybody pressing anything — unless
+      // this is a saved post being reopened, which already has its own.
+      if (!state.imRestore) state.imCombo = null;
+      state.imRestore = false;
+    }
+    document.getElementById('soImageWrap').style.display = 'block';
+    drawImage();
   }
 
-  document.getElementById('soDraft').addEventListener('click', function () {
+  function readCard(key) {
+    var panel = document.querySelector('[data-plat="' + key + '"]');
+    if (!panel) return null;
+    var out = {};
+    panel.querySelectorAll('.soF').forEach(function (f) { out[f.dataset.f] = f.value; });
+    return out;
+  }
+
+  function showTab(key) {
+    state.soTab = key;
+    var btns = document.querySelectorAll('#soTabs button');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].dataset.tab === key);
+    if (!(state.soDrafts || {})[key]) { writeFor(key, false); return; }
+    renderCard(key);
+  }
+
+  // Writes one platform. force = redo even if we already have one.
+  function writeFor(key, force) {
+    state.soDrafts = state.soDrafts || {};
+    if (state.soDrafts[key] && !force) { renderCard(key); return; }
+
     var brief = document.getElementById('soBrief').value.trim();
     var kind  = document.getElementById('soKind').value;
     if (!brief) { note('aiState', 'Give it a line or two to work from first.', 'err'); return; }
 
-    var btn = this; btn.disabled = true; btn.textContent = 'Drafting…';
-    var recent = state.posts.slice(0, 3).map(function (p) { return p.body; }).join('\n\n---\n\n');
+    document.getElementById('soCard').innerHTML =
+      '<div class="panel"><p class="hint" style="margin:0">Writing the ' +
+      esc(PLATFORMS[key].label) + ' one…</p></div>';
+
+    // Same-platform posts first as voice examples - Instagram examples make a
+    // Pinterest description sound wrong.
+    var same = state.posts.filter(function (p) { return p.channel === key; }).slice(0, 3);
+    var ex = (same.length ? same : state.posts.slice(0, 2))
+              .map(function (p) { return p.body; }).join('\n\n---\n\n');
+
     var prompt = KIND_STEER[kind] + '\n\nThe post is about: ' + brief +
-      (recent ? '\n\nRecent Packet captions, for voice only — match the voice, do not copy them:\n\n' + recent : '');
+      (ex ? '\n\nRecent Packet posts, for voice only - match the voice, do not copy them:\n\n' + ex : '');
 
-    callAI(socialSystem(), prompt, 700).then(function (text) {
-      btn.disabled = false; btn.textContent = 'Draft it';
-      if (!text) {
-        note('aiState', 'AI is not available, so here is the template instead. Nothing is broken.', 'err');
-        showDraft(socialTemplate(brief, kind), false);
-        return;
+    callAI(socialSystem(key), prompt, 800).then(function (text) {
+      var d;
+      if (text) {
+        d = splitDraft(text); d.ai = true;
+        note('aiState', PLATFORMS[key].label + ' drafted. Read it properly before posting.', 'ok');
+      } else {
+        d = socialTemplate(key, brief, kind); d.ai = false;
+        note('aiState', 'AI is not available, so this is the template. Nothing is broken — fill in the bracketed parts.', 'err');
       }
-      note('aiState', 'Drafted. Read it properly before posting — it is a draft, not a decision.', 'ok');
-      showDraft(splitDraft(text), true);
+      if (!d.image) d.image = socialTemplate(key, brief, kind).image;
+      state.soDrafts[key] = d;
+      renderCard(key);
     });
-  });
+  }
 
-  document.getElementById('soTemplate').addEventListener('click', function () {
-    showDraft(socialTemplate(document.getElementById('soBrief').value,
-                             document.getElementById('soKind').value), false);
-  });
-
-  document.getElementById('soCopy').addEventListener('click', function () {
-    var t = document.getElementById('soBody').value + '\n\n' + document.getElementById('soTags').value;
-    navigator.clipboard.writeText(t).then(function () {
-      note('aiState', 'Copied. Paste it straight into Instagram.', 'ok');
+  function copyDraft(key) {
+    var p = PLATFORMS[key], d = readCard(key);
+    if (!d) return;
+    var parts = [];
+    if (p.title && d.title) parts.push(p.title + ': ' + d.title);
+    if (d.body) parts.push(d.body);
+    if (d.tags) parts.push(d.tags);
+    if (p.extra && d.extra) parts.push(p.extra + ': ' + d.extra);
+    navigator.clipboard.writeText(parts.join('\n\n')).then(function () {
+      note('aiState', 'Copied the ' + p.label + ' draft.', 'ok');
     }, function () {
       note('aiState', 'Could not copy automatically — select the text and copy it.', 'err');
     });
-  });
+  }
 
-  document.getElementById('soSave').addEventListener('click', function () {
-    var body = document.getElementById('soBody').value.trim();
-    if (!body) { note('aiState', 'Nothing to save yet.', 'err'); return; }
+  function saveDraft(key) {
+    var d = readCard(key);
+    if (!d || !(d.body || '').trim()) { note('aiState', 'Nothing to save yet.', 'err'); return; }
     db.from('social_posts').insert({
-      channel: 'instagram',
-      brief: document.getElementById('soBrief').value.trim(),
-      body: body,
-      hashtags: document.getElementById('soTags').value.trim(),
-      ai_used: !!state.lastAiUsed,
+      channel:   key,
+      brief:     document.getElementById('soBrief').value.trim(),
+      post_kind: document.getElementById('soKind').value,
+      title:     (d.title || '').trim() || null,
+      body:      d.body.trim(),
+      hashtags:  (d.tags || '').trim() || null,
+      extra:     (d.extra || '').trim() || null,
+      batch_id:  state.soBatch || null,
+      image_layout: (state.imCombo && state.imCombo.layout) ||
+                    (document.getElementById('imLayout').value !== 'auto'
+                       ? document.getElementById('imLayout').value : null),
+      image_bg:      document.getElementById('imBg').value || null,
+      // The words that were on the graphic, saved alongside the layout. The
+      // PNG itself is not stored — it is regenerated from these four fields
+      // plus the layout, which is smaller, editable later, and means opening
+      // an old draft gives you the picture back rather than a blank canvas.
+      image_head:    (document.getElementById('imHead').value || '').trim() || null,
+      image_sub:     (document.getElementById('imSub').value || '').trim() || null,
+      image_eyebrow: (document.getElementById('imEyebrow').value || '').trim() || null,
+      image_list:    (document.getElementById('imList').value || '').trim() || null,
+      ai_used:   !!(state.soDrafts[key] || {}).ai,
       created_by: state.id
     }).then(function (r) {
-      if (r.error) { note('aiState', 'Could not save: ' + r.error.message, 'err'); return; }
-      note('aiState', 'Saved.', 'ok');
+      if (r.error) {
+        note('aiState', /channel_check|title|extra|batch_id|post_kind|image_/.test(r.error.message)
+          ? 'Could not save — has 011_social_studio.sql been run in Supabase?'
+          : 'Could not save: ' + r.error.message, 'err');
+        return;
+      }
+      note('aiState', PLATFORMS[key].label + ' draft saved.', 'ok');
       loadAll();
     });
+  }
+
+  document.getElementById('soDraft').addEventListener('click', function () {
+    if (!document.getElementById('soBrief').value.trim()) {
+      note('aiState', 'Give it a line or two to work from first.', 'err'); return;
+    }
+    state.soDrafts = {};
+    state.soBatch = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
+    document.getElementById('soResultWrap').style.display = 'block';
+    showTab('instagram');
   });
+
+  document.getElementById('soTemplate').addEventListener('click', function () {
+    var brief = document.getElementById('soBrief').value;
+    var kind  = document.getElementById('soKind').value;
+    state.soDrafts = {};
+    state.soBatch = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
+    var d = socialTemplate('instagram', brief, kind); d.ai = false;
+    state.soDrafts.instagram = d;
+    document.getElementById('soResultWrap').style.display = 'block';
+    state.soTab = 'instagram';
+    var btns = document.querySelectorAll('#soTabs button');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].dataset.tab === 'instagram');
+    renderCard('instagram');
+  });
+
+  document.querySelectorAll('#soTabs button').forEach(function (b) {
+    b.addEventListener('click', function () { showTab(this.dataset.tab); });
+  });
+
+  // ------------------------------------------------------------ image maker
+  // A canvas, not a picture generator. Two reasons, and the second is the
+  // important one:
+  //
+  //   1. It is instant, free and works with no API key. Nothing here bills
+  //      to the Anthropic account — only the text drafting does.
+  //   2. The Packet logo on the image is the ACTUAL logo file from the
+  //      project Logo folder - packet-wordmark-dark.png, packet-wordmark-
+  //      light.png and packet-badge.png in assets/ are byte-for-byte copies
+  //      of Logo/1000074761.png, Logo/1000074766.png and Logo/1000074760.png.
+  //      The word "Packet" is never set in a typeface here. An image
+  //      generator would draw something that looks nearly like the logo,
+  //      which is worse than no logo at all.
+  //
+  // ── Why there are seven layouts ─────────────────────────────
+  // One layout is one look, and a grid of twenty identical cards reads as a
+  // template even when the words are good. The eighteen warm-up graphics all
+  // used the same centred-statement layout and that is exactly how they look.
+  // So the brand is held by four things that never move — the palette, Lora,
+  // the real logo, and a lot of empty space — and the arrangement is free to
+  // change underneath them.
+  //
+  // ── Why it remembers ────────────────────────────────────────
+  // Nobody wants to choose a layout twenty times. The generator keeps the
+  // last few (layout + background) pairs it produced and deliberately picks
+  // something outside that set, so a run of posts varies on its own. The
+  // memory is per browser in localStorage, topped up from the layouts saved
+  // on previous posts so the two of you do not both drift onto the same one.
+  // Choosing a layout by hand always wins and switches the rotation off.
+
+  var BRAND = {
+    cream:      '#F6EFE6',
+    sand:       '#E6CEAC',
+    terracotta: '#C0623F',
+    brown:      '#3A2E27'
+  };
+
+  var IMG_SIZES = {
+    square:    { w: 1080, h: 1080, label: 'Square 1080 × 1080 — Instagram, Facebook' },
+    story:     { w: 1080, h: 1920, label: 'Story 1080 × 1920 — Instagram, TikTok, Pinterest' },
+    landscape: { w: 1200, h: 630,  label: 'Landscape 1200 × 630 — Facebook' },
+    pin:       { w: 1000, h: 1500, label: 'Pin 1000 × 1500 — Pinterest' }
+  };
+
+  // Backgrounds that actually work. Sand is deliberately not paired with the
+  // colour-block layout because sand on terracotta is muddy at a glance.
+  var LAYOUTS = {
+    statement: { label: 'Statement — centred, rules top and bottom', bgs: ['cream', 'sand', 'terracotta', 'brown'] },
+    editorial: { label: 'Editorial — ranged left, lots of air',      bgs: ['cream', 'sand', 'brown'] },
+    block:     { label: 'Colour block — band across the foot',       bgs: ['cream', 'sand'] },
+    number:    { label: 'Big number — one figure, one caption',      bgs: ['cream', 'terracotta', 'brown'] },
+    question:  { label: 'Question card — oversized mark behind',     bgs: ['cream', 'sand', 'brown'] },
+    list:      { label: 'Three lines — a short numbered list',       bgs: ['cream', 'sand', 'brown'] },
+    corner:    { label: 'Badge corner — off-centre, badge top right', bgs: ['cream', 'sand', 'terracotta', 'brown'] }
+  };
+  var LAYOUT_KEYS = Object.keys(LAYOUTS);
+
+  // ---- the memory -------------------------------------------------------
+  var RECENT_KEY = 'packet_image_recent';
+  var RECENT_MAX = 5;
+
+  function recentCombos() {
+    var out = [];
+    try {
+      out = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+      if (!Array.isArray(out)) out = [];
+    } catch (e) { out = []; }
+    // Top up from what has actually been saved, so the two of you do not both
+    // drift onto the same layout on different machines.
+    (state.posts || []).slice(0, 4).forEach(function (p) {
+      if (p.image_layout) out.push(p.image_layout + ':' + (p.image_bg || ''));
+    });
+    return out.slice(0, RECENT_MAX + 4);
+  }
+
+  function rememberCombo(layout, bg) {
+    try {
+      var list = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+      if (!Array.isArray(list)) list = [];
+      list.unshift(layout + ':' + bg);
+      localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, RECENT_MAX)));
+    } catch (e) { /* private window, or storage off. Not worth failing over. */ }
+  }
+
+  // Picks a combination that is not in the recent set. If everything has been
+  // used it relaxes to "not the immediately previous one" rather than giving
+  // up and repeating.
+  function pickCombo(sizeKey) {
+    var recent = recentCombos();
+    var pool = [];
+    LAYOUT_KEYS.forEach(function (l) {
+      // The landscape crop is short; the tall layouts look squashed in it.
+      if (sizeKey === 'landscape' && (l === 'list' || l === 'block')) return;
+      LAYOUTS[l].bgs.forEach(function (b) { pool.push({ layout: l, bg: b }); });
+    });
+    var fresh = pool.filter(function (c) {
+      return recent.indexOf(c.layout + ':' + c.bg) === -1;
+    });
+    var from = fresh.length ? fresh : pool.filter(function (c) {
+      return (c.layout + ':' + c.bg) !== recent[0];
+    });
+    if (!from.length) from = pool;
+    return from[Math.floor(Math.random() * from.length)];
+  }
+
+  var markCache = {};
+  function loadMark(file) {
+    if (markCache[file]) return Promise.resolve(markCache[file]);
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () { markCache[file] = img; resolve(img); };
+      img.onerror = function () { resolve(null); };
+      img.src = 'assets/' + file;
+    });
+  }
+
+  function setImageSizes(platform) {
+    var sel = document.getElementById('imSize');
+    var allowed = PLATFORMS[platform].sizes;
+    var keep = sel.value;
+    var h = '';
+    allowed.forEach(function (k) {
+      h += '<option value="' + k + '">' + IMG_SIZES[k].label + '</option>';
+    });
+    sel.innerHTML = h;
+    sel.value = (allowed.indexOf(keep) > -1) ? keep : allowed[0];
+  }
+
+  function fillLayoutSelect() {
+    var sel = document.getElementById('imLayout');
+    if (sel.options.length) return;
+    var h = '<option value="auto">Vary it for me — different from the last one</option>';
+    LAYOUT_KEYS.forEach(function (k) {
+      h += '<option value="' + k + '">' + LAYOUTS[k].label + '</option>';
+    });
+    sel.innerHTML = h;
+  }
+
+  // ---- drawing helpers --------------------------------------------------
+  function wrapLines(ctx, text, maxWidth) {
+    var words = String(text || '').split(/\s+/).filter(Boolean);
+    var lines = [], line = '';
+    words.forEach(function (w) {
+      var test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; }
+      else line = test;
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  // Fits text into a width by stepping the size down. Beats wrapping a
+  // three-word headline onto three lines, which looks like an accident.
+  function fitSize(ctx, text, maxWidth, startPx, weight, minPx) {
+    var px = startPx;
+    while (px > (minPx || 24)) {
+      ctx.font = weight + ' ' + px + 'px Lora, Georgia, serif';
+      if (ctx.measureText(text).width <= maxWidth) break;
+      px -= Math.max(2, Math.round(px * 0.04));
+    }
+    return px;
+  }
+
+  function drawSmallCaps(ctx, text, x, y, px, colour, align) {
+    ctx.save();
+    ctx.fillStyle = colour;
+    ctx.textAlign = align || 'left';
+    ctx.font = '500 ' + px + 'px Inter, system-ui, sans-serif';
+    var t = String(text).toUpperCase();
+    // Letterspacing by hand — canvas has no tracking property everywhere.
+    var space = Math.round(px * 0.22);
+    var total = 0;
+    for (var i = 0; i < t.length; i++) total += ctx.measureText(t[i]).width + space;
+    total -= space;
+    var cx = align === 'center' ? x - total / 2 : (align === 'right' ? x - total : x);
+    ctx.textAlign = 'left';
+    for (var j = 0; j < t.length; j++) {
+      ctx.fillText(t[j], cx, y);
+      cx += ctx.measureText(t[j]).width + space;
+    }
+    ctx.restore();
+  }
+
+  function imgFields() {
+    return {
+      eyebrow: (document.getElementById('imEyebrow').value || '').trim(),
+      head:    (document.getElementById('imHead').value || '').trim(),
+      sub:     (document.getElementById('imSub').value || '').trim(),
+      list:    (document.getElementById('imList').value || '').split(/\n|;/)
+                 .map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 3)
+    };
+  }
+
+  function inkFor(bgKey) {
+    var dark = (bgKey === 'brown' || bgKey === 'terracotta');
+    return {
+      dark: dark,
+      ink: dark ? BRAND.cream : BRAND.brown,
+      accent: (bgKey === 'terracotta') ? BRAND.sand
+            : (bgKey === 'brown') ? BRAND.terracotta
+            : BRAND.terracotta,
+      faint: dark ? 'rgba(246,239,230,0.14)' : 'rgba(192,98,63,0.13)'
+    };
+  }
+
+  // ---- the layouts ------------------------------------------------------
+  // Each one draws everything except the logo and returns where the logo
+  // goes: { x, y, anchor } where anchor is 'center' | 'left' | 'right'.
+  var RENDER = {
+
+    statement: function (ctx, S, f, C) {
+      var pad = Math.round(S.w * 0.10), inner = S.w - pad * 2;
+      ctx.strokeStyle = C.accent;
+      ctx.lineWidth = Math.max(2, Math.round(S.w / 360));
+      ctx.beginPath();
+      ctx.moveTo(pad, Math.round(S.h * 0.09)); ctx.lineTo(S.w - pad, Math.round(S.h * 0.09));
+      ctx.moveTo(pad, Math.round(S.h * 0.865)); ctx.lineTo(S.w - pad, Math.round(S.h * 0.865));
+      ctx.stroke();
+
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.098), '600');
+      ctx.textAlign = 'center';
+      var headLines = wrapLines(ctx, f.head, inner);
+      var sPx = Math.round(hPx * 0.62);
+      ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
+      var subLines = wrapLines(ctx, f.sub, inner);
+
+      var lineH = Math.round(hPx * 1.2), subH = Math.round(sPx * 1.32);
+      var blockH = headLines.length * lineH + (subLines.length ? subLines.length * subH + sPx * 0.5 : 0);
+      var y = Math.round(S.h * 0.46 - blockH / 2 + lineH * 0.8);
+
+      ctx.fillStyle = C.ink;
+      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
+      headLines.forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += lineH; });
+      if (subLines.length) {
+        y += Math.round(sPx * 0.5);
+        ctx.fillStyle = C.accent;
+        ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
+        subLines.forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += subH; });
+      }
+      return { x: S.w / 2, y: Math.round(S.h * 0.925), anchor: 'center' };
+    },
+
+    editorial: function (ctx, S, f, C) {
+      var pad = Math.round(S.w * 0.11), inner = Math.round(S.w * 0.74);
+      var y = Math.round(S.h * 0.30);
+
+      if (f.eyebrow) {
+        drawSmallCaps(ctx, f.eyebrow, pad, y, Math.round(S.w * 0.022), C.accent, 'left');
+        y += Math.round(S.w * 0.055);
+      }
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.095), '600');
+      ctx.textAlign = 'left';
+      ctx.fillStyle = C.ink;
+      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
+      var lineH = Math.round(hPx * 1.16);
+      wrapLines(ctx, f.head, inner).forEach(function (l) { y += lineH; ctx.fillText(l, pad, y); });
+
+      if (f.sub) {
+        var sPx = Math.round(hPx * 0.52);
+        ctx.fillStyle = C.accent;
+        ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
+        y += Math.round(sPx * 1.5);
+        wrapLines(ctx, f.sub, inner).forEach(function (l) { y += Math.round(sPx * 1.34); ctx.fillText(l, pad, y); });
+      }
+      return { x: pad, y: Math.round(S.h * 0.90), anchor: 'left' };
+    },
+
+    block: function (ctx, S, f, C) {
+      // Foot band in the accent colour. The logo sits inside it, so the mark
+      // flips to the pale version regardless of the page background.
+      var bandTop = Math.round(S.h * 0.78);
+      ctx.fillStyle = BRAND.terracotta;
+      ctx.fillRect(0, bandTop, S.w, S.h - bandTop);
+
+      var pad = Math.round(S.w * 0.11), inner = S.w - pad * 2;
+      var y = Math.round(S.h * 0.30);
+      if (f.eyebrow) {
+        drawSmallCaps(ctx, f.eyebrow, S.w / 2, y, Math.round(S.w * 0.022), C.accent, 'center');
+        y += Math.round(S.w * 0.05);
+      }
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.092), '600');
+      ctx.textAlign = 'center';
+      ctx.fillStyle = C.ink;
+      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
+      var lineH = Math.round(hPx * 1.16);
+      wrapLines(ctx, f.head, inner).forEach(function (l) { y += lineH; ctx.fillText(l, S.w / 2, y); });
+
+      if (f.sub) {
+        var sPx = Math.round(hPx * 0.55);
+        ctx.fillStyle = BRAND.brown;
+        ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
+        y += Math.round(sPx * 1.3);
+        wrapLines(ctx, f.sub, inner).forEach(function (l) { y += Math.round(sPx * 1.3); ctx.fillText(l, S.w / 2, y); });
+      }
+      return { x: S.w / 2, y: Math.round(bandTop + (S.h - bandTop) / 2), anchor: 'center', onBand: true };
+    },
+
+    number: function (ctx, S, f, C) {
+      // The first word carries it. "Fifty cloths" becomes FIFTY, huge.
+      var big = (f.head || '').split(/\s+/)[0] || f.head || '';
+      var rest = (f.head || '').split(/\s+/).slice(1).join(' ');
+      var pad = Math.round(S.w * 0.10), inner = S.w - pad * 2;
+
+      var bPx = fitSize(ctx, big, inner, Math.round(S.w * 0.34), '600', 60);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = C.ink;
+      ctx.font = '600 ' + bPx + 'px Lora, Georgia, serif';
+      var y = Math.round(S.h * 0.44);
+      ctx.fillText(big, S.w / 2, y);
+
+      ctx.strokeStyle = C.accent;
+      ctx.lineWidth = Math.max(2, Math.round(S.w / 400));
+      ctx.beginPath();
+      ctx.moveTo(S.w / 2 - S.w * 0.09, y + Math.round(S.w * 0.045));
+      ctx.lineTo(S.w / 2 + S.w * 0.09, y + Math.round(S.w * 0.045));
+      ctx.stroke();
+
+      // Two separate lines, not one run-on. "cloths." and "One box, a year of
+      // them." are different thoughts and reading them joined by a dash is
+      // how the first version looked like a mistake.
+      var cPx = Math.round(S.w * 0.048);
+      y += Math.round(S.w * 0.115);
+      if (rest) {
+        ctx.fillStyle = C.ink;
+        ctx.font = '600 ' + cPx + 'px Lora, Georgia, serif';
+        wrapLines(ctx, rest, inner).forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += Math.round(cPx * 1.3); });
+        y += Math.round(cPx * 0.35);
+      }
+      if (f.sub) {
+        var s2 = Math.round(cPx * (rest ? 0.86 : 1));
+        ctx.fillStyle = C.accent;
+        ctx.font = '400 ' + s2 + 'px Lora, Georgia, serif';
+        wrapLines(ctx, f.sub, inner).forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += Math.round(s2 * 1.34); });
+      }
+
+      return { x: S.w / 2, y: Math.round(S.h * 0.925), anchor: 'center' };
+    },
+
+    question: function (ctx, S, f, C) {
+      // An oversized mark behind the words, in the faint tint. Reads as
+      // texture rather than a character once it is that big.
+      var glyph = /\?\s*$/.test(f.head || '') ? '?' : '“';
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = C.faint;
+      ctx.font = '600 ' + Math.round(S.w * 0.9) + 'px Lora, Georgia, serif';
+      ctx.fillText(glyph, S.w / 2, Math.round(S.h * 0.78));
+      ctx.restore();
+
+      var pad = Math.round(S.w * 0.12), inner = S.w - pad * 2;
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.088), '600');
+      ctx.textAlign = 'center';
+      var headLines = wrapLines(ctx, f.head, inner);
+      var sPx = Math.round(hPx * 0.6);
+      ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
+      var subLines = wrapLines(ctx, f.sub, inner);
+      var lineH = Math.round(hPx * 1.2), subH = Math.round(sPx * 1.32);
+      var blockH = headLines.length * lineH + (subLines.length ? subLines.length * subH + sPx * 0.6 : 0);
+      var y = Math.round(S.h * 0.47 - blockH / 2 + lineH * 0.8);
+
+      ctx.fillStyle = C.ink;
+      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
+      headLines.forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += lineH; });
+      if (subLines.length) {
+        y += Math.round(sPx * 0.6);
+        ctx.fillStyle = C.accent;
+        ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
+        subLines.forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += subH; });
+      }
+      return { x: S.w / 2, y: Math.round(S.h * 0.93), anchor: 'center' };
+    },
+
+    list: function (ctx, S, f, C) {
+      var pad = Math.round(S.w * 0.12), inner = S.w - pad * 2;
+      var y = Math.round(S.h * 0.24);
+
+      if (f.eyebrow) {
+        drawSmallCaps(ctx, f.eyebrow, pad, y, Math.round(S.w * 0.022), C.accent, 'left');
+        y += Math.round(S.w * 0.05);
+      }
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.072), '600');
+      ctx.textAlign = 'left';
+      ctx.fillStyle = C.ink;
+      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
+      wrapLines(ctx, f.head, inner).forEach(function (l) { y += Math.round(hPx * 1.16); ctx.fillText(l, pad, y); });
+
+      var items = f.list.length ? f.list : (f.sub ? [f.sub] : []);
+      var iPx = Math.round(S.w * 0.046);
+      y += Math.round(S.w * 0.055);
+      items.forEach(function (item, i) {
+        ctx.fillStyle = C.accent;
+        ctx.font = '600 ' + iPx + 'px Lora, Georgia, serif';
+        ctx.fillText(String(i + 1), pad, y);
+        ctx.fillStyle = C.ink;
+        ctx.font = '400 ' + iPx + 'px Lora, Georgia, serif';
+        var indent = pad + Math.round(S.w * 0.055);
+        wrapLines(ctx, item, inner - Math.round(S.w * 0.055)).forEach(function (l, k) {
+          ctx.fillText(l, indent, y + k * Math.round(iPx * 1.28));
+          if (k) y += Math.round(iPx * 1.28);
+        });
+        y += Math.round(iPx * 1.9);
+      });
+      return { x: pad, y: Math.round(S.h * 0.90), anchor: 'left' };
+    },
+
+    corner: function (ctx, S, f, C) {
+      var pad = Math.round(S.w * 0.11), inner = Math.round(S.w * 0.72);
+      var y = Math.round(S.h * 0.44);
+
+      if (f.eyebrow) {
+        drawSmallCaps(ctx, f.eyebrow, pad, y, Math.round(S.w * 0.022), C.accent, 'left');
+        y += Math.round(S.w * 0.05);
+      }
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.088), '600');
+      ctx.textAlign = 'left';
+      ctx.fillStyle = C.ink;
+      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
+      wrapLines(ctx, f.head, inner).forEach(function (l) { y += Math.round(hPx * 1.16); ctx.fillText(l, pad, y); });
+
+      if (f.sub) {
+        var sPx = Math.round(hPx * 0.54);
+        ctx.fillStyle = C.accent;
+        ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
+        y += Math.round(sPx * 1.4);
+        wrapLines(ctx, f.sub, inner).forEach(function (l) { ctx.fillText(l, pad, y); y += Math.round(sPx * 1.32); });
+      }
+      // Badge sits top right on this one, so the logo slot is up there.
+      return { x: S.w - pad, y: Math.round(S.h * 0.13), anchor: 'right', forceBadge: true };
+    }
+  };
+
+  function currentLayout(sizeKey) {
+    var chosen = document.getElementById('imLayout').value;
+    if (chosen && chosen !== 'auto') {
+      var bg = document.getElementById('imBg').value;
+      // A hand-picked layout still needs a background it works on.
+      if (LAYOUTS[chosen].bgs.indexOf(bg) === -1) bg = LAYOUTS[chosen].bgs[0];
+      return { layout: chosen, bg: bg, auto: false };
+    }
+    if (!state.imCombo) state.imCombo = pickCombo(sizeKey);
+    return { layout: state.imCombo.layout, bg: state.imCombo.bg, auto: true };
+  }
+
+  function drawImage() {
+    var cv = document.getElementById('imCanvas');
+    if (!cv) return;
+    fillLayoutSelect();
+
+    var sizeKey = document.getElementById('imSize').value || 'square';
+    var S = IMG_SIZES[sizeKey] || IMG_SIZES.square;
+    var combo = currentLayout(sizeKey);
+
+    // Keep the two dropdowns honest about what is actually on screen.
+    document.getElementById('imBg').value = combo.bg;
+    var C = inkFor(combo.bg);
+
+    cv.width = S.w; cv.height = S.h;
+    cv.style.maxHeight = '420px';
+    var ctx = cv.getContext('2d');
+    ctx.fillStyle = BRAND[combo.bg];
+    ctx.fillRect(0, 0, S.w, S.h);
+
+    var f = imgFields();
+    var slot = (RENDER[combo.layout] || RENDER.statement)(ctx, S, f, C);
+
+    var noteEl = document.getElementById('imNote');
+    var markPref = document.getElementById('imMark').value;
+    if (markPref === 'none') {
+      noteEl.textContent = LAYOUTS[combo.layout].label.split(' — ')[0] +
+        (combo.auto ? ' · picked for you' : ' · your choice');
+      return;
+    }
+
+    var useBadge = markPref === 'badge' || slot.forceBadge;
+    var onDark = slot.onBand ? true : C.dark;
+    var file = useBadge ? 'packet-badge.png'
+             : (onDark ? 'packet-wordmark-light.png' : 'packet-wordmark-dark.png');
+
+    loadMark(file).then(function (img) {
+      if (!img) {
+        noteEl.textContent = 'Logo file assets/' + file + ' is missing — drawn without it rather than faking it.';
+        return;
+      }
+      noteEl.textContent = LAYOUTS[combo.layout].label.split(' — ')[0] +
+        (combo.auto ? ' · picked for you' : ' · your choice') +
+        ' · logo: ' + file + ', the file from the Logo folder.';
+
+      var targetW = Math.round(S.w * (useBadge ? 0.15 : (slot.onBand ? 0.30 : 0.26)));
+      var scale = targetW / img.width;
+      var w = targetW, h = Math.round(img.height * scale);
+      var x = slot.anchor === 'left' ? slot.x
+            : slot.anchor === 'right' ? slot.x - w
+            : Math.round(slot.x - w / 2);
+      ctx.drawImage(img, x, Math.round(slot.y - h / 2), w, h);
+    });
+  }
+
+  // Redesign: throw away the remembered pick and choose another one.
+  function reshuffle() {
+    document.getElementById('imLayout').value = 'auto';
+    state.imCombo = null;
+    var sizeKey = document.getElementById('imSize').value || 'square';
+    var c = pickCombo(sizeKey);
+    state.imCombo = c;
+    rememberCombo(c.layout, c.bg);
+    drawImage();
+  }
+
+  ['imEyebrow', 'imHead', 'imSub', 'imList'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', drawImage);
+  });
+  ['imSize', 'imBg', 'imMark', 'imLayout'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () {
+      if (id === 'imBg' || id === 'imLayout') state.imCombo = null;
+      if (id === 'imBg' && document.getElementById('imLayout').value === 'auto') {
+        // A background chosen by hand pins the current layout rather than
+        // being overwritten on the next redraw.
+        var cur = state.imLastLayout || 'statement';
+        document.getElementById('imLayout').value = cur;
+      }
+      drawImage();
+    });
+  });
+  document.getElementById('imShuffle').addEventListener('click', reshuffle);
+
+  document.getElementById('imDownload').addEventListener('click', function () {
+    var cv = document.getElementById('imCanvas');
+    // Redraw first so the logo is definitely composited before we export -
+    // the mark loads asynchronously and an early export would drop it.
+    drawImage();
+    setTimeout(function () {
+      cv.toBlob(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'packet-' + (state.soTab || 'post') + '-' +
+                     document.getElementById('imSize').value + '-' +
+                     new Date().toISOString().slice(0, 10) + '.png';
+        a.click();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    }, 250);
+  });
+
+  // Lora arrives from Google Fonts after the page does. Drawing before it
+  // lands gives you Georgia, which is close enough to miss and wrong enough
+  // to matter, so redraw once the real font is ready.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () {
+      if (document.getElementById('soImageWrap').style.display === 'block') drawImage();
+    });
+  }
 
   function renderSocial() {
     document.getElementById('soRules').textContent = state.voice || VOICE_FALLBACK;
     var t = document.getElementById('tblSocial');
     if (!state.posts.length) { t.innerHTML = '<tr><td class="empty">No drafts yet.</td></tr>'; return; }
-    var html = '<tr><th>When</th><th>Caption</th><th>Status</th><th>How</th><th></th></tr>';
+    var html = '<tr><th>When</th><th>Platform</th><th>Draft</th><th>Status</th><th>How</th><th></th></tr>';
     state.posts.forEach(function (p) {
+      var plat = PLATFORMS[p.channel];
       html += '<tr>' +
         '<td>' + fmt(p.created_at) + '</td>' +
-        '<td>' + esc(String(p.body).slice(0, 150)) + (String(p.body).length > 150 ? '…' : '') + '</td>' +
+        '<td>' + esc(plat ? plat.label : p.channel) + '</td>' +
+        '<td>' + (p.title ? '<strong>' + esc(p.title) + '</strong><br>' : '') +
+                 esc(String(p.body).slice(0, 120)) + (String(p.body).length > 120 ? '…' : '') + '</td>' +
         '<td>' + esc(p.status) + '</td>' +
         '<td>' + (p.ai_used ? 'AI' : 'Template') + '</td>' +
         '<td><button class="link" data-souse="' + p.id + '">Open</button>' +
         '<button class="link danger" data-sodel="' + p.id + '">Delete</button></td></tr>';
     });
     t.innerHTML = html;
+
     t.querySelectorAll('[data-souse]').forEach(function (b) {
       b.addEventListener('click', function () {
-        var p = state.posts.filter(function (x) { return x.id === this.dataset.souse; }.bind(this))[0];
-        if (!p) return;
+        var id = this.dataset.souse;
+        var p = state.posts.filter(function (x) { return x.id === id; })[0];
+        if (!p || !PLATFORMS[p.channel]) return;
         document.getElementById('soBrief').value = p.brief || '';
-        showDraft({ body: p.body, tags: p.hashtags || '' }, p.ai_used);
+        if (p.post_kind) document.getElementById('soKind').value = p.post_kind;
+        state.soDrafts = {};
+        state.soDrafts[p.channel] = {
+          title: p.title || '', body: p.body, tags: p.hashtags || '',
+          extra: p.extra || '', ai: p.ai_used,
+          image: (p.image_head || p.image_sub) ? {
+            head:    p.image_head || '',
+            sub:     p.image_sub || '',
+            eyebrow: p.image_eyebrow || '',
+            list:    (p.image_list || '').split('\n').filter(Boolean)
+          } : null
+        };
+        state.soBatch = p.batch_id || null;
+        // Put the graphic back exactly as it was rather than rolling a new
+        // look for a post that has already been written.
+        state.imCombo = p.image_layout ? { layout: p.image_layout, bg: p.image_bg || 'cream' } : null;
+        state.imRestore = !!p.image_layout;
+        document.getElementById('soResultWrap').style.display = 'block';
+        showTab(p.channel);
         window.scrollTo(0, 0);
       });
     });
@@ -1983,7 +2874,13 @@ e.g. Stop scanning Boots"></textarea>
              profiles: [], market: null, parsed: null,
              seasons: [], terms: [], gaps: [], asked: [], proposal: null };
 
-  var subBtns = document.querySelectorAll('.subnav button');
+  // Scoped to the Sourcing page. It used to be '.subnav button' across the
+  // whole document, which meant any other sub-navigation on any other page
+  // was wired into this handler: clicking one fired this listener with
+  // dataset.sub undefined, and the toggle below then matched every button
+  // that also had no data-sub and lit them all up. The Social studio's
+  // platform tabs walked straight into it on 4 September 2026.
+  var subBtns = document.querySelectorAll('#page-sourcing .subnav button');
   for (var sb = 0; sb < subBtns.length; sb++) {
     subBtns[sb].addEventListener('click', function () {
       var name = this.dataset.sub;
