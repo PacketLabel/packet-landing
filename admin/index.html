@@ -384,8 +384,9 @@
         <p class="hint">
           Seven layouts. It picks one you have not had recently so a run of posts
           does not all look the same &mdash; or set the layout yourself and it stays put.
-          The logo is the real file from the Logo folder, dropped in &mdash; not typed
-          &mdash; and it swaps to the pale version on a dark background.
+          Drawn at double size and shrunk down so the type stays crisp. The logo is the
+          real file from the Logo folder, dropped in &mdash; not typed &mdash; and it
+          swaps to the pale version on a dark background.
         </p>
         <div class="panel">
           <div class="grid2">
@@ -420,6 +421,14 @@
                 <option value="sand">Sand</option>
                 <option value="terracotta">Terracotta</option>
                 <option value="brown">Brown</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="imFinish">Finish</label>
+              <select id="imFinish">
+                <option value="grain">Paper &mdash; a faint grain, like print</option>
+                <option value="printed">Printed &mdash; grain and a slight misprint</option>
+                <option value="clean">Clean &mdash; flat colour</option>
               </select>
             </div>
             <div class="field">
@@ -2165,6 +2174,19 @@ e.g. Stop scanning Boots"></textarea>
   // memory is per browser in localStorage, topped up from the layouts saved
   // on previous posts so the two of you do not both drift onto the same one.
   // Choosing a layout by hand always wins and switches the rotation off.
+  //
+  // ── The four things that make it look set rather than typed ─
+  //   1. TRACKING. Large type needs the gaps between letters CLOSED UP;
+  //      small caps need them opened out. Canvas defaults to neither, which
+  //      is the single most obvious tell of type nobody has looked at.
+  //   2. GRAIN. A flat fill reads as a screen. A few per cent of noise reads
+  //      as paper. Cheapest quality in the whole file.
+  //   3. BALANCED LINE BREAKS. Filling each line until it overflows leaves
+  //      one long line and one stub. Even lines look composed.
+  //   4. OPTICAL ALIGNMENT. A quote mark or a W at the start of a line is
+  //      mostly empty space, so a mathematically centred line looks off
+  //      centre. Nudging by a fraction of the type size fixes what the eye
+  //      is complaining about.
 
   var BRAND = {
     cream:      '#F6EFE6',
@@ -2180,8 +2202,6 @@ e.g. Stop scanning Boots"></textarea>
     pin:       { w: 1000, h: 1500, label: 'Pin 1000 × 1500 — Pinterest' }
   };
 
-  // Backgrounds that actually work. Sand is deliberately not paired with the
-  // colour-block layout because sand on terracotta is muddy at a glance.
   var LAYOUTS = {
     statement: { label: 'Statement — centred, rules top and bottom', bgs: ['cream', 'sand', 'terracotta', 'brown'] },
     editorial: { label: 'Editorial — ranged left, lots of air',      bgs: ['cream', 'sand', 'brown'] },
@@ -2193,6 +2213,12 @@ e.g. Stop scanning Boots"></textarea>
   };
   var LAYOUT_KEYS = Object.keys(LAYOUTS);
 
+  // Everything is drawn at twice the final size and shrunk on the way out.
+  // Downscaling averages several rendered pixels into each exported one, so
+  // the type edges come out smooth instead of stepped. Costs four times the
+  // pixels for a preview nobody waits on.
+  var SUPERSAMPLE = 2;
+
   // ---- the memory -------------------------------------------------------
   var RECENT_KEY = 'packet_image_recent';
   var RECENT_MAX = 5;
@@ -2203,8 +2229,6 @@ e.g. Stop scanning Boots"></textarea>
       out = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
       if (!Array.isArray(out)) out = [];
     } catch (e) { out = []; }
-    // Top up from what has actually been saved, so the two of you do not both
-    // drift onto the same layout on different machines.
     (state.posts || []).slice(0, 4).forEach(function (p) {
       if (p.image_layout) out.push(p.image_layout + ':' + (p.image_bg || ''));
     });
@@ -2220,15 +2244,33 @@ e.g. Stop scanning Boots"></textarea>
     } catch (e) { /* private window, or storage off. Not worth failing over. */ }
   }
 
-  // Picks a combination that is not in the recent set. If everything has been
-  // used it relaxes to "not the immediately previous one" rather than giving
-  // up and repeating.
+  // The big-number layout blows the first word up to fill the frame. That
+  // works for "Twelve." and for "Boring is underrated." It does not work for
+  // "Some things wear out.", where the first word is doing no work and the
+  // result is a giant "Some". So it is only offered when the headline is
+  // short enough that its opening word is genuinely the point.
+  function numberLayoutSuits(head) {
+    var words = String(head || '').trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return false;
+    if (/^[£$€]?[\d]/.test(words[0])) return true;
+    if (words.length === 1) return true;
+    // A short opening word is almost always a function word — "Pick", "Go",
+    // "Some" — and forty-point type makes it look like the point when it
+    // isn't. A long one can carry the frame on its own.
+    return words[0].replace(/[^A-Za-z]/g, '').length >= 6;
+  }
+
   function pickCombo(sizeKey) {
     var recent = recentCombos();
+    var head = (document.getElementById('imHead') || {}).value || '';
     var pool = [];
     LAYOUT_KEYS.forEach(function (l) {
-      // The landscape crop is short; the tall layouts look squashed in it.
       if (sizeKey === 'landscape' && (l === 'list' || l === 'block')) return;
+      if (l === 'number' && !numberLayoutSuits(head)) return;
+      if (l === 'list') {
+        var items = (document.getElementById('imList') || {}).value || '';
+        if (items.split(/\n|;/).filter(function (x) { return x.trim(); }).length < 2) return;
+      }
       LAYOUTS[l].bgs.forEach(function (b) { pool.push({ layout: l, bg: b }); });
     });
     var fresh = pool.filter(function (c) {
@@ -2241,15 +2283,181 @@ e.g. Stop scanning Boots"></textarea>
     return from[Math.floor(Math.random() * from.length)];
   }
 
-  var markCache = {};
-  function loadMark(file) {
-    if (markCache[file]) return Promise.resolve(markCache[file]);
-    return new Promise(function (resolve) {
-      var img = new Image();
-      img.onload = function () { markCache[file] = img; resolve(img); };
-      img.onerror = function () { resolve(null); };
-      img.src = 'assets/' + file;
+  // ---- the logo files ---------------------------------------------------
+  // All three are loaded up front. The old version fetched one on demand
+  // inside the draw, which made drawing asynchronous and meant an export
+  // fired a moment too early came out with no logo on it. Loading first
+  // makes every render synchronous and that whole class of bug disappears.
+  var MARK_FILES = ['packet-wordmark-dark.png', 'packet-wordmark-light.png', 'packet-badge.png'];
+  var marks = {};
+  var marksReady = false;
+
+  function preloadMarks() {
+    return Promise.all(MARK_FILES.map(function (file) {
+      return new Promise(function (resolve) {
+        var img = new Image();
+        img.onload = function () { marks[file] = img; resolve(); };
+        img.onerror = function () { marks[file] = null; resolve(); };
+        img.src = 'assets/' + file;
+      });
+    })).then(function () { marksReady = true; });
+  }
+
+  // ---- typography helpers ----------------------------------------------
+  // ctx.letterSpacing is supported in current Chrome, Edge, Firefox and
+  // Safari 18.4+. Where it is missing the text still draws, just at the
+  // default spacing — worse looking, never broken.
+  var HAS_TRACKING = (function () {
+    try { return 'letterSpacing' in document.createElement('canvas').getContext('2d'); }
+    catch (e) { return false; }
+  }());
+
+  function setType(ctx, weight, px, trackEm) {
+    ctx.font = weight + ' ' + px + 'px Lora, Georgia, serif';
+    if (HAS_TRACKING) ctx.letterSpacing = (trackEm || 0) * px + 'px';
+  }
+
+  function setUIType(ctx, px, trackEm) {
+    ctx.font = '500 ' + px + 'px Inter, system-ui, sans-serif';
+    if (HAS_TRACKING) ctx.letterSpacing = (trackEm || 0) * px + 'px';
+  }
+
+  function clearTracking(ctx) { if (HAS_TRACKING) ctx.letterSpacing = '0px'; }
+
+  // Display type wants its letters closed up; the bigger it is, the more so.
+  // Body-sized text wants none of this — closing up small text makes it
+  // harder to read, not smarter.
+  function displayTracking(px, canvasWidth) {
+    var ratio = px / canvasWidth;
+    if (ratio > 0.16) return -0.030;
+    if (ratio > 0.09) return -0.022;
+    if (ratio > 0.05) return -0.014;
+    return -0.006;
+  }
+
+  // Greedy wrap: fill each line until it overflows. Used as the starting
+  // point and as the fallback for anything long.
+  function wrapGreedy(ctx, text, maxWidth) {
+    var words = String(text || '').split(/\s+/).filter(Boolean);
+    var lines = [], line = '';
+    words.forEach(function (w) {
+      var test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; }
+      else line = test;
     });
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  // Balanced wrap: same number of lines, but broken so they come out a
+  // similar length. Greedy gives "New products coming soon to" / "Packet";
+  // balanced gives "New products coming" / "soon to Packet". Brute force
+  // over the break positions, which is fine for two or three lines of a
+  // headline and falls back to greedy for anything longer.
+  function wrapLines(ctx, text, maxWidth) {
+    var greedy = wrapGreedy(ctx, text, maxWidth);
+    if (greedy.length < 2 || greedy.length > 3) return greedy;
+
+    var words = String(text || '').split(/\s+/).filter(Boolean);
+    if (words.length < greedy.length) return greedy;
+
+    function widthOf(from, to) {
+      return ctx.measureText(words.slice(from, to).join(' ')).width;
+    }
+    var best = null, bestScore = Infinity;
+
+    if (greedy.length === 2) {
+      for (var i = 1; i < words.length; i++) {
+        var a = widthOf(0, i), b = widthOf(i, words.length);
+        if (a > maxWidth || b > maxWidth) continue;
+        var score = Math.abs(a - b);
+        if (score < bestScore) { bestScore = score; best = [words.slice(0, i).join(' '), words.slice(i).join(' ')]; }
+      }
+    } else {
+      for (var j = 1; j < words.length - 1; j++) {
+        for (var k = j + 1; k < words.length; k++) {
+          var w1 = widthOf(0, j), w2 = widthOf(j, k), w3 = widthOf(k, words.length);
+          if (w1 > maxWidth || w2 > maxWidth || w3 > maxWidth) continue;
+          var s = Math.max(w1, w2, w3) - Math.min(w1, w2, w3);
+          if (s < bestScore) {
+            bestScore = s;
+            best = [words.slice(0, j).join(' '), words.slice(j, k).join(' '), words.slice(k).join(' ')];
+          }
+        }
+      }
+    }
+    return best || greedy;
+  }
+
+  // Optical alignment. A line starting with a quote mark is mostly air on
+  // its left, so a mathematically centred line sits visually to the right.
+  // These are fractions of the type size, arrived at by eye.
+  var OPTICAL_LEFT = {
+    '"': 0.30, '“': 0.30, '‘': 0.24, "'": 0.24,
+    'W': 0.035, 'V': 0.035, 'Y': 0.035, 'T': 0.030, 'A': 0.030,
+    'O': 0.016, 'C': 0.016, 'G': 0.016, 'Q': 0.016, 'J': 0.020
+  };
+
+  function opticalShift(line, px, align) {
+    var ch = String(line || '').charAt(0);
+    var f = OPTICAL_LEFT[ch] || 0;
+    if (!f) return 0;
+    // Ranged left: pull the line out into the margin. Centred: only half,
+    // because the right-hand end is doing its own thing.
+    return align === 'left' ? -f * px : -f * px * 0.5;
+  }
+
+  function drawLine(ctx, text, x, y, px, align) {
+    ctx.fillText(text, x + opticalShift(text, px, align), y);
+  }
+
+  // ---- paper -----------------------------------------------------------
+  // One noise tile, generated once, reused for every render. Multiplied over
+  // the finished artwork at a few per cent it reads as paper rather than as
+  // a screen. This is the cheapest quality in the file by a distance.
+  var grainPattern = null;
+  function grainTile() {
+    if (grainPattern) return grainPattern;
+    var n = 256;
+    var c = document.createElement('canvas');
+    c.width = n; c.height = n;
+    var g = c.getContext('2d');
+    var d = g.createImageData(n, n);
+    for (var i = 0; i < d.data.length; i += 4) {
+      // Centred on white so multiply darkens only slightly and unevenly.
+      var v = 236 + Math.floor(Math.random() * 20);
+      d.data[i] = d.data[i + 1] = d.data[i + 2] = v;
+      d.data[i + 3] = 255;
+    }
+    g.putImageData(d, 0, 0);
+    grainPattern = c;
+    return c;
+  }
+
+  function applyFinish(ctx, W, H, finish) {
+    if (finish === 'clean') return;
+
+    // A slightly misaligned second impression, like a press out of
+    // register. Very subtle on purpose — at more than about 12% it stops
+    // looking like printing and starts looking like a mistake.
+    if (finish === 'printed') {
+      var snap = document.createElement('canvas');
+      snap.width = W; snap.height = H;
+      snap.getContext('2d').drawImage(ctx.canvas, 0, 0);
+      ctx.save();
+      ctx.globalAlpha = 0.10;
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.drawImage(snap, Math.round(W * 0.0022), Math.round(H * 0.0014));
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.globalAlpha = finish === 'printed' ? 0.075 : 0.055;
+    ctx.globalCompositeOperation = 'multiply';
+    var pat = ctx.createPattern(grainTile(), 'repeat');
+    ctx.fillStyle = pat;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
   }
 
   function setImageSizes(platform) {
@@ -2274,25 +2482,10 @@ e.g. Stop scanning Boots"></textarea>
     sel.innerHTML = h;
   }
 
-  // ---- drawing helpers --------------------------------------------------
-  function wrapLines(ctx, text, maxWidth) {
-    var words = String(text || '').split(/\s+/).filter(Boolean);
-    var lines = [], line = '';
-    words.forEach(function (w) {
-      var test = line ? line + ' ' + w : w;
-      if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; }
-      else line = test;
-    });
-    if (line) lines.push(line);
-    return lines;
-  }
-
-  // Fits text into a width by stepping the size down. Beats wrapping a
-  // three-word headline onto three lines, which looks like an accident.
-  function fitSize(ctx, text, maxWidth, startPx, weight, minPx) {
+  function fitSize(ctx, text, maxWidth, startPx, weight, minPx, W) {
     var px = startPx;
     while (px > (minPx || 24)) {
-      ctx.font = weight + ' ' + px + 'px Lora, Georgia, serif';
+      setType(ctx, weight, px, displayTracking(px, W));
       if (ctx.measureText(text).width <= maxWidth) break;
       px -= Math.max(2, Math.round(px * 0.04));
     }
@@ -2303,20 +2496,31 @@ e.g. Stop scanning Boots"></textarea>
     ctx.save();
     ctx.fillStyle = colour;
     ctx.textAlign = align || 'left';
-    ctx.font = '500 ' + px + 'px Inter, system-ui, sans-serif';
-    var t = String(text).toUpperCase();
-    // Letterspacing by hand — canvas has no tracking property everywhere.
-    var space = Math.round(px * 0.22);
-    var total = 0;
-    for (var i = 0; i < t.length; i++) total += ctx.measureText(t[i]).width + space;
-    total -= space;
-    var cx = align === 'center' ? x - total / 2 : (align === 'right' ? x - total : x);
-    ctx.textAlign = 'left';
-    for (var j = 0; j < t.length; j++) {
-      ctx.fillText(t[j], cx, y);
-      cx += ctx.measureText(t[j]).width + space;
+    setUIType(ctx, px, 0.22);
+    if (HAS_TRACKING) {
+      // Trailing tracking is added after the last letter too, so a centred
+      // label sits half a space to the left without this correction.
+      var t = String(text).toUpperCase();
+      if (align === 'center') {
+        ctx.fillText(t, x + px * 0.11, y);
+      } else if (align === 'right') {
+        ctx.fillText(t, x + px * 0.22, y);
+      } else {
+        ctx.fillText(t, x, y);
+      }
+    } else {
+      // No ctx.letterSpacing on this browser — space it by hand.
+      var s = String(text).toUpperCase();
+      var space = Math.round(px * 0.22);
+      var total = 0, i;
+      for (i = 0; i < s.length; i++) total += ctx.measureText(s[i]).width + space;
+      total -= space;
+      var cx = align === 'center' ? x - total / 2 : (align === 'right' ? x - total : x);
+      ctx.textAlign = 'left';
+      for (i = 0; i < s.length; i++) { ctx.fillText(s[i], cx, y); cx += ctx.measureText(s[i]).width + space; }
     }
     ctx.restore();
+    clearTracking(ctx);
   }
 
   function imgFields() {
@@ -2342,8 +2546,8 @@ e.g. Stop scanning Boots"></textarea>
   }
 
   // ---- the layouts ------------------------------------------------------
-  // Each one draws everything except the logo and returns where the logo
-  // goes: { x, y, anchor } where anchor is 'center' | 'left' | 'right'.
+  // Each draws everything except the logo and returns where the logo goes:
+  // { x, y, anchor } with anchor 'center' | 'left' | 'right'.
   var RENDER = {
 
     statement: function (ctx, S, f, C) {
@@ -2355,57 +2559,76 @@ e.g. Stop scanning Boots"></textarea>
       ctx.moveTo(pad, Math.round(S.h * 0.865)); ctx.lineTo(S.w - pad, Math.round(S.h * 0.865));
       ctx.stroke();
 
-      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.098), '600');
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.098), '600', 30, S.w);
       ctx.textAlign = 'center';
       var headLines = wrapLines(ctx, f.head, inner);
       var sPx = Math.round(hPx * 0.62);
-      ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
+      setType(ctx, '400', sPx, 0);
       var subLines = wrapLines(ctx, f.sub, inner);
 
-      var lineH = Math.round(hPx * 1.2), subH = Math.round(sPx * 1.32);
+      var lineH = Math.round(hPx * 1.16), subH = Math.round(sPx * 1.32);
       var blockH = headLines.length * lineH + (subLines.length ? subLines.length * subH + sPx * 0.5 : 0);
       var y = Math.round(S.h * 0.46 - blockH / 2 + lineH * 0.8);
 
       ctx.fillStyle = C.ink;
-      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
-      headLines.forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += lineH; });
+      setType(ctx, '600', hPx, displayTracking(hPx, S.w));
+      headLines.forEach(function (l) { drawLine(ctx, l, S.w / 2, y, hPx, 'center'); y += lineH; });
+      clearTracking(ctx);
+
       if (subLines.length) {
         y += Math.round(sPx * 0.5);
         ctx.fillStyle = C.accent;
-        ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
-        subLines.forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += subH; });
+        setType(ctx, '400', sPx, 0);
+        subLines.forEach(function (l) { drawLine(ctx, l, S.w / 2, y, sPx, 'center'); y += subH; });
       }
       return { x: S.w / 2, y: Math.round(S.h * 0.925), anchor: 'center' };
     },
 
     editorial: function (ctx, S, f, C) {
+      // Measure the whole block first, then sit it on the optical centre.
+      // The first version started at a fixed 30% and let the text run
+      // downwards, which left half the frame empty and read as lost the
+      // moment the image was shrunk to a thumbnail — which is exactly how
+      // anyone actually sees it in a feed.
       var pad = Math.round(S.w * 0.11), inner = Math.round(S.w * 0.74);
-      var y = Math.round(S.h * 0.30);
+      var ePx = Math.round(S.w * 0.022);
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.095), '600', 30, S.w);
+      var headLines = wrapLines(ctx, f.head, inner);
+      var lineH = Math.round(hPx * 1.12);
+
+      // A floor on the second line. Tying it purely to the headline meant a
+      // long headline shrank the sub to something unreadable.
+      var sPx = Math.max(Math.round(hPx * 0.52), Math.round(S.w * 0.038));
+      setType(ctx, '400', sPx, 0);
+      var subLines = f.sub ? wrapLines(ctx, f.sub, inner) : [];
+      var subH = Math.round(sPx * 1.34);
+
+      var blockH = (f.eyebrow ? Math.round(S.w * 0.055) : 0) +
+                   headLines.length * lineH +
+                   (subLines.length ? Math.round(sPx * 1.1) + subLines.length * subH : 0);
+      var y = Math.round(S.h * 0.44 - blockH / 2);
 
       if (f.eyebrow) {
-        drawSmallCaps(ctx, f.eyebrow, pad, y, Math.round(S.w * 0.022), C.accent, 'left');
-        y += Math.round(S.w * 0.055);
+        y += Math.round(S.w * 0.030);
+        drawSmallCaps(ctx, f.eyebrow, pad, y, ePx, C.accent, 'left');
+        y += Math.round(S.w * 0.025);
       }
-      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.095), '600');
       ctx.textAlign = 'left';
       ctx.fillStyle = C.ink;
-      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
-      var lineH = Math.round(hPx * 1.16);
-      wrapLines(ctx, f.head, inner).forEach(function (l) { y += lineH; ctx.fillText(l, pad, y); });
+      setType(ctx, '600', hPx, displayTracking(hPx, S.w));
+      headLines.forEach(function (l) { y += lineH; drawLine(ctx, l, pad, y, hPx, 'left'); });
+      clearTracking(ctx);
 
-      if (f.sub) {
-        var sPx = Math.round(hPx * 0.52);
+      if (subLines.length) {
         ctx.fillStyle = C.accent;
-        ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
-        y += Math.round(sPx * 1.5);
-        wrapLines(ctx, f.sub, inner).forEach(function (l) { y += Math.round(sPx * 1.34); ctx.fillText(l, pad, y); });
+        setType(ctx, '400', sPx, 0);
+        y += Math.round(sPx * 1.1);
+        subLines.forEach(function (l) { y += subH; drawLine(ctx, l, pad, y, sPx, 'left'); });
       }
       return { x: pad, y: Math.round(S.h * 0.90), anchor: 'left' };
     },
 
     block: function (ctx, S, f, C) {
-      // Foot band in the accent colour. The logo sits inside it, so the mark
-      // flips to the pale version regardless of the page background.
       var bandTop = Math.round(S.h * 0.78);
       ctx.fillStyle = BRAND.terracotta;
       ctx.fillRect(0, bandTop, S.w, S.h - bandTop);
@@ -2416,35 +2639,36 @@ e.g. Stop scanning Boots"></textarea>
         drawSmallCaps(ctx, f.eyebrow, S.w / 2, y, Math.round(S.w * 0.022), C.accent, 'center');
         y += Math.round(S.w * 0.05);
       }
-      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.092), '600');
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.092), '600', 30, S.w);
       ctx.textAlign = 'center';
       ctx.fillStyle = C.ink;
-      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
-      var lineH = Math.round(hPx * 1.16);
-      wrapLines(ctx, f.head, inner).forEach(function (l) { y += lineH; ctx.fillText(l, S.w / 2, y); });
+      setType(ctx, '600', hPx, displayTracking(hPx, S.w));
+      var lineH = Math.round(hPx * 1.12);
+      wrapLines(ctx, f.head, inner).forEach(function (l) { y += lineH; drawLine(ctx, l, S.w / 2, y, hPx, 'center'); });
+      clearTracking(ctx);
 
       if (f.sub) {
         var sPx = Math.round(hPx * 0.55);
         ctx.fillStyle = BRAND.brown;
-        ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
+        setType(ctx, '400', sPx, 0);
         y += Math.round(sPx * 1.3);
-        wrapLines(ctx, f.sub, inner).forEach(function (l) { y += Math.round(sPx * 1.3); ctx.fillText(l, S.w / 2, y); });
+        wrapLines(ctx, f.sub, inner).forEach(function (l) { y += Math.round(sPx * 1.3); drawLine(ctx, l, S.w / 2, y, sPx, 'center'); });
       }
       return { x: S.w / 2, y: Math.round(bandTop + (S.h - bandTop) / 2), anchor: 'center', onBand: true };
     },
 
     number: function (ctx, S, f, C) {
-      // The first word carries it. "Fifty cloths" becomes FIFTY, huge.
       var big = (f.head || '').split(/\s+/)[0] || f.head || '';
       var rest = (f.head || '').split(/\s+/).slice(1).join(' ');
       var pad = Math.round(S.w * 0.10), inner = S.w - pad * 2;
 
-      var bPx = fitSize(ctx, big, inner, Math.round(S.w * 0.34), '600', 60);
+      var bPx = fitSize(ctx, big, inner, Math.round(S.w * 0.34), '600', 60, S.w);
       ctx.textAlign = 'center';
       ctx.fillStyle = C.ink;
-      ctx.font = '600 ' + bPx + 'px Lora, Georgia, serif';
+      setType(ctx, '600', bPx, displayTracking(bPx, S.w));
       var y = Math.round(S.h * 0.44);
-      ctx.fillText(big, S.w / 2, y);
+      drawLine(ctx, big, S.w / 2, y, bPx, 'center');
+      clearTracking(ctx);
 
       ctx.strokeStyle = C.accent;
       ctx.lineWidth = Math.max(2, Math.round(S.w / 400));
@@ -2453,57 +2677,54 @@ e.g. Stop scanning Boots"></textarea>
       ctx.lineTo(S.w / 2 + S.w * 0.09, y + Math.round(S.w * 0.045));
       ctx.stroke();
 
-      // Two separate lines, not one run-on. "cloths." and "One box, a year of
-      // them." are different thoughts and reading them joined by a dash is
-      // how the first version looked like a mistake.
       var cPx = Math.round(S.w * 0.048);
       y += Math.round(S.w * 0.115);
       if (rest) {
         ctx.fillStyle = C.ink;
-        ctx.font = '600 ' + cPx + 'px Lora, Georgia, serif';
-        wrapLines(ctx, rest, inner).forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += Math.round(cPx * 1.3); });
+        setType(ctx, '600', cPx, -0.006);
+        wrapLines(ctx, rest, inner).forEach(function (l) { drawLine(ctx, l, S.w / 2, y, cPx, 'center'); y += Math.round(cPx * 1.3); });
+        clearTracking(ctx);
         y += Math.round(cPx * 0.35);
       }
       if (f.sub) {
         var s2 = Math.round(cPx * (rest ? 0.86 : 1));
         ctx.fillStyle = C.accent;
-        ctx.font = '400 ' + s2 + 'px Lora, Georgia, serif';
-        wrapLines(ctx, f.sub, inner).forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += Math.round(s2 * 1.34); });
+        setType(ctx, '400', s2, 0);
+        wrapLines(ctx, f.sub, inner).forEach(function (l) { drawLine(ctx, l, S.w / 2, y, s2, 'center'); y += Math.round(s2 * 1.34); });
       }
-
       return { x: S.w / 2, y: Math.round(S.h * 0.925), anchor: 'center' };
     },
 
     question: function (ctx, S, f, C) {
-      // An oversized mark behind the words, in the faint tint. Reads as
-      // texture rather than a character once it is that big.
       var glyph = /\?\s*$/.test(f.head || '') ? '?' : '“';
       ctx.save();
       ctx.textAlign = 'center';
       ctx.fillStyle = C.faint;
-      ctx.font = '600 ' + Math.round(S.w * 0.9) + 'px Lora, Georgia, serif';
+      setType(ctx, '600', Math.round(S.w * 0.9), 0);
       ctx.fillText(glyph, S.w / 2, Math.round(S.h * 0.78));
       ctx.restore();
+      clearTracking(ctx);
 
       var pad = Math.round(S.w * 0.12), inner = S.w - pad * 2;
-      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.088), '600');
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.088), '600', 30, S.w);
       ctx.textAlign = 'center';
       var headLines = wrapLines(ctx, f.head, inner);
       var sPx = Math.round(hPx * 0.6);
-      ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
+      setType(ctx, '400', sPx, 0);
       var subLines = wrapLines(ctx, f.sub, inner);
-      var lineH = Math.round(hPx * 1.2), subH = Math.round(sPx * 1.32);
+      var lineH = Math.round(hPx * 1.16), subH = Math.round(sPx * 1.32);
       var blockH = headLines.length * lineH + (subLines.length ? subLines.length * subH + sPx * 0.6 : 0);
       var y = Math.round(S.h * 0.47 - blockH / 2 + lineH * 0.8);
 
       ctx.fillStyle = C.ink;
-      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
-      headLines.forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += lineH; });
+      setType(ctx, '600', hPx, displayTracking(hPx, S.w));
+      headLines.forEach(function (l) { drawLine(ctx, l, S.w / 2, y, hPx, 'center'); y += lineH; });
+      clearTracking(ctx);
       if (subLines.length) {
         y += Math.round(sPx * 0.6);
         ctx.fillStyle = C.accent;
-        ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
-        subLines.forEach(function (l) { ctx.fillText(l, S.w / 2, y); y += subH; });
+        setType(ctx, '400', sPx, 0);
+        subLines.forEach(function (l) { drawLine(ctx, l, S.w / 2, y, sPx, 'center'); y += subH; });
       }
       return { x: S.w / 2, y: Math.round(S.h * 0.93), anchor: 'center' };
     },
@@ -2516,21 +2737,35 @@ e.g. Stop scanning Boots"></textarea>
         drawSmallCaps(ctx, f.eyebrow, pad, y, Math.round(S.w * 0.022), C.accent, 'left');
         y += Math.round(S.w * 0.05);
       }
-      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.072), '600');
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.072), '600', 26, S.w);
       ctx.textAlign = 'left';
       ctx.fillStyle = C.ink;
-      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
-      wrapLines(ctx, f.head, inner).forEach(function (l) { y += Math.round(hPx * 1.16); ctx.fillText(l, pad, y); });
+      setType(ctx, '600', hPx, displayTracking(hPx, S.w));
+      wrapLines(ctx, f.head, inner).forEach(function (l) { y += Math.round(hPx * 1.12); drawLine(ctx, l, pad, y, hPx, 'left'); });
+      clearTracking(ctx);
 
-      var items = f.list.length ? f.list : (f.sub ? [f.sub] : []);
+      // Only a real list gets numbers. Falling back to the second line put a
+      // lonely "1" next to a sentence that was never a list item.
+      var items = f.list.length > 1 ? f.list : [];
       var iPx = Math.round(S.w * 0.046);
       y += Math.round(S.w * 0.055);
+
+      if (!items.length) {
+        if (f.sub) {
+          var sPx = Math.max(Math.round(hPx * 0.55), Math.round(S.w * 0.038));
+          ctx.fillStyle = C.accent;
+          setType(ctx, '400', sPx, 0);
+          wrapLines(ctx, f.sub, inner).forEach(function (l) { drawLine(ctx, l, pad, y, sPx, 'left'); y += Math.round(sPx * 1.32); });
+        }
+        return { x: pad, y: Math.round(S.h * 0.90), anchor: 'left' };
+      }
+
       items.forEach(function (item, i) {
         ctx.fillStyle = C.accent;
-        ctx.font = '600 ' + iPx + 'px Lora, Georgia, serif';
+        setType(ctx, '600', iPx, 0);
         ctx.fillText(String(i + 1), pad, y);
         ctx.fillStyle = C.ink;
-        ctx.font = '400 ' + iPx + 'px Lora, Georgia, serif';
+        setType(ctx, '400', iPx, 0);
         var indent = pad + Math.round(S.w * 0.055);
         wrapLines(ctx, item, inner - Math.round(S.w * 0.055)).forEach(function (l, k) {
           ctx.fillText(l, indent, y + k * Math.round(iPx * 1.28));
@@ -2549,20 +2784,20 @@ e.g. Stop scanning Boots"></textarea>
         drawSmallCaps(ctx, f.eyebrow, pad, y, Math.round(S.w * 0.022), C.accent, 'left');
         y += Math.round(S.w * 0.05);
       }
-      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.088), '600');
+      var hPx = fitSize(ctx, f.head, inner, Math.round(S.w * 0.088), '600', 28, S.w);
       ctx.textAlign = 'left';
       ctx.fillStyle = C.ink;
-      ctx.font = '600 ' + hPx + 'px Lora, Georgia, serif';
-      wrapLines(ctx, f.head, inner).forEach(function (l) { y += Math.round(hPx * 1.16); ctx.fillText(l, pad, y); });
+      setType(ctx, '600', hPx, displayTracking(hPx, S.w));
+      wrapLines(ctx, f.head, inner).forEach(function (l) { y += Math.round(hPx * 1.12); drawLine(ctx, l, pad, y, hPx, 'left'); });
+      clearTracking(ctx);
 
       if (f.sub) {
-        var sPx = Math.round(hPx * 0.54);
+        var sPx = Math.max(Math.round(hPx * 0.54), Math.round(S.w * 0.038));
         ctx.fillStyle = C.accent;
-        ctx.font = '400 ' + sPx + 'px Lora, Georgia, serif';
-        y += Math.round(sPx * 1.4);
-        wrapLines(ctx, f.sub, inner).forEach(function (l) { ctx.fillText(l, pad, y); y += Math.round(sPx * 1.32); });
+        setType(ctx, '400', sPx, 0);
+        y += Math.round(sPx * 1.25);
+        wrapLines(ctx, f.sub, inner).forEach(function (l) { y += Math.round(sPx * 1.32); drawLine(ctx, l, pad, y, sPx, 'left'); });
       }
-      // Badge sits top right on this one, so the logo slot is up there.
       return { x: S.w - pad, y: Math.round(S.h * 0.13), anchor: 'right', forceBadge: true };
     }
   };
@@ -2571,7 +2806,6 @@ e.g. Stop scanning Boots"></textarea>
     var chosen = document.getElementById('imLayout').value;
     if (chosen && chosen !== 'auto') {
       var bg = document.getElementById('imBg').value;
-      // A hand-picked layout still needs a background it works on.
       if (LAYOUTS[chosen].bgs.indexOf(bg) === -1) bg = LAYOUTS[chosen].bgs[0];
       return { layout: chosen, bg: bg, auto: false };
     }
@@ -2579,61 +2813,76 @@ e.g. Stop scanning Boots"></textarea>
     return { layout: state.imCombo.layout, bg: state.imCombo.bg, auto: true };
   }
 
+  // Draws the whole thing at SUPERSAMPLE times the final size on an
+  // offscreen canvas, then shrinks it onto the real one. Everything below
+  // is synchronous — the logos were loaded before any of this ran — so
+  // whatever is on screen is exactly what Download gives you.
   function drawImage() {
     var cv = document.getElementById('imCanvas');
     if (!cv) return;
     fillLayoutSelect();
 
+    if (!marksReady) { preloadMarks().then(drawImage); return; }
+
     var sizeKey = document.getElementById('imSize').value || 'square';
     var S = IMG_SIZES[sizeKey] || IMG_SIZES.square;
     var combo = currentLayout(sizeKey);
-
-    // Keep the two dropdowns honest about what is actually on screen.
     document.getElementById('imBg').value = combo.bg;
+    state.imLastLayout = combo.layout;
     var C = inkFor(combo.bg);
 
-    cv.width = S.w; cv.height = S.h;
-    cv.style.maxHeight = '420px';
-    var ctx = cv.getContext('2d');
+    var off = document.createElement('canvas');
+    off.width = S.w * SUPERSAMPLE;
+    off.height = S.h * SUPERSAMPLE;
+    var ctx = off.getContext('2d');
+    ctx.scale(SUPERSAMPLE, SUPERSAMPLE);
+    ctx.textBaseline = 'alphabetic';
+
     ctx.fillStyle = BRAND[combo.bg];
     ctx.fillRect(0, 0, S.w, S.h);
 
     var f = imgFields();
     var slot = (RENDER[combo.layout] || RENDER.statement)(ctx, S, f, C);
+    clearTracking(ctx);
 
     var noteEl = document.getElementById('imNote');
     var markPref = document.getElementById('imMark').value;
+    var label = LAYOUTS[combo.layout].label.split(' — ')[0] +
+                (combo.auto ? ' · picked for you' : ' · your choice');
+
     if (markPref === 'none') {
-      noteEl.textContent = LAYOUTS[combo.layout].label.split(' — ')[0] +
-        (combo.auto ? ' · picked for you' : ' · your choice');
-      return;
-    }
-
-    var useBadge = markPref === 'badge' || slot.forceBadge;
-    var onDark = slot.onBand ? true : C.dark;
-    var file = useBadge ? 'packet-badge.png'
-             : (onDark ? 'packet-wordmark-light.png' : 'packet-wordmark-dark.png');
-
-    loadMark(file).then(function (img) {
+      noteEl.textContent = label;
+    } else {
+      var useBadge = markPref === 'badge' || slot.forceBadge;
+      var onDark = slot.onBand ? true : C.dark;
+      var file = useBadge ? 'packet-badge.png'
+               : (onDark ? 'packet-wordmark-light.png' : 'packet-wordmark-dark.png');
+      var img = marks[file];
       if (!img) {
         noteEl.textContent = 'Logo file assets/' + file + ' is missing — drawn without it rather than faking it.';
-        return;
+      } else {
+        noteEl.textContent = label + ' · logo: ' + file + ', the file from the Logo folder.';
+        var targetW = Math.round(S.w * (useBadge ? 0.15 : (slot.onBand ? 0.30 : 0.26)));
+        var scale = targetW / img.width;
+        var w = targetW, h = Math.round(img.height * scale);
+        var x = slot.anchor === 'left' ? slot.x
+              : slot.anchor === 'right' ? slot.x - w
+              : Math.round(slot.x - w / 2);
+        ctx.drawImage(img, x, Math.round(slot.y - h / 2), w, h);
       }
-      noteEl.textContent = LAYOUTS[combo.layout].label.split(' — ')[0] +
-        (combo.auto ? ' · picked for you' : ' · your choice') +
-        ' · logo: ' + file + ', the file from the Logo folder.';
+    }
 
-      var targetW = Math.round(S.w * (useBadge ? 0.15 : (slot.onBand ? 0.30 : 0.26)));
-      var scale = targetW / img.width;
-      var w = targetW, h = Math.round(img.height * scale);
-      var x = slot.anchor === 'left' ? slot.x
-            : slot.anchor === 'right' ? slot.x - w
-            : Math.round(slot.x - w / 2);
-      ctx.drawImage(img, x, Math.round(slot.y - h / 2), w, h);
-    });
+    applyFinish(ctx, S.w, S.h, document.getElementById('imFinish').value);
+
+    cv.width = S.w; cv.height = S.h;
+    cv.style.maxHeight = '420px';
+    var out = cv.getContext('2d');
+    out.imageSmoothingEnabled = true;
+    out.imageSmoothingQuality = 'high';
+    out.clearRect(0, 0, S.w, S.h);
+    out.drawImage(off, 0, 0, S.w, S.h);
   }
 
-  // Redesign: throw away the remembered pick and choose another one.
   function reshuffle() {
     document.getElementById('imLayout').value = 'auto';
     state.imCombo = null;
@@ -2647,14 +2896,11 @@ e.g. Stop scanning Boots"></textarea>
   ['imEyebrow', 'imHead', 'imSub', 'imList'].forEach(function (id) {
     document.getElementById(id).addEventListener('input', drawImage);
   });
-  ['imSize', 'imBg', 'imMark', 'imLayout'].forEach(function (id) {
+  ['imSize', 'imBg', 'imMark', 'imLayout', 'imFinish'].forEach(function (id) {
     document.getElementById(id).addEventListener('change', function () {
       if (id === 'imBg' || id === 'imLayout') state.imCombo = null;
       if (id === 'imBg' && document.getElementById('imLayout').value === 'auto') {
-        // A background chosen by hand pins the current layout rather than
-        // being overwritten on the next redraw.
-        var cur = state.imLastLayout || 'statement';
-        document.getElementById('imLayout').value = cur;
+        document.getElementById('imLayout').value = state.imLastLayout || 'statement';
       }
       drawImage();
     });
@@ -2662,22 +2908,17 @@ e.g. Stop scanning Boots"></textarea>
   document.getElementById('imShuffle').addEventListener('click', reshuffle);
 
   document.getElementById('imDownload').addEventListener('click', function () {
-    var cv = document.getElementById('imCanvas');
-    // Redraw first so the logo is definitely composited before we export -
-    // the mark loads asynchronously and an early export would drop it.
-    drawImage();
-    setTimeout(function () {
-      cv.toBlob(function (blob) {
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'packet-' + (state.soTab || 'post') + '-' +
-                     document.getElementById('imSize').value + '-' +
-                     new Date().toISOString().slice(0, 10) + '.png';
-        a.click();
-        URL.revokeObjectURL(url);
-      }, 'image/png');
-    }, 250);
+    // Rendering is synchronous now, so what is on the canvas is final.
+    document.getElementById('imCanvas').toBlob(function (blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'packet-' + (state.soTab || 'post') + '-' +
+                   document.getElementById('imSize').value + '-' +
+                   new Date().toISOString().slice(0, 10) + '.png';
+      a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
   });
 
   // Lora arrives from Google Fonts after the page does. Drawing before it
@@ -2688,6 +2929,7 @@ e.g. Stop scanning Boots"></textarea>
       if (document.getElementById('soImageWrap').style.display === 'block') drawImage();
     });
   }
+  preloadMarks();
 
   function renderSocial() {
     document.getElementById('soRules').textContent = state.voice || VOICE_FALLBACK;
