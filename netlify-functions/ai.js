@@ -26,6 +26,16 @@ exports.handler = async (event) => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return json(503, { error: 'AI not configured', fallback: true });
 
+  // Who is asking. Added 29 September 2026: until then this endpoint
+  // answered anyone on the internet who found it, on Packet's Anthropic
+  // key. Now it answers two kinds of caller and nobody else:
+  //   - Phil or Scott (an owner or staff login), from the admin page
+  //   - Packet's own scheduled functions, which send the service key
+  // A brand login is refused, and so is everyone without a login. They
+  // get { fallback: true }, the same as a missing key, so no page ever
+  // shows a broken button because of this.
+  if (!(await allowed(event))) return json(401, { error: 'Not allowed', fallback: true });
+
   let body;
   try { body = JSON.parse(event.body || '{}'); }
   catch { return json(400, { error: 'Invalid JSON' }); }
@@ -67,6 +77,42 @@ exports.handler = async (event) => {
     return json(502, { error: 'AI request failed', fallback: true });
   }
 };
+
+async function allowed(event) {
+  const url = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return false;
+
+  const auth = event.headers.authorization || event.headers.Authorization || '';
+  const token = auth.replace(/^Bearer\s+/i, '').trim();
+  if (!token) return false;
+
+  if (sameSecret(token, serviceKey)) return true;
+
+  try {
+    const resp = await fetch(url + '/auth/v1/user', {
+      headers: { apikey: serviceKey, authorization: 'Bearer ' + token }
+    });
+    if (!resp.ok) return false;
+    const user = await resp.json();
+    if (!user || !user.id) return false;
+    const pr = await fetch(url + '/rest/v1/user_profiles?select=role&id=eq.' + user.id, {
+      headers: { apikey: serviceKey, authorization: 'Bearer ' + serviceKey }
+    });
+    const rows = await pr.json();
+    return !!(rows && rows[0] && ['owner', 'staff'].indexOf(rows[0].role) > -1);
+  } catch (err) {
+    console.error('ai authorise failed', err);
+    return false;
+  }
+}
+
+// Compares without leaking how much of the secret matched.
+function sameSecret(a, b) {
+  const crypto = require('crypto');
+  const x = Buffer.from(String(a)), y = Buffer.from(String(b));
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
+}
 
 function json(statusCode, obj) {
   return { statusCode, headers: { 'content-type': 'application/json' }, body: JSON.stringify(obj) };

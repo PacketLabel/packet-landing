@@ -466,7 +466,9 @@ async function askModel(question, competitors, seasons) {
   try {
     const resp = await fetch(base + '/.netlify/functions/ai', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      // The ai function only answers staff and Packet's own functions.
+      headers: { 'content-type': 'application/json',
+                 authorization: 'Bearer ' + (process.env.SUPABASE_SERVICE_ROLE_KEY || '') },
       body: JSON.stringify({ system, prompt, max_tokens: 900 })
     });
     const data = await resp.json();

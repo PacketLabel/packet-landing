@@ -122,6 +122,9 @@
     padding:20px;margin-top:16px}
   .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0 16px}
 
+  /* Inline answers in the Brands table. Full-width selects would make
+     each row three lines taller for no gain. */
+  select.mini{width:auto;padding:2px 6px;font-size:12px;margin-bottom:2px}
   .tick{display:flex;gap:9px;align-items:flex-start;font-size:14px;margin:10px 0;cursor:pointer}
   .tick input{margin-top:4px;flex:none}
 
@@ -244,6 +247,8 @@
       <button data-page="sourcing">Sourcing</button>
       <button data-page="costs">Costs</button>
       <button data-page="finds">Finds</button>
+      <button data-page="brands">Brands</button>
+      <button data-page="outlet">Outlet</button>
       <button data-page="social">Social</button>
       <button data-page="traffic">Traffic</button>
       <button data-page="users">Users</button>
@@ -671,6 +676,212 @@
     <!-- Watches competitors and suppliers, and proposes things worth
          selling. It proposes. Every row on the shortlist waits for a
          person to say yes, and nothing here writes to Shopify. -->
+    <section id="page-brands" class="page">
+      <h1>Brands</h1>
+      <p class="hint">
+        Companies we would like to carry, and where each one has got to.
+        Shopify Collective lets a retailer <strong>invite a brand that has not joined yet</strong>,
+        so this is not a list of whoever signed up &mdash; it is a list of who we want.
+        Nothing here is a supplier. A supplier is a real account with real terms,
+        and only Phil or Scott can create one.
+      </p>
+
+      <div class="cards" id="brandCards"></div>
+      <p class="hint" id="brandProgress"></p>
+
+      <div id="brandsMsg" class="msg"></div>
+
+      <div class="panel">
+        <div class="grid2">
+          <div class="field">
+            <label for="bFilterStatus">Show</label>
+            <select id="bFilterStatus">
+              <option value="live">Everything still in play</option>
+              <option value="all">Everything, including declined</option>
+              <option value="candidate">Not yet contacted</option>
+              <option value="contacted">Contacted, no reply</option>
+              <option value="replied">Replied</option>
+              <option value="soft_yes">Said yes in principle</option>
+              <option value="invited">Invited to Collective</option>
+              <option value="connected">Connected</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="bFilterReach">Collective check</label>
+            <select id="bFilterReach">
+              <option value="">Any</option>
+              <option value="reachable">Reachable only</option>
+              <option value="not_reachable">Not reachable</option>
+              <option value="unchecked">Not checked yet</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="brandsList"></div>
+
+      <h2>Add a brand</h2>
+      <p class="hint">
+        The website is the only thing the check needs. Everything else can be filled in later,
+        and three of the fields are questions no website can answer &mdash; they start unknown
+        and stay unknown until somebody looks.
+      </p>
+      <div class="panel">
+        <div class="grid2">
+          <div class="field">
+            <label for="bName">Brand name</label>
+            <input type="text" id="bName" placeholder="e.g. Example Brand">
+          </div>
+          <div class="field">
+            <label for="bWebsite">Their website</label>
+            <input type="text" id="bWebsite" placeholder="examplebrand.co.uk">
+          </div>
+          <div class="field">
+            <label for="bCategory">Category</label>
+            <select id="bCategory"></select>
+          </div>
+          <div class="field">
+            <label for="bFoundVia">How we found them</label>
+            <select id="bFoundVia">
+              <option value="">&mdash;</option>
+              <option value="discovery">Collective&rsquo;s own directory</option>
+              <option value="instagram">Instagram</option>
+              <option value="search">Ordinary web search</option>
+              <option value="competitor">Seen on a competitor&rsquo;s shop</option>
+              <option value="high-street">High street / in a shop</option>
+              <option value="faire">Faire or similar</option>
+              <option value="personal">Somebody knows them</option>
+              <option value="other">Somewhere else</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="bContactName">Contact name</label>
+            <input type="text" id="bContactName" placeholder="Leave blank if you have not got one">
+          </div>
+          <div class="field">
+            <label for="bContactEmail">Contact email</label>
+            <input type="text" id="bContactEmail" placeholder="Leave blank if you have not got one">
+          </div>
+          <div class="field">
+            <label for="bInstagram">Instagram handle</label>
+            <input type="text" id="bInstagram" placeholder="The check will try to find this by itself">
+          </div>
+          <div class="field">
+            <label for="bNotes">Notes</label>
+            <input type="text" id="bNotes" placeholder="Why this one is worth a slot">
+          </div>
+        </div>
+        <button class="btn" id="bAdd">Add brand</button>
+      </div>
+    </section>
+
+    <!-- ---------- Outlet ---------- -->
+    <!-- Packet Outlet, run by Packet. Brands log in at brand.html and add
+         their stock; this is where Phil and Scott check it, price it,
+         put it on sale, record orders and record payouts. 014_outlet.sql. -->
+    <section id="page-outlet" class="page">
+      <h1>Outlet</h1>
+      <p class="hint">
+        Brands&rsquo; returns and sale stock, sent to us through their own login at
+        <a href="brand.html" target="_blank" style="color:var(--terracotta)">admin.packetlabel.com/brand.html</a>.
+        The brand keeps the stock and posts it. We check it, set the price, and record what they are owed.
+        This works for any brand, whatever their own shop runs on.
+      </p>
+
+      <div class="cards" id="olCards"></div>
+      <div id="olMsg" class="msg"></div>
+
+      <div class="subnav" id="olSubnav">
+        <button data-olsub="waiting" class="active">Waiting for us</button>
+        <button data-olsub="stock">All stock</button>
+        <button data-olsub="orders">Orders</button>
+        <button data-olsub="brands">Brands and logins</button>
+      </div>
+
+      <!-- Waiting -->
+      <div class="sub active" id="olsub-waiting">
+        <p class="hint">Stock a brand has sent us. Check the photos and the condition, then set our price
+          (never below their lowest) and put it on sale, or turn it down with a reason they will see.</p>
+        <div id="olWaiting"></div>
+      </div>
+
+      <!-- All stock -->
+      <div class="sub" id="olsub-stock">
+        <div class="bar">
+          <select id="olStockBrand" style="max-width:240px"></select>
+          <select id="olStockStatus" style="max-width:200px">
+            <option value="">Every status</option>
+            <option value="live">On sale</option>
+            <option value="submitted">Waiting for us</option>
+            <option value="paused">Paused</option>
+            <option value="draft">Brand has not sent yet</option>
+            <option value="withdrawn">Brand took back</option>
+            <option value="rejected">Turned down</option>
+          </select>
+        </div>
+        <div class="wrapscroll"><table id="olTblStock"></table></div>
+      </div>
+
+      <!-- Orders -->
+      <div class="sub" id="olsub-orders">
+        <p class="hint">Until the Shopify shop exists, orders go in by hand here. Leave <b>test order</b> ticked
+          to show a brand the whole thing working &mdash; a test order takes no stock and is never owed.</p>
+        <div class="panel">
+          <h2 style="margin-top:0">Add an order</h2>
+          <div class="grid2">
+            <div class="field" style="grid-column:1/-1"><label for="olOItem">Item (on sale)</label><select id="olOItem"></select></div>
+            <div class="field"><label for="olORef">Our order number</label><input type="text" id="olORef" placeholder="e.g. TEST-001"></div>
+            <div class="field"><label for="olOQty">How many</label><input type="text" id="olOQty" value="1" inputmode="numeric"></div>
+            <div class="field"><label for="olOPrice">Price each (£)</label><input type="text" id="olOPrice" inputmode="decimal"></div>
+            <div class="field"><label for="olOName">Customer name</label><input type="text" id="olOName"></div>
+            <div class="field"><label for="olOL1">Address line 1</label><input type="text" id="olOL1"></div>
+            <div class="field"><label for="olOL2">Address line 2</label><input type="text" id="olOL2"></div>
+            <div class="field"><label for="olOTown">Town</label><input type="text" id="olOTown"></div>
+            <div class="field"><label for="olOPost">Postcode</label><input type="text" id="olOPost"></div>
+            <div class="field"><label for="olOPhone">Phone (optional)</label><input type="text" id="olOPhone"></div>
+          </div>
+          <label class="tick"><input type="checkbox" id="olOTest" checked>
+            <span><b>Test order.</b> For showing a brand how it works. Takes no stock and is never owed.</span></label>
+          <button class="btn" id="olOAdd">Add the order</button>
+        </div>
+        <div class="wrapscroll"><table id="olTblOrders"></table></div>
+      </div>
+
+      <!-- Brands and logins -->
+      <div class="sub" id="olsub-brands">
+        <p class="hint">A brand has to be on the <b>Brands</b> page first. Set its terms once they are agreed
+          in writing &mdash; until then the brand sees &ldquo;terms not set&rdquo; rather than a guessed figure.
+          Only an owner can give out or remove a login.</p>
+
+        <div class="panel" id="olLoginPanel">
+          <h2 style="margin-top:0">Give a brand a login</h2>
+          <div class="grid2">
+            <div class="field"><label for="olLBrand">Brand</label><select id="olLBrand"></select></div>
+            <div class="field"><label for="olLEmail">Their email</label><input type="email" id="olLEmail"></div>
+            <div class="field"><label for="olLName">Their name</label><input type="text" id="olLName"></div>
+            <div class="field"><label for="olLPass">Temporary password</label><input type="text" id="olLPass" autocomplete="off">
+              <div class="hint" style="margin:4px 0 0">At least eight characters. They can change it with &ldquo;Forgotten your password?&rdquo;.</div></div>
+          </div>
+          <button class="btn" id="olLAdd">Create the login</button>
+        </div>
+
+        <div class="wrapscroll"><table id="olTblBrands"></table></div>
+
+        <div class="panel" id="olTermsPanel" style="display:none">
+          <h2 style="margin-top:0" id="olTermsTitle">Terms</h2>
+          <div class="grid2">
+            <div class="field"><label for="olTPct">Packet keeps (% of the sale price)</label><input type="text" id="olTPct" inputmode="decimal"></div>
+            <div class="field"><label for="olTDate">Agreed on</label><input type="date" id="olTDate"></div>
+            <div class="field" style="grid-column:1/-1"><label for="olTSrc">Where it was agreed</label>
+              <input type="text" id="olTSrc" placeholder="e.g. email from Nelson, 6 Oct 2026; signed agreement v1"></div>
+          </div>
+          <p class="hint">This applies to orders from now on. Orders already recorded keep the terms they were made under.</p>
+          <div class="bar"><button class="btn" id="olTSave">Save the terms</button>
+            <button class="link" id="olTCancel">Cancel</button></div>
+        </div>
+      </div>
+    </section>
+
     <section id="page-sourcing" class="page">
       <h1>Sourcing</h1>
       <p class="hint">
@@ -1083,13 +1294,15 @@ e.g. Stop scanning Boots"></textarea>
      is worth committing to buy for it. Shared with build-seasonal.js for the
      same reason as the margin engine: one set of dates, not two. -->
 <script src="packet-seasons.js"></script>
+<!-- Outlet labels and money sums, shared with brand.html. -->
+<script src="packet-outlet.js"></script>
 <script>
 (function () {
   'use strict';
 
   var cfg = window.PACKET_CONFIG || {};
   var db  = null;
-  var state = { subs: [], views: [], assess: [], posts: [], finds: [], findCats: [], role: null, email: null, id: null };
+  var state = { subs: [], views: [], assess: [], posts: [], finds: [], findCats: [], findChecks: {}, brands: [], brandCats: [], brandChecks: {}, role: null, email: null, id: null };
 
   var loginPage = document.getElementById('loginPage');
   var app       = document.getElementById('app');
@@ -1330,6 +1543,10 @@ e.g. Stop scanning Boots"></textarea>
     db.rpc('current_user_role').then(function (r) {
       state.role = (r && r.data) || null;
 
+      // A brand login belongs on its own page, which only ever loads that
+      // brand's data. Send it there rather than refusing it.
+      if (state.role === 'brand') { window.location.replace('brand.html'); return; }
+
       // Cosmetic only — the real gate is the RLS policy on every table. If the
       // role is wrong the queries below simply return nothing.
       if (['owner', 'staff'].indexOf(state.role) === -1) {
@@ -1350,7 +1567,7 @@ e.g. Stop scanning Boots"></textarea>
       }
 
       var hash = (window.location.hash || '').replace('#', '');
-      var pages = ['overview', 'subscribers', 'assessment', 'sourcing', 'costs', 'finds', 'social', 'traffic'];
+      var pages = ['overview', 'subscribers', 'assessment', 'sourcing', 'costs', 'finds', 'brands', 'outlet', 'social', 'traffic'];
       if (state.role === 'owner') pages.push('users');
       showPage(pages.indexOf(hash) > -1 ? hash : 'overview');
 
@@ -1407,6 +1624,8 @@ e.g. Stop scanning Boots"></textarea>
       // throw inside one of them stops the ones after it — and Finds is the page
       // two people are relying on this week.
       loadFinds();
+      loadBrands();
+      loadOutlet();
       loadSourcing();
       loadCosts();
     });
@@ -1767,10 +1986,14 @@ e.g. Stop scanning Boots"></textarea>
   // caller then uses a built-in template. Nobody should ever see a broken
   // button because an environment variable was not set.
   function callAI(system, prompt, maxTokens) {
-    return fetch('/.netlify/functions/ai', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ system: system, prompt: prompt, max_tokens: maxTokens || 700 })
+    // The ai function checks who is asking, so send the login with it.
+    return db.auth.getSession().then(function (res) {
+      var token = res.data && res.data.session && res.data.session.access_token;
+      return fetch('/.netlify/functions/ai', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (token || '') },
+        body: JSON.stringify({ system: system, prompt: prompt, max_tokens: maxTokens || 700 })
+      });
     }).then(function (r) {
       return r.json().then(function (d) {
         if (!r.ok || d.fallback || !d.text) return null;
@@ -3084,6 +3307,15 @@ e.g. Stop scanning Boots"></textarea>
       }
       var html = '<tr><th>Email</th><th>Role</th><th>Added</th><th></th></tr>';
       (res.d.users || []).forEach(function (u) {
+        // Brand logins are managed on the Outlet page and can never be
+        // promoted — manage-users.js refuses it as well.
+        if (u.role === 'brand') {
+          var bn = '';
+          (state.brands || []).forEach(function (b) { if (b.id === u.brand_id) bn = b.name; });
+          html += '<tr><td>' + esc(u.email) + '</td><td>brand' + (bn ? ' · ' + esc(bn) : '') + '</td>' +
+            '<td>' + fmt(u.created_at) + '</td><td><span class="hint">Managed on the Outlet page</span></td></tr>';
+          return;
+        }
         html += '<tr><td>' + esc(u.email) + '</td>' +
           '<td>' + esc(u.role) + '</td>' +
           '<td>' + fmt(u.created_at) + '</td>' +
@@ -3280,6 +3512,73 @@ e.g. Stop scanning Boots"></textarea>
     return Math.max(0, Math.ceil((end - now) / 86400000));
   }
 
+  // ---- the price screen, added 7 September 2026 -------------------
+  // Supplier 008: three of the first four AppScenic suppliers cost
+  // MORE than their goods already sell for in UK shops. That check is
+  // mechanical, so it runs from here rather than from somebody's
+  // evening. It is a screen, not a margin — it ignores delivery, fees,
+  // VAT, returns and what a customer costs to buy. See 012.
+  function findsCheckCell(f) {
+    var c = state.findChecks[f.id];
+    if (!c) return '<span class="hint">not checked</span>';
+
+    if (c.verdict === 'not_found') {
+      return '<span class="hint">nothing found</span>' +
+             '<br><span class="hint">' + esc(shortWhen(c.checked_at)) + '</span>';
+    }
+
+    var price = '£' + ((c.uk_lowest_pence || 0) / 100).toFixed(2);
+    var where = c.uk_url
+      ? '<a href="' + esc(c.uk_url) + '" target="_blank" rel="noopener noreferrer">' +
+        esc(c.uk_seller || 'source') + '</a>'
+      : esc(c.uk_seller || '');
+
+    var tag;
+    if (c.verdict === 'loss') {
+      tag = '<span class="tag off">costs us more than it sells for</span>';
+    } else if (c.verdict === 'below_target') {
+      tag = '<span class="tag off">under target</span>';
+    } else if (c.verdict === 'ok') {
+      tag = '<span class="tag on">clears the screen</span>';
+    } else {
+      tag = '<span class="hint">no target set</span>';
+    }
+
+    var gross = (c.gross_pence === null || c.gross_pence === undefined)
+      ? ''
+      : '<br><span class="hint">gross £' + (c.gross_pence / 100).toFixed(2) +
+        (c.gross_pct != null ? ' &middot; ' + Number(c.gross_pct).toFixed(0) + '%' : '') +
+        ' before delivery, fees and advertising</span>';
+
+    return price + ' ' + tag +
+           '<br><span class="hint">' + where + ' &middot; ' + esc(shortWhen(c.checked_at)) +
+           (c.method === 'ai' ? ' &middot; web search' : ' &middot; shop feed') + '</span>' +
+           gross;
+  }
+
+  function shortWhen(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+
+  function runPriceCheck(id, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = 'checking…'; }
+    callFn('price-check', { find_id: id }).then(function (r) {
+      if (!r || r.error) {
+        note('findsMsg', (r && r.error) || 'The price check did not run.', 'err');
+        if (btn) { btn.disabled = false; btn.textContent = 'check price'; }
+        return;
+      }
+      if (r.check) state.findChecks[id] = r.check;
+      renderFinds();
+    }).catch(function () {
+      note('findsMsg', 'The price check did not run. Is the function deployed?', 'err');
+      if (btn) { btn.disabled = false; btn.textContent = 'check price'; }
+    });
+  }
+
   function loadFinds() {
     wireFinds();
     Promise.all([
@@ -3289,7 +3588,9 @@ e.g. Stop scanning Boots"></textarea>
         .order('label'),
       db.from('product_finds')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }),
+      // Migration 012. Missing is fine — the column just stays empty.
+      db.from('product_find_latest_check').select('*')
     ]).then(function (r) {
       if ((r[1] && r[1].error) || (r[0] && r[0].error)) {
         document.getElementById('findsList').innerHTML =
@@ -3298,6 +3599,8 @@ e.g. Stop scanning Boots"></textarea>
       }
       state.findCats = (r[0] && r[0].data) || [];
       state.finds    = (r[1] && r[1].data) || [];
+      state.findChecks = {};
+      ((r[2] && r[2].data) || []).forEach(function (c) { state.findChecks[c.find_id] = c; });
       fillFindCategories();
       renderFindsCards();
       renderFinds();
@@ -3387,7 +3690,7 @@ e.g. Stop scanning Boots"></textarea>
       }
 
       html += '<div class="wrapscroll"><table><tr>' +
-              '<th>Product</th><th>Cost</th><th>Seen at</th><th>Found by</th><th>Link</th><th></th></tr>';
+              '<th>Product</th><th>Cost</th><th>UK price</th><th>Seen at</th><th>Found by</th><th>Link</th><th></th></tr>';
 
       byCat[k].forEach(function (f) {
         html += '<tr' + (f.status === 'rejected' ? ' style="opacity:.5"' : '') + '>' +
@@ -3397,6 +3700,7 @@ e.g. Stop scanning Boots"></textarea>
             (f.notes ? '<br><span class="hint">' + esc(f.notes) + '</span>' : '') +
           '</td>' +
           '<td>' + findsCost(f) + '</td>' +
+          '<td>' + findsCheckCell(f) + '</td>' +
           '<td>' + esc(f.seen_at || '—') + '</td>' +
           '<td><span class="hint">' + esc((f.found_by_email || '').split('@')[0] || '—') + '</span></td>' +
           '<td><a href="' + esc(f.url) + '" target="_blank" rel="noopener noreferrer">open</a></td>' +
@@ -3407,6 +3711,7 @@ e.g. Stop scanning Boots"></textarea>
             (f.status !== 'rejected'
               ? '<button class="link danger" data-find="' + f.id + '" data-to="rejected">reject</button>'
               : '<button class="link" data-find="' + f.id + '" data-to="new">restore</button>') +
+            ' <button class="link" data-check="' + f.id + '">check price</button>' +
           '</td>' +
           '</tr>';
       });
@@ -3420,6 +3725,13 @@ e.g. Stop scanning Boots"></textarea>
     for (var b = 0; b < btns.length; b++) {
       btns[b].addEventListener('click', function () {
         setFindStatus(this.dataset.find, this.dataset.to);
+      });
+    }
+
+    var checks = wrap.querySelectorAll('button[data-check]');
+    for (var c = 0; c < checks.length; c++) {
+      checks[c].addEventListener('click', function () {
+        runPriceCheck(this.dataset.check, this);
       });
     }
   }
@@ -3543,6 +3855,397 @@ e.g. Stop scanning Boots"></textarea>
         if (e.key === 'Enter') saveFind();
       });
     });
+  }
+
+  // ----------------------------------------------------------------- brands
+  // The recruitment pipeline, added 20 September 2026 out of Supplier 010.
+  //
+  // Shopify Collective does the plumbing we were about to build — feed,
+  // stock, order routing, fulfilment, payout — for nothing, and it is live
+  // in the UK. What it does not do is persuade anybody. A retailer can
+  // invite a brand that has not joined Collective yet, which means Packet
+  // is not picking from a directory, Packet is recruiting. That is the
+  // whole job now, and this page is the pipeline for it.
+  //
+  // Like Finds, it scores nothing and recommends nothing. It runs one
+  // mechanical check that is free and exact — is this shop on Shopify, and
+  // what does it charge — and then it gets out of the way. The three
+  // questions that actually decide a brand (is it a UK company, does it
+  // hold the Responsible Person role, is it already resold everywhere)
+  // cannot be answered by any endpoint, so they sit on the row as
+  // unanswered until a human answers them.
+  //
+  // The number to watch is "said yes in principle". Sending a real
+  // Collective invitation needs a live Shopify store, which needs the
+  // company and the bank account. Having the conversation does not. Ten
+  // soft yeses is what makes the company formation worth paying for.
+
+  var BRAND_SOFT_YES_TARGET = 10;
+  var brandsWired = false;
+
+  var BRAND_STATUS_LABELS = {
+    candidate: 'Not contacted',
+    contacted: 'Contacted',
+    replied:   'Replied',
+    soft_yes:  'Yes in principle',
+    invited:   'Invited',
+    connected: 'Connected',
+    declined:  'Declined',
+    rejected:  'Dropped by us'
+  };
+
+  function loadBrands() {
+    wireBrands();
+    Promise.all([
+      db.from('category_settings')
+        .select('category,label,requires_uk_rp')
+        .eq('active', true)
+        .order('label'),
+      db.from('brands').select('*').order('created_at', { ascending: false }),
+      db.from('brand_latest_check').select('*')
+    ]).then(function (r) {
+      if ((r[1] && r[1].error)) {
+        document.getElementById('brandsList').innerHTML =
+          '<div class="notice warn">Nothing to show yet. Has <code>013_brands.sql</code> been run in Supabase?</div>';
+        return;
+      }
+      state.brandCats   = (r[0] && r[0].data) || [];
+      state.brands      = (r[1] && r[1].data) || [];
+      state.brandChecks = {};
+      ((r[2] && r[2].data) || []).forEach(function (c) { state.brandChecks[c.brand_id] = c; });
+      fillBrandCategories();
+      renderBrandCards();
+      renderBrands();
+    });
+  }
+
+  function fillBrandCategories() {
+    var sel = document.getElementById('bCategory');
+    if (!sel) return;
+    var keep = sel.value;
+    var h = '<option value="">Choose a category</option>';
+    state.brandCats.forEach(function (c) {
+      h += '<option value="' + esc(c.category) + '">' + esc(c.label) +
+           (c.requires_uk_rp ? ' — needs a Responsible Person' : '') + '</option>';
+    });
+    sel.innerHTML = h;
+    if (keep) sel.value = keep;
+  }
+
+  function renderBrandCards() {
+    var live = state.brands.filter(function (b) {
+      return b.status !== 'rejected' && b.status !== 'declined';
+    });
+    var softYes = state.brands.filter(function (b) {
+      return ['soft_yes', 'invited', 'connected'].indexOf(b.status) > -1;
+    });
+    var reachable = live.filter(function (b) {
+      var c = state.brandChecks[b.id];
+      return c && c.verdict === 'reachable';
+    });
+    var unchecked = live.filter(function (b) { return !state.brandChecks[b.id]; });
+
+    var c = document.getElementById('brandCards');
+    if (c) {
+      c.innerHTML =
+        '<div class="card"><div class="n">' + live.length + '</div><div class="l">In play</div></div>' +
+        '<div class="card"><div class="n">' + reachable.length + '</div><div class="l">Collective can reach</div></div>' +
+        '<div class="card"><div class="n">' + softYes.length + ' / ' + BRAND_SOFT_YES_TARGET +
+          '</div><div class="l">Said yes in principle</div></div>' +
+        '<div class="card"><div class="n">' + unchecked.length + '</div><div class="l">Not checked yet</div></div>';
+    }
+
+    var p = document.getElementById('brandProgress');
+    if (!p) return;
+    var short = BRAND_SOFT_YES_TARGET - softYes.length;
+    if (short <= 0) {
+      p.innerHTML = 'Enough brands have said yes in principle to justify forming the company and ' +
+        'opening Shopify Payments. Until that is done none of them can actually be invited.';
+    } else {
+      p.innerHTML = short + ' more soft yes' + (short === 1 ? '' : 'es') +
+        ' before the company formation is paid for by evidence rather than faith. ' +
+        '<span class="hint">A soft yes costs an email. A company costs rather more.</span>';
+    }
+  }
+
+  function brandReach(b) {
+    var c = state.brandChecks[b.id];
+    return c ? c.verdict : 'unchecked';
+  }
+
+  function brandCheckCell(b) {
+    var c = state.brandChecks[b.id];
+    if (!c) return '<span class="hint">not checked</span>';
+
+    var tag;
+    if (c.verdict === 'reachable') {
+      tag = '<span class="tag on">Collective can reach them</span>';
+    } else if (c.verdict === 'wrong_currency') {
+      tag = '<span class="tag off">trades in ' + esc(c.currency || 'another currency') + '</span>';
+    } else if (c.verdict === 'not_reachable') {
+      tag = '<span class="tag off">not a Shopify shop</span>';
+    } else if (c.platform === 'unreachable') {
+      tag = '<span class="hint">site did not answer</span>';
+    } else if (c.platform === 'shopify' && c.currency_basis === 'presentment') {
+      // Shopify showed this check prices in whatever currency suited the
+      // machine it ran on. That is not the shop's own currency and must not
+      // be read as one — in either direction.
+      tag = '<span class="tag on">on Shopify</span>' +
+            '<br><span class="hint">showed us ' + esc(c.currency || '?') +
+            ', but that is the visitor currency &mdash; check theirs by hand</span>';
+    } else {
+      tag = '<span class="tag on">on Shopify</span>' +
+            '<br><span class="hint">currency not published &mdash; check by hand</span>';
+    }
+
+    return tag +
+      '<br><span class="hint">' + esc(shortWhen(c.checked_at)) +
+      (c.instagram_found ? ' &middot; @' + esc(c.instagram_found) : '') + '</span>';
+  }
+
+  // Their own shelf prices. This is not a margin and must never be read as
+  // one — it is what a shopper pays them today, which is the only thing
+  // visible from outside. What Packet would pay is whatever the brand
+  // quotes, and until they quote it there is no number here at all.
+  function brandPriceCell(b) {
+    var c = state.brandChecks[b.id];
+    if (!c || c.price_median_minor == null) {
+      if (c && c.platform === 'shopify') return '<span class="hint">feed switched off</span>';
+      return '<span class="hint">&mdash;</span>';
+    }
+    var money = function (p) { return '£' + (p / 100).toFixed(2); };
+    return '<strong>' + money(c.price_median_minor) + '</strong> typical' +
+      '<br><span class="hint">' + money(c.price_min_minor) + ' to ' + money(c.price_max_minor) +
+      ' &middot; ' + (c.product_count || 0) + (c.count_capped ? '+' : '') + ' products</span>';
+  }
+
+  function brandQuestionCell(b) {
+    var q = function (field, value, labels) {
+      var h = '<select class="mini" data-bfield="' + field + '" data-bid="' + esc(b.id) + '">';
+      Object.keys(labels).forEach(function (k) {
+        h += '<option value="' + k + '"' + (value === k ? ' selected' : '') + '>' + labels[k] + '</option>';
+      });
+      return h + '</select>';
+    };
+    return '<span class="hint">UK company</span> ' +
+             q('uk_based', b.uk_based, { unknown: '?', yes: 'yes', no: 'no' }) +
+           '<br><span class="hint">Responsible Person</span> ' +
+             q('uk_rp', b.uk_rp, { unknown: '?', yes: 'yes', no: 'no', n_a: 'n/a' }) +
+           '<br><span class="hint">Already resold</span> ' +
+             q('already_resold', b.already_resold, { unknown: '?', yes: 'yes', no: 'no' });
+  }
+
+  function renderBrands() {
+    var wrap = document.getElementById('brandsList');
+    if (!wrap) return;
+
+    var want  = document.getElementById('bFilterStatus').value;
+    var reach = document.getElementById('bFilterReach').value;
+
+    var rows = state.brands.filter(function (b) {
+      if (want === 'live')      { if (b.status === 'rejected' || b.status === 'declined') return false; }
+      else if (want !== 'all')  { if (b.status !== want) return false; }
+      if (reach && brandReach(b) !== reach) return false;
+      return true;
+    });
+
+    if (!rows.length) {
+      wrap.innerHTML = '<div class="notice">No brands match that. Add one below, or widen the filter.</div>';
+      return;
+    }
+
+    var h = '<div class="wrapscroll"><table><thead><tr>' +
+      '<th>Brand</th><th>Collective</th><th>Their shelf prices</th>' +
+      '<th>Still to check</th><th>Where it has got to</th><th></th>' +
+      '</tr></thead><tbody>';
+
+    rows.forEach(function (b) {
+      var cat = null;
+      for (var i = 0; i < state.brandCats.length; i++) {
+        if (state.brandCats[i].category === b.category) { cat = state.brandCats[i]; break; }
+      }
+
+      var statusSel = '<select data-bstatus="' + esc(b.id) + '">';
+      Object.keys(BRAND_STATUS_LABELS).forEach(function (k) {
+        statusSel += '<option value="' + k + '"' + (b.status === k ? ' selected' : '') + '>' +
+                     BRAND_STATUS_LABELS[k] + '</option>';
+      });
+      statusSel += '</select>';
+
+      h += '<tr>' +
+        '<td><strong>' + esc(b.name) + '</strong>' +
+          '<br><a href="' + esc(b.website) + '" target="_blank" rel="noopener noreferrer">' +
+            esc(b.website.replace(/^https?:\/\/(www\.)?/i, '')) + '</a>' +
+          (cat ? '<br><span class="hint">' + esc(cat.label) +
+                 (cat.requires_uk_rp ? ' — Responsible Person needed' : '') + '</span>' : '') +
+          (b.contact_email ? '<br><span class="hint">' + esc(b.contact_email) + '</span>' : '') +
+        '</td>' +
+        '<td>' + brandCheckCell(b) + '</td>' +
+        '<td>' + brandPriceCell(b) + '</td>' +
+        '<td>' + brandQuestionCell(b) + '</td>' +
+        '<td>' + statusSel +
+          (b.offered_margin_pct != null
+            ? '<br><span class="tag on">' + Number(b.offered_margin_pct).toFixed(0) + '% offered</span>'
+            : '<br><span class="hint">no margin quoted</span>') +
+        '</td>' +
+        '<td>' +
+          '<button class="link" data-bcheck="' + esc(b.id) + '">check</button> ' +
+          '<button class="link" data-bmail="' + esc(b.id) + '">copy email</button>' +
+        '</td>' +
+      '</tr>';
+    });
+
+    wrap.innerHTML = h + '</tbody></table></div>';
+
+    var cbs = wrap.querySelectorAll('button[data-bcheck]');
+    for (var i1 = 0; i1 < cbs.length; i1++) {
+      cbs[i1].addEventListener('click', function () { runBrandCheck(this.dataset.bcheck, this); });
+    }
+    var mbs = wrap.querySelectorAll('button[data-bmail]');
+    for (var i2 = 0; i2 < mbs.length; i2++) {
+      mbs[i2].addEventListener('click', function () { copyBrandEmail(this.dataset.bmail); });
+    }
+    var sts = wrap.querySelectorAll('select[data-bstatus]');
+    for (var i3 = 0; i3 < sts.length; i3++) {
+      sts[i3].addEventListener('change', function () {
+        setBrandField(this.dataset.bstatus, 'status', this.value);
+      });
+    }
+    var qns = wrap.querySelectorAll('select[data-bfield]');
+    for (var i4 = 0; i4 < qns.length; i4++) {
+      qns[i4].addEventListener('change', function () {
+        setBrandField(this.dataset.bid, this.dataset.bfield, this.value);
+      });
+    }
+  }
+
+  function setBrandField(id, field, value) {
+    var patch = {};
+    patch[field] = value;
+    db.from('brands').update(patch).eq('id', id).then(function (r) {
+      if (r.error) { note('brandsMsg', r.error.message, 'err'); return; }
+      loadBrands();
+    });
+  }
+
+  function runBrandCheck(id, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = 'checking…'; }
+    callFn('brand-check', { brand_id: id }).then(function (r) {
+      if (!r || r.error) {
+        note('brandsMsg', (r && r.error) || 'The check did not run.', 'err');
+        if (btn) { btn.disabled = false; btn.textContent = 'check'; }
+        return;
+      }
+      if (r.check) state.brandChecks[id] = r.check;
+      renderBrandCards();
+      renderBrands();
+    }).catch(function () {
+      note('brandsMsg', 'The check did not run. Is the function deployed?', 'err');
+      if (btn) { btn.disabled = false; btn.textContent = 'check'; }
+    });
+  }
+
+  // The email from Supplier 010, with the brand's name dropped in. It says
+  // outright that Packet is pre-launch, and that is not an oversight — a
+  // brand establishes it in thirty seconds and being caught hiding it costs
+  // the relationship before it starts.
+  function brandEmailText(b) {
+    var who = b.contact_name ? b.contact_name : 'there';
+    return 'Subject: A UK retail slot for ' + b.name + ', no stock and no fee\n\n' +
+      'Hello ' + who + ',\n\n' +
+      'I am setting up Packet, a new UK online shop selling across fashion, accessories, ' +
+      'homeware and personal care. We are pre-launch — I would rather tell you that now than ' +
+      'have you find out later.\n\n' +
+      'I am writing because I would like to carry ' + b.name + ', and because Shopify has made ' +
+      'the mechanics of that almost free for you.\n\n' +
+      'It works through Shopify Collective. You share a price list with us, we list your ' +
+      'products on our site, and when one sells the order goes straight to you and you ship it ' +
+      'to the customer. You are paid on fulfilment. There is no fee, no stock commitment, no ' +
+      'exclusivity, no integration work, and you set your own price. If it is not working for ' +
+      'you, you disconnect.\n\n' +
+      'What you would get from us is a second shopfront and a second audience, run by someone ' +
+      'whose job is selling your product rather than making it, at no cost to you beyond the ' +
+      'margin on goods you would not otherwise have sold.\n\n' +
+      'Two questions, and neither commits you to anything:\n\n' +
+      '  - Would you be open to it in principle, and may I send you a Collective invitation ' +
+      'once our store is live?\n' +
+      '  - If yes, what cost price would you set for a retail partner on this basis?\n\n' +
+      'If the answer is no, I would still value knowing why — it is useful to me either way.\n\n' +
+      'Best regards,\n\nPacket\n';
+  }
+
+  function copyBrandEmail(id) {
+    var b = null;
+    for (var i = 0; i < state.brands.length; i++) {
+      if (state.brands[i].id === id) { b = state.brands[i]; break; }
+    }
+    if (!b) return;
+    var text = brandEmailText(b);
+    var done = function () {
+      note('brandsMsg', 'Email copied. Mark ' + b.name + ' as contacted once it has gone.', 'ok');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () { promptCopy(text); });
+    } else {
+      promptCopy(text);
+    }
+  }
+
+  function promptCopy(text) {
+    window.prompt('Copy this, then close the box:', text);
+  }
+
+  function addBrand() {
+    var name    = document.getElementById('bName').value.trim();
+    var website = document.getElementById('bWebsite').value.trim();
+
+    if (!name)    { note('brandsMsg', 'It needs a name.', 'err'); return; }
+    if (!website) { note('brandsMsg', 'It needs a website. Every check on this page starts from it, and a brand with no shop cannot be on Shopify.', 'err'); return; }
+
+    if (!/^https?:\/\//i.test(website)) website = 'https://' + website;
+    if (website.indexOf('.') < 0) { note('brandsMsg', 'That website does not look like an address. It should look like examplebrand.co.uk', 'err'); return; }
+
+    var email = document.getElementById('bContactEmail').value.trim();
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      note('brandsMsg', 'That email address does not look right. Leave it blank if you have not got one.', 'err');
+      return;
+    }
+
+    var row = {
+      name: name,
+      website: website,
+      category: document.getElementById('bCategory').value || null,
+      found_via: document.getElementById('bFoundVia').value || null,
+      contact_name: document.getElementById('bContactName').value.trim() || null,
+      contact_email: email || null,
+      instagram_handle: document.getElementById('bInstagram').value.trim().replace(/^@/, '') || null,
+      notes: document.getElementById('bNotes').value.trim() || null,
+      added_by: state.id,
+      added_by_email: state.email
+    };
+
+    db.from('brands').insert(row).then(function (r) {
+      if (r.error) {
+        note('brandsMsg',
+          r.error.code === '23505'
+            ? 'That website is already on the list — somebody has added this brand already.'
+            : r.error.message, 'err');
+        return;
+      }
+      ['bName', 'bWebsite', 'bContactName', 'bContactEmail', 'bInstagram', 'bNotes'].forEach(function (f) {
+        document.getElementById(f).value = '';
+      });
+      note('brandsMsg', 'Added. Press "check" on the row to see whether Collective can reach them.', 'ok');
+      loadBrands();
+    });
+  }
+
+  function wireBrands() {
+    if (brandsWired) return;
+    brandsWired = true;
+    document.getElementById('bAdd').addEventListener('click', addBrand);
+    document.getElementById('bFilterStatus').addEventListener('change', renderBrands);
+    document.getElementById('bFilterReach').addEventListener('change', renderBrands);
   }
 
   function loadSourcing() {
@@ -4743,6 +5446,412 @@ e.g. Stop scanning Boots"></textarea>
         note('srMsg', 'Could not reach the review function. Is it deployed?', 'err');
       });
   });
+
+
+  // ---------------------------------------------------------------- outlet
+  // Packet Outlet (014_outlet.sql). The money arithmetic and the labels
+  // come from packet-outlet.js, which brand.html uses too, so both sides
+  // of the screen always say the same thing.
+  //
+  // What a brand may do is enforced in the database, not here. This page
+  // is Packet's side: price it, list it, record the order, record the
+  // payout.
+  var OL = window.PacketOutlet;
+  var ol = { items: [], orders: [], brands: [], logins: null, sub: 'waiting', terms: null, wired: false };
+
+  function olBrandName(id) {
+    for (var i = 0; i < ol.brands.length; i++) if (ol.brands[i].id === id) return ol.brands[i].name;
+    return '(brand removed)';
+  }
+  function olErr(e) { return (e && e.message) || 'That did not work.'; }
+
+  function wireOutlet() {
+    if (ol.wired) return;
+    ol.wired = true;
+    document.querySelectorAll('[data-olsub]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ol.sub = this.dataset.olsub;
+        document.querySelectorAll('[data-olsub]').forEach(function (x) { x.classList.toggle('active', x === b); });
+        document.querySelectorAll('#page-outlet .sub').forEach(function (s) { s.classList.remove('active'); });
+        document.getElementById('olsub-' + ol.sub).classList.add('active');
+      });
+    });
+    document.getElementById('olStockBrand').addEventListener('change', renderOutletStock);
+    document.getElementById('olStockStatus').addEventListener('change', renderOutletStock);
+    document.getElementById('olOItem').addEventListener('change', function () {
+      var it = olFindItem(this.value);
+      document.getElementById('olOPrice').value = it && it.sale_minor ? (it.sale_minor / 100).toFixed(2) : '';
+    });
+    document.getElementById('olOAdd').addEventListener('click', olAddOrder);
+    document.getElementById('olLAdd').addEventListener('click', olAddLogin);
+    document.getElementById('olTSave').addEventListener('click', olSaveTerms);
+    document.getElementById('olTCancel').addEventListener('click', function () {
+      document.getElementById('olTermsPanel').style.display = 'none';
+    });
+  }
+
+  function loadOutlet() {
+    if (!OL) return;
+    wireOutlet();
+    Promise.all([
+      db.from('outlet_items').select('*').order('updated_at', { ascending: false }),
+      db.from('outlet_orders').select('*').order('created_at', { ascending: false }),
+      db.from('brands').select('id,name,status,outlet_commission_pct,outlet_terms_source,outlet_terms_agreed_at').order('name'),
+      state.role === 'owner' ? usersCall({ action: 'list' }) : Promise.resolve(null)
+    ]).then(function (r) {
+      if (r[0].error || r[1].error) {
+        document.getElementById('olWaiting').innerHTML =
+          '<div class="notice warn">Nothing to show yet. Has <code>014_outlet.sql</code> been run in Supabase?</div>';
+        return;
+      }
+      ol.items  = r[0].data || [];
+      ol.orders = r[1].data || [];
+      ol.brands = (r[2] && r[2].data) || [];
+      ol.logins = (r[3] && r[3].ok) ? (r[3].d.users || []).filter(function (u) { return u.role === 'brand'; }) : null;
+      renderOutletCards();
+      renderOutletWaiting();
+      fillOutletSelects();
+      renderOutletStock();
+      renderOutletOrders();
+      renderOutletBrands();
+    });
+  }
+
+  function olFindItem(id) { for (var i = 0; i < ol.items.length; i++) if (ol.items[i].id === id) return ol.items[i]; return null; }
+
+  function renderOutletCards() {
+    var waiting = ol.items.filter(function (i) { return i.status === 'submitted'; }).length;
+    var live    = ol.items.filter(function (i) { return i.status === 'live' && i.quantity > 0; }).length;
+    var real    = ol.orders.filter(function (o) { return !o.is_test; });
+    var toPost  = real.filter(function (o) { return o.status === 'to_ship'; }).length;
+    var owed    = real.filter(function (o) { return o.status === 'shipped' && !o.paid_out_at; })
+                      .reduce(function (s, o) { return s + (o.payout_minor || 0); }, 0);
+    var unterms = real.filter(function (o) { return o.status === 'shipped' && !o.paid_out_at && o.payout_minor === null; }).length;
+    var withLogin = ol.logins ? ol.logins.length : null;
+    function c(n, l) { return '<div class="card"><div class="n">' + esc(n) + '</div><div class="l">' + esc(l) + '</div></div>'; }
+    document.getElementById('olCards').innerHTML =
+      (withLogin === null ? '' : c(withLogin, 'Brand logins')) +
+      c(waiting, 'Waiting for us') + c(live, 'On sale') + c(toPost, 'Brands still to post') +
+      c(OL.money(owed) || '£0.00', 'Owed to brands' + (unterms ? ' (+' + unterms + ' with no terms)' : ''));
+  }
+
+  function photoStrip(photos, size) {
+    return (photos || []).filter(function (u) { return /^https:\/\//i.test(u); }).slice(0, 8).map(function (u) {
+      return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="" loading="lazy" ' +
+        'style="width:' + size + 'px;height:' + size + 'px;object-fit:cover;border:1px solid var(--line);border-radius:2px;margin:0 6px 6px 0"></a>';
+    }).join('');
+  }
+
+  function renderOutletWaiting() {
+    var list = ol.items.filter(function (i) { return i.status === 'submitted'; });
+    var el = document.getElementById('olWaiting');
+    if (!list.length) { el.innerHTML = '<div class="empty">Nothing waiting. When a brand sends stock it appears here.</div>'; return; }
+    el.innerHTML = list.map(function (i) {
+      var beautyBlock = i.category === 'beauty' && !i.uk_rp_confirmed;
+      return '<div class="opp' + (beautyBlock ? ' blocked' : '') + '">' +
+        '<div class="top"><span class="name">' + esc(i.title) + '</span>' +
+          '<span class="sup">' + esc(olBrandName(i.brand_id)) + ' &middot; sent ' + esc(fmt(i.updated_at)) + '</span></div>' +
+        '<div class="figs">' +
+          '<div class="fig"><div class="v">' + esc(OL.money(i.floor_minor)) + '</div><div class="k">Their lowest</div></div>' +
+          '<div class="fig"><div class="v">' + (i.rrp_minor ? esc(OL.money(i.rrp_minor)) : '&mdash;') + '</div><div class="k">Their normal price</div></div>' +
+          '<div class="fig"><div class="v">' + esc(i.quantity) + '</div><div class="k">How many</div></div>' +
+          '<div class="fig"><div class="v" style="font-size:15px">' + esc(OL.conditionLabel(i.condition)) + '</div><div class="k">Condition</div></div>' +
+        '</div>' +
+        '<div class="why">' + esc([OL.categoryLabel(i.category), i.size, i.colour, i.brand_sku].filter(Boolean).join(' · ')) +
+          (i.condition_note ? '<br><b>What is wrong with it:</b> ' + esc(i.condition_note) : '') +
+          (i.description ? '<br>' + esc(i.description) : '') +
+          (i.available_until ? '<br>Available until ' + esc(fmt(i.available_until)) : '') + '</div>' +
+        (beautyBlock ? '<div class="notice warn">Beauty product with no UK Responsible Person confirmation from the brand. ' +
+          'It cannot go live. Packet is the seller in law; ask the brand to confirm they hold the role and have notified the product.</div>' : '') +
+        '<div style="margin-top:10px">' + (photoStrip(i.photos, 84) || '<span class="hint">No photos. Ask for some before listing.</span>') + '</div>' +
+        '<div class="acts">' +
+          '<input type="text" data-olprice="' + esc(i.id) + '" placeholder="Our price (£)" inputmode="decimal" style="max-width:150px"' +
+            (i.sale_minor ? ' value="' + esc((i.sale_minor / 100).toFixed(2)) + '"' : '') + '>' +
+          '<button class="btn" data-ollive="' + esc(i.id) + '"' + (beautyBlock ? ' disabled' : '') + '>Put on sale</button>' +
+          '<button class="btn ghost" data-olreject="' + esc(i.id) + '">Turn down</button>' +
+        '</div></div>';
+    }).join('');
+
+    el.querySelectorAll('[data-ollive]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = this.dataset.ollive, it = olFindItem(id);
+        var p = OL.toPence(el.querySelector('[data-olprice="' + id + '"]').value);
+        if (p === null || isNaN(p) || p <= 0) { note('olMsg', 'Put our price in first, like 49.00.', 'err'); return; }
+        if (p < it.floor_minor) { note('olMsg', 'That is below the brand’s lowest price of ' + OL.money(it.floor_minor) + '.', 'err'); return; }
+        olUpdateItem(id, { sale_minor: p, status: 'live', packet_note: null }, 'On sale at ' + OL.money(p) + '. The brand can see it.');
+      });
+    });
+    el.querySelectorAll('[data-olreject]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var why = prompt('Why are we not listing it? The brand will see this.');
+        if (why === null) return;
+        if (!why.trim()) { note('olMsg', 'Give the brand a reason — they will see it on the item.', 'err'); return; }
+        olUpdateItem(this.dataset.olreject, { status: 'rejected', packet_note: why.trim().slice(0, 500) }, 'Turned down. The brand can see why.');
+      });
+    });
+  }
+
+  function olUpdateItem(id, patch, okText) {
+    db.from('outlet_items').update(patch).eq('id', id).select('id').then(function (r) {
+      if (r.error) { note('olMsg', olErr(r.error), 'err'); return; }
+      note('olMsg', okText, 'ok');
+      loadOutlet();
+    });
+  }
+
+  function fillOutletSelects() {
+    var withItems = {};
+    ol.items.forEach(function (i) { withItems[i.brand_id] = true; });
+    var bs = document.getElementById('olStockBrand'), keep = bs.value;
+    bs.innerHTML = '<option value="">Every brand</option>' + ol.brands.filter(function (b) { return withItems[b.id]; })
+      .map(function (b) { return '<option value="' + esc(b.id) + '">' + esc(b.name) + '</option>'; }).join('');
+    bs.value = keep;
+
+    var live = ol.items.filter(function (i) { return i.status === 'live'; });
+    var os = document.getElementById('olOItem');
+    os.innerHTML = live.length
+      ? '<option value="">Pick an item</option>' + live.map(function (i) {
+          return '<option value="' + esc(i.id) + '">' + esc(olBrandName(i.brand_id) + ' — ' + i.title +
+            (i.size ? ' (' + i.size + ')' : '') + ' — ' + OL.money(i.sale_minor) + ' — ' + i.quantity + ' left') + '</option>';
+        }).join('')
+      : '<option value="">Nothing is on sale yet</option>';
+
+    var ls = document.getElementById('olLBrand');
+    var open = ol.brands.filter(function (b) { return ['declined', 'rejected'].indexOf(b.status) === -1; });
+    ls.innerHTML = '<option value="">Pick a brand</option>' +
+      open.map(function (b) { return '<option value="' + esc(b.id) + '">' + esc(b.name) + '</option>'; }).join('');
+    document.getElementById('olLoginPanel').style.display = state.role === 'owner' ? 'block' : 'none';
+  }
+
+  function renderOutletStock() {
+    var fb = document.getElementById('olStockBrand').value, fs = document.getElementById('olStockStatus').value;
+    var list = ol.items.filter(function (i) { return (!fb || i.brand_id === fb) && (!fs || i.status === fs); });
+    var t = document.getElementById('olTblStock');
+    if (!list.length) { t.innerHTML = '<tr><td class="empty">Nothing matches.</td></tr>'; return; }
+    var html = '<tr><th>Item</th><th>Brand</th><th>Left</th><th>Their lowest</th><th>Our price</th><th>Status</th><th></th></tr>';
+    list.forEach(function (i) {
+      var st = OL.ITEM_STATUS[i.status] || { label: i.status, tag: 'dim' };
+      var acts = [];
+      if (i.status === 'live')   acts.push('<button class="link" data-olreprice="' + esc(i.id) + '">Change price</button>',
+                                           '<button class="link" data-olpause="' + esc(i.id) + '">Pause</button>');
+      if (i.status === 'paused') acts.push('<button class="link" data-olunpause="' + esc(i.id) + '">Put back on sale</button>');
+      html += '<tr><td><b>' + esc(i.title) + '</b><div class="hint" style="margin:0">' +
+          esc([i.size, i.colour, OL.conditionLabel(i.condition)].filter(Boolean).join(' · ')) + '</div>' +
+          (i.packet_note ? '<div class="hint" style="margin:0;color:var(--warn)">Our note: ' + esc(i.packet_note) + '</div>' : '') + '</td>' +
+        '<td>' + esc(olBrandName(i.brand_id)) + '</td>' +
+        '<td>' + esc(i.quantity) + '</td>' +
+        '<td>' + esc(OL.money(i.floor_minor)) + '</td>' +
+        '<td>' + (i.sale_minor ? esc(OL.money(i.sale_minor)) : '&mdash;') + '</td>' +
+        '<td><span class="tag ' + st.tag + '">' + esc(st.label) + '</span>' +
+          (i.status === 'live' && i.quantity === 0 ? ' <span class="tag dim">Sold out</span>' : '') + '</td>' +
+        '<td style="white-space:nowrap">' + acts.join(' ') + '</td></tr>';
+    });
+    t.innerHTML = html;
+    t.querySelectorAll('[data-olpause]').forEach(function (b) {
+      b.addEventListener('click', function () { olUpdateItem(this.dataset.olpause, { status: 'paused' }, 'Paused.'); });
+    });
+    t.querySelectorAll('[data-olunpause]').forEach(function (b) {
+      b.addEventListener('click', function () { olUpdateItem(this.dataset.olunpause, { status: 'live' }, 'Back on sale.'); });
+    });
+    t.querySelectorAll('[data-olreprice]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var it = olFindItem(this.dataset.olreprice);
+        var v = prompt('New price for ' + it.title + ' (£). Their lowest is ' + OL.money(it.floor_minor) + '.',
+                       (it.sale_minor / 100).toFixed(2));
+        if (v === null) return;
+        var p = OL.toPence(v);
+        if (p === null || isNaN(p) || p <= 0) { note('olMsg', 'That is not a price.', 'err'); return; }
+        if (p < it.floor_minor) { note('olMsg', 'That is below the brand’s lowest price of ' + OL.money(it.floor_minor) + '.', 'err'); return; }
+        olUpdateItem(it.id, { sale_minor: p }, 'Price changed to ' + OL.money(p) + '.');
+      });
+    });
+  }
+
+  function renderOutletOrders() {
+    var t = document.getElementById('olTblOrders');
+    if (!ol.orders.length) { t.innerHTML = '<tr><td class="empty">No orders yet.</td></tr>'; return; }
+    var html = '<tr><th>Order</th><th>Brand</th><th>Item</th><th>Customer</th><th>Sold for</th><th>Brand gets</th><th>Status</th><th>Paid to brand</th><th></th></tr>';
+    ol.orders.forEach(function (o) {
+      var st = OL.ORDER_STATUS[o.status] || { label: o.status, tag: 'dim' };
+      var acts = [];
+      if (o.status === 'to_ship') acts.push('<button class="link danger" data-olcancel="' + esc(o.id) + '">Cancel</button>');
+      if (o.status === 'shipped') acts.push('<button class="link" data-olreturn="' + esc(o.id) + '">Returned</button>');
+      if (o.status === 'shipped' && !o.paid_out_at && !o.is_test && o.payout_minor !== null)
+        acts.push('<button class="link" data-olpaid="' + esc(o.id) + '">Mark paid</button>');
+      html += '<tr><td>' + esc(o.order_ref) + (o.is_test ? ' <span class="tag dim">Test</span>' : '') +
+          '<div class="hint" style="margin:0">' + esc(fmt(o.created_at)) + '</div></td>' +
+        '<td>' + esc(olBrandName(o.brand_id)) + '</td>' +
+        '<td>' + esc((o.quantity > 1 ? o.quantity + ' × ' : '') + o.item_title) + '</td>' +
+        '<td>' + esc(o.customer_name) + '<div class="hint" style="margin:0">' + esc(o.ship_postcode) + '</div></td>' +
+        '<td>' + esc(OL.money(o.sale_minor * o.quantity)) + '</td>' +
+        '<td>' + (o.payout_minor === null ? '<span class="tag off">No terms</span>' : esc(OL.money(o.payout_minor))) + '</td>' +
+        '<td><span class="tag ' + st.tag + '">' + esc(st.label) + '</span>' +
+          (o.tracking_number ? '<div class="hint" style="margin:0">' + esc(o.carrier + ' ' + o.tracking_number) + '</div>' :
+           o.carrier ? '<div class="hint" style="margin:0">' + esc(o.carrier) + ', no tracking</div>' : '') + '</td>' +
+        '<td>' + (o.paid_out_at ? esc(fmt(o.paid_out_at)) + (o.payout_ref ? '<div class="hint" style="margin:0">' + esc(o.payout_ref) + '</div>' : '') : '&mdash;') + '</td>' +
+        '<td style="white-space:nowrap">' + acts.join(' ') + '</td></tr>';
+    });
+    t.innerHTML = html;
+
+    function upd(id, patch, ok) {
+      db.from('outlet_orders').update(patch).eq('id', id).select('id').then(function (r) {
+        if (r.error) { note('olMsg', olErr(r.error), 'err'); return; }
+        note('olMsg', ok, 'ok'); loadOutlet();
+      });
+    }
+    t.querySelectorAll('[data-olcancel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (!confirm('Cancel this order? The stock goes back on the brand’s count. Refunding the customer is done separately, in the payment system.')) return;
+        upd(this.dataset.olcancel, { status: 'cancelled' }, 'Cancelled. Remember to refund the customer.');
+      });
+    });
+    t.querySelectorAll('[data-olreturn]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (!confirm('Mark this as returned by the customer? Nothing is put back in stock automatically — the brand decides what condition it is in.')) return;
+        upd(this.dataset.olreturn, { status: 'returned' }, 'Marked as returned.');
+      });
+    });
+    t.querySelectorAll('[data-olpaid]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var ref = prompt('Bank reference for this payment to the brand (so they can match it):', '');
+        if (ref === null) return;
+        upd(this.dataset.olpaid, { paid_out_at: new Date().toISOString(), payout_ref: ref.trim() || null }, 'Recorded as paid.');
+      });
+    });
+  }
+
+  function olAddOrder() {
+    var itemId = document.getElementById('olOItem').value;
+    var it = olFindItem(itemId);
+    var g = function (id) { return document.getElementById(id).value.trim(); };
+    var qty = Number(g('olOQty')), price = OL.toPence(g('olOPrice'));
+    if (!it) { note('olMsg', 'Pick the item that sold.', 'err'); return; }
+    if (!g('olORef')) { note('olMsg', 'Give it an order number.', 'err'); return; }
+    if (!/^\d+$/.test(String(qty)) || qty < 1) { note('olMsg', 'How many should be a whole number.', 'err'); return; }
+    if (price === null || isNaN(price) || price <= 0) { note('olMsg', 'Put the price each in.', 'err'); return; }
+    if (price < it.floor_minor) { note('olMsg', 'That is below the brand’s lowest price of ' + OL.money(it.floor_minor) + '.', 'err'); return; }
+    if (!g('olOName') || !g('olOL1') || !g('olOTown') || !g('olOPost')) { note('olMsg', 'Name, first line, town and postcode are all needed.', 'err'); return; }
+    var btn = document.getElementById('olOAdd'); btn.disabled = true;
+    db.from('outlet_orders').insert({
+      item_id: it.id, brand_id: it.brand_id, item_title: it.title,
+      order_ref: g('olORef'), quantity: qty, sale_minor: price,
+      customer_name: g('olOName'), ship_line1: g('olOL1'), ship_line2: g('olOL2') || null,
+      ship_town: g('olOTown'), ship_postcode: g('olOPost').toUpperCase(), customer_phone: g('olOPhone') || null,
+      is_test: document.getElementById('olOTest').checked
+    }).select('id').then(function (r) {
+      btn.disabled = false;
+      if (r.error) { note('olMsg', olErr(r.error), 'err'); return; }
+      ['olORef', 'olOName', 'olOL1', 'olOL2', 'olOTown', 'olOPost', 'olOPhone'].forEach(function (id) { document.getElementById(id).value = ''; });
+      document.getElementById('olOQty').value = '1';
+      note('olMsg', 'Order added. It is on the brand’s Orders page now.', 'ok');
+      loadOutlet();
+    });
+  }
+
+  function renderOutletBrands() {
+    var t = document.getElementById('olTblBrands');
+    var loginsBy = {};
+    (ol.logins || []).forEach(function (u) { (loginsBy[u.brand_id] = loginsBy[u.brand_id] || []).push(u); });
+    var counts = {};
+    ol.items.forEach(function (i) {
+      var c = counts[i.brand_id] = counts[i.brand_id] || { live: 0, waiting: 0 };
+      if (i.status === 'live') c.live++; if (i.status === 'submitted') c.waiting++;
+    });
+    // Show every brand that has a login or stock, plus anything still in play.
+    var show = ol.brands.filter(function (b) {
+      return loginsBy[b.id] || counts[b.id] || ['soft_yes', 'invited', 'connected'].indexOf(b.status) > -1;
+    });
+    if (!show.length) {
+      t.innerHTML = '<tr><td class="empty">No brands here yet. Brands marked as a soft yes, invited or connected on the Brands page show up here, and so does any brand with a login.</td></tr>';
+      return;
+    }
+    var html = '<tr><th>Brand</th><th>Terms</th><th>Stock</th><th>Logins</th><th></th></tr>';
+    show.forEach(function (b) {
+      var c = counts[b.id] || { live: 0, waiting: 0 };
+      var terms = b.outlet_commission_pct === null
+        ? '<span class="tag off">Not agreed</span>'
+        : 'We keep ' + esc(Number(b.outlet_commission_pct)) + '%' +
+          '<div class="hint" style="margin:0">' + esc(b.outlet_terms_source || 'no source recorded') +
+          (b.outlet_terms_agreed_at ? ', ' + esc(fmt(b.outlet_terms_agreed_at)) : '') + '</div>';
+      var logins = ol.logins === null ? '<span class="hint">Owners only</span>' :
+        (loginsBy[b.id] || []).map(function (u) {
+          return esc(u.email) + '<div class="hint" style="margin:0">' +
+            (u.last_sign_in_at ? 'last in ' + esc(fmt(u.last_sign_in_at)) : 'never signed in') +
+            ' <button class="link danger" data-olrmlogin="' + esc(u.id) + '" data-email="' + esc(u.email) + '">Remove</button></div>';
+        }).join('') || '<span class="hint">None</span>';
+      html += '<tr><td><b>' + esc(b.name) + '</b><div class="hint" style="margin:0">' + esc(b.status) + '</div></td>' +
+        '<td>' + terms + '</td>' +
+        '<td>' + c.live + ' on sale' + (c.waiting ? ', ' + c.waiting + ' waiting' : '') + '</td>' +
+        '<td>' + logins + '</td>' +
+        '<td><button class="link" data-olterms="' + esc(b.id) + '">Set terms</button></td></tr>';
+    });
+    t.innerHTML = html;
+
+    t.querySelectorAll('[data-olterms]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var b = null; for (var i = 0; i < ol.brands.length; i++) if (ol.brands[i].id === this.dataset.olterms) b = ol.brands[i];
+        ol.terms = b.id;
+        document.getElementById('olTermsTitle').textContent = 'Terms for ' + b.name;
+        document.getElementById('olTPct').value  = b.outlet_commission_pct === null ? '' : b.outlet_commission_pct;
+        document.getElementById('olTDate').value = b.outlet_terms_agreed_at || '';
+        document.getElementById('olTSrc').value  = b.outlet_terms_source || '';
+        document.getElementById('olTermsPanel').style.display = 'block';
+        document.getElementById('olTermsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    t.querySelectorAll('[data-olrmlogin]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('Remove the login for ' + this.dataset.email + '? They will not be able to sign in. Their stock and orders stay.')) return;
+        usersCall({ action: 'delete', userId: this.dataset.olrmlogin }).then(function (res) {
+          if (!res.ok) { note('olMsg', res.d.error || 'Could not remove that login.', 'err'); return; }
+          note('olMsg', 'Login removed.', 'ok'); loadOutlet(); loadUsers();
+        });
+      });
+    });
+  }
+
+  function olSaveTerms() {
+    var raw = document.getElementById('olTPct').value.trim();
+    var src = document.getElementById('olTSrc').value.trim();
+    var date = document.getElementById('olTDate').value || null;
+    var pct = raw === '' ? null : Number(raw);
+    if (pct !== null && (!isFinite(pct) || pct < 0 || pct > 100)) { note('olMsg', 'The percentage should be between 0 and 100.', 'err'); return; }
+    // Same rule as the rest of the admin: a number with no evidence
+    // behind it is not saved.
+    if (pct !== null && !src) { note('olMsg', 'Say where the terms were agreed — an email or a signed agreement.', 'err'); return; }
+    db.from('brands').update({
+      outlet_commission_pct: pct, outlet_terms_source: pct === null ? null : src,
+      outlet_terms_agreed_at: pct === null ? null : date
+    }).eq('id', ol.terms).then(function (r) {
+      if (r.error) { note('olMsg', olErr(r.error), 'err'); return; }
+      document.getElementById('olTermsPanel').style.display = 'none';
+      note('olMsg', pct === null ? 'Terms cleared.' : 'Terms saved. New orders use them from now on.', 'ok');
+      loadOutlet();
+    });
+  }
+
+  function olAddLogin() {
+    var brandId = document.getElementById('olLBrand').value;
+    var email = document.getElementById('olLEmail').value.trim();
+    var pass  = document.getElementById('olLPass').value;
+    if (!brandId) { note('olMsg', 'Pick the brand first.', 'err'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { note('olMsg', 'That email address does not look right.', 'err'); return; }
+    if (pass.length < 8) { note('olMsg', 'The temporary password needs to be at least eight characters.', 'err'); return; }
+    var btn = document.getElementById('olLAdd'); btn.disabled = true;
+    usersCall({ action: 'createBrandLogin', email: email, password: pass, brandId: brandId,
+                full_name: document.getElementById('olLName').value.trim() })
+      .then(function (res) {
+        btn.disabled = false;
+        if (!res.ok) { note('olMsg', res.d.error || 'Could not create that login.', 'err'); return; }
+        ['olLEmail', 'olLName', 'olLPass'].forEach(function (id) { document.getElementById(id).value = ''; });
+        // Not note(): that fades after a few seconds, and this has to be read.
+        var m = document.getElementById('olMsg');
+        m.textContent = 'Login created for ' + res.d.brand + '. Send them the address ' + window.location.origin +
+          '/brand.html, their email and the temporary password — the password in a separate message from the rest.';
+        m.className = 'msg show ok';
+        loadOutlet(); loadUsers();
+      });
+  }
 
 })();
 </script>

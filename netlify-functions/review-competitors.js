@@ -456,7 +456,9 @@ async function ask(system, prompt, maxTokens) {
   try {
     const resp = await fetch(base + '/.netlify/functions/ai', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      // The ai function only answers staff and Packet's own functions.
+      headers: { 'content-type': 'application/json',
+                 authorization: 'Bearer ' + (process.env.SUPABASE_SERVICE_ROLE_KEY || '') },
       body: JSON.stringify({ system: system, prompt: prompt, max_tokens: maxTokens })
     });
     const data = await resp.json();

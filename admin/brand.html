@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Packet Outlet — brand login</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="assets/packet-badge.png">
+<meta name="theme-color" content="#F6EFE6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!--
+  Packet Outlet — the page a BRAND sees. Built 29 September 2026.
+
+  A separate file from index.html on purpose. A brand never downloads
+  the code for Packet's own screens (subscribers, sourcing, costs), so
+  there is nothing in their browser to poke at. What a brand can read
+  and change is decided by the database (014_outlet.sql), not by this
+  page — this page only makes it pleasant.
+-->
+<style>
+  :root{
+    --cream:#F6EFE6;--panel:#FFFCF7;--brown:#3A2E27;--brown-soft:#6B5B50;
+    --terracotta:#C0623F;--terracotta-dark:#A6512F;--line:rgba(58,46,39,.14);
+    --ok:#4F7A4A;--warn:#8A3324;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--cream);color:var(--brown);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased}
+  #loginPage{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .login-card{background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    padding:38px 32px;width:100%;max-width:380px;text-align:center}
+  .login-card img{width:150px;margin:0 auto 8px;display:block}
+  .kicker{font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--terracotta);font-weight:500;margin-bottom:20px}
+
+  header{background:var(--panel);border-bottom:1px solid var(--line);
+    padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  header img{height:26px;width:auto}
+  header .brandname{font-family:'Lora',Georgia,serif;font-size:17px}
+  nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+  nav button{background:none;border:0;padding:8px 14px;border-radius:2px;cursor:pointer;
+    font-family:inherit;font-size:14px;color:var(--brown-soft)}
+  nav button:hover{background:rgba(58,46,39,.05);color:var(--brown)}
+  nav button.active{background:var(--brown);color:var(--cream)}
+  nav .count{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;border-radius:9px;
+    background:var(--terracotta);color:#fff;font-size:11px;line-height:18px;text-align:center}
+
+  main{padding:26px 22px 60px;max-width:1000px;margin:0 auto}
+  .page{display:none}.page.active{display:block}
+  h1{font-family:'Lora',Georgia,serif;font-weight:400;font-size:24px;margin-bottom:4px}
+  h2{font-family:'Lora',Georgia,serif;font-weight:500;font-size:16px;margin:26px 0 10px}
+  .hint{font-size:13px;color:var(--brown-soft);margin-bottom:18px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:16px 18px}
+  .card .n{font-family:'Lora',Georgia,serif;font-size:26px;line-height:1.1}
+  .card .l{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--brown-soft);margin-top:5px}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+
+  input[type=text],input[type=email],input[type=password],input[type=number],input[type=date],textarea,select{
+    padding:10px 13px;font-family:inherit;font-size:15px;color:var(--brown);
+    background:var(--panel);border:1px solid var(--line);border-radius:2px;width:100%;line-height:1.4}
+  textarea{resize:vertical;min-height:80px}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--terracotta)}
+  .field{text-align:left;margin-bottom:12px}
+  .field label{display:block;font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--brown-soft);margin-bottom:5px}
+  .field .help{font-size:12px;color:var(--brown-soft);margin-top:4px}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 16px}
+  .tick{display:flex;gap:9px;align-items:flex-start;font-size:14px;margin:10px 0;cursor:pointer;text-align:left}
+  .tick input{margin-top:4px;flex:none}
+
+  button.btn{padding:10px 16px;font-family:inherit;font-size:14px;cursor:pointer;
+    background:var(--terracotta);color:var(--cream);border:0;border-radius:2px}
+  button.btn:hover{background:var(--terracotta-dark)}
+  button.btn.ghost{background:none;color:var(--brown-soft);border:1px solid var(--line)}
+  button.btn.ghost:hover{background:rgba(58,46,39,.05);color:var(--brown)}
+  button.btn:disabled{opacity:.5;cursor:not-allowed}
+  button.link{background:none;border:0;color:var(--terracotta);cursor:pointer;font-family:inherit;font-size:13px;padding:2px 5px}
+  button.link:hover{text-decoration:underline}
+  button.link.danger{color:var(--warn)}
+  label.btn{display:inline-block;padding:10px 16px;font-size:14px;cursor:pointer;border-radius:2px;
+    background:none;color:var(--brown-soft);border:1px solid var(--line)}
+  label.btn:hover{background:rgba(58,46,39,.05);color:var(--brown)}
+
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:3px;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:500;font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--brown-soft);background:rgba(58,46,39,.035)}
+  tr:last-child td{border-bottom:0}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .wrapscroll{overflow-x:auto}
+  .empty{padding:34px;text-align:center;color:var(--brown-soft);font-size:14px}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap}
+  .tag.on{background:rgba(79,122,74,.13);color:var(--ok)}
+  .tag.off{background:rgba(138,51,36,.11);color:var(--warn)}
+  .tag.mid{background:rgba(192,98,63,.13);color:var(--terracotta)}
+  .tag.dim{background:rgba(58,46,39,.07);color:var(--brown-soft)}
+  .tag.test{background:#3A2E27;color:#F6EFE6}
+  .thumb{width:48px;height:48px;object-fit:cover;border-radius:2px;border:1px solid var(--line);background:#eee;display:block}
+  .sub{font-size:12px;color:var(--brown-soft)}
+  .pnote{font-size:12px;color:var(--warn);margin-top:4px}
+
+  .msg{font-size:14px;padding:11px 14px;border-radius:2px;margin-bottom:14px;display:none;text-align:left}
+  .msg.show{display:block}
+  .msg.ok{background:rgba(79,122,74,.11);color:var(--ok)}
+  .msg.err{background:rgba(138,51,36,.09);color:var(--warn)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:20px;margin:16px 0}
+  .notice{background:rgba(58,46,39,.035);border:1px solid var(--line);border-left:3px solid var(--terracotta);
+    border-radius:2px;padding:13px 15px;margin:14px 0;font-size:14px}
+
+  .photos{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+  .photos .ph{position:relative}
+  .photos .ph img{width:84px;height:84px;object-fit:cover;border-radius:2px;border:1px solid var(--line);display:block}
+  .photos .ph button{position:absolute;top:2px;right:2px;background:rgba(58,46,39,.8);color:#fff;border:0;
+    border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:13px;line-height:22px}
+
+  .order{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:16px 18px;margin-bottom:12px}
+  .order.todo{border-left:3px solid var(--terracotta)}
+  .order .top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
+  .order .ref{font-family:'Lora',Georgia,serif;font-size:17px}
+  .order .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .order address{font-style:normal;font-size:14px;white-space:pre-line}
+  .order .ship{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+  .order .ship select{max-width:170px}.order .ship input{max-width:230px}
+  @media (max-width:560px){ main{padding:20px 16px 50px} header{padding:12px 16px} nav{margin-left:0;width:100%} }
+</style>
+</head>
+<body>
+
+<!-- ===================== SIGN IN ===================== -->
+<div id="loginPage">
+  <div class="login-card">
+    <img src="assets/packet-wordmark.png" alt="Packet">
+    <p class="kicker">Outlet &middot; brand login</p>
+    <div id="loginMsg" class="msg"></div>
+
+    <form id="loginForm">
+      <div class="field"><label for="liEmail">Email</label>
+        <input type="email" id="liEmail" autocomplete="username" required></div>
+      <div class="field"><label for="liPass">Password</label>
+        <input type="password" id="liPass" autocomplete="current-password" required></div>
+      <button class="btn" type="submit" id="liBtn" style="width:100%">Sign in</button>
+      <button type="button" class="link" id="liForgot" style="margin-top:14px">Forgotten your password?</button>
+    </form>
+
+    <div id="resetBox" style="display:none;text-align:left">
+      <p class="hint">Put your email in and we&rsquo;ll send you a link to set a new password.</p>
+      <div class="field"><label for="rsEmail">Email</label><input type="email" id="rsEmail" autocomplete="username"></div>
+      <button class="btn" id="rsSend" style="width:100%">Send the link</button>
+      <button type="button" class="link" id="rsCancel" style="margin-top:14px">Back to sign in</button>
+    </div>
+
+    <!-- Same protection as the admin: a reset link signs you in before a
+         new password exists, so nothing opens until one is saved. -->
+    <div id="newPassBox" style="display:none;text-align:left">
+      <p class="hint">Choose a new password. It needs to be at least eight characters.</p>
+      <div class="field"><label for="npPass">New password</label><input type="password" id="npPass" autocomplete="new-password"></div>
+      <div class="field"><label for="npPass2">Type it again</label><input type="password" id="npPass2" autocomplete="new-password"></div>
+      <button class="btn" id="npSave" style="width:100%">Save the new password</button>
+      <button type="button" class="link" id="npCancel" style="margin-top:14px">Cancel and sign out</button>
+    </div>
+
+    <p class="hint" style="margin:22px 0 0;font-size:12px">
+      This login is for brands selling through Packet Outlet.
+      Not set up yet? Email <a href="mailto:info@packetlabel.com" style="color:var(--terracotta)">info@packetlabel.com</a>.
+    </p>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app" style="display:none">
+  <header>
+    <img src="assets/packet-wordmark.png" alt="Packet">
+    <span class="brandname" id="brandName"></span>
+    <nav>
+      <button data-page="stock" class="active">Your stock</button>
+      <button data-page="orders">Orders <span class="count" id="toShipCount" style="display:none"></span></button>
+      <button data-page="money">Money</button>
+      <button data-page="help">How it works</button>
+    </nav>
+    <button class="btn ghost" id="signOutBtn">Sign out</button>
+  </header>
+
+  <main>
+    <div id="appMsg" class="msg"></div>
+
+    <!-- ---------- Stock ---------- -->
+    <section id="page-stock" class="page active">
+      <h1>Your stock</h1>
+      <p class="hint">What you&rsquo;d like Packet Outlet to sell. You keep it and post it; we list it and find the buyer.
+        Add items one at a time, or upload a spreadsheet of them.</p>
+
+      <div class="cards" id="stockCards"></div>
+
+      <div class="bar">
+        <button class="btn" id="addItemBtn">Add an item</button>
+        <label class="btn" for="csvFile">Upload a spreadsheet</label>
+        <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none">
+        <button class="link" id="csvTemplateBtn">Download the spreadsheet template</button>
+      </div>
+
+      <div id="stockMsg" class="msg"></div>
+
+      <!-- Add / edit -->
+      <div class="panel" id="itemPanel" style="display:none">
+        <h2 style="margin-top:0" id="itemPanelTitle">Add an item</h2>
+        <div class="grid2">
+          <div class="field" style="grid-column:1/-1"><label for="fTitle">What is it?</label>
+            <input type="text" id="fTitle" maxlength="200" placeholder="e.g. Recycled wool cardigan, olive"></div>
+          <div class="field"><label for="fCategory">Category</label><select id="fCategory"></select></div>
+          <div class="field"><label for="fCondition">Condition</label><select id="fCondition"></select></div>
+          <div class="field" id="fNoteWrap" style="grid-column:1/-1;display:none"><label for="fNote">What&rsquo;s wrong with it?</label>
+            <input type="text" id="fNote" maxlength="300" placeholder="e.g. small pull on left cuff; box corner crushed">
+            <div class="help">Be exact. The customer sees this, and it decides whether they send it back.</div></div>
+          <div class="field"><label for="fSize">Size</label><input type="text" id="fSize" maxlength="40"></div>
+          <div class="field"><label for="fColour">Colour</label><input type="text" id="fColour" maxlength="60"></div>
+          <div class="field"><label for="fQty">How many?</label><input type="number" id="fQty" min="0" step="1" value="1"></div>
+          <div class="field"><label for="fSku">Your product code</label><input type="text" id="fSku" maxlength="80">
+            <div class="help">Optional. Shown on the order so you can find it.</div></div>
+          <div class="field"><label for="fRrp">Your normal price (£)</label><input type="text" id="fRrp" inputmode="decimal" placeholder="89.00">
+            <div class="help">Optional. What it sells for at full price.</div></div>
+          <div class="field"><label for="fFloor">Lowest price you&rsquo;ll accept (£)</label><input type="text" id="fFloor" inputmode="decimal" placeholder="45.00">
+            <div class="help">The least a customer can pay for it. We will never list it below this.</div></div>
+          <div class="field"><label for="fUntil">Available until</label><input type="date" id="fUntil">
+            <div class="help">Optional. We take it down on this date.</div></div>
+          <div class="field" style="grid-column:1/-1"><label for="fDesc">Anything else a buyer should know</label>
+            <textarea id="fDesc" maxlength="2000" placeholder="Fabric, fit, care, measurements"></textarea></div>
+
+          <div class="field" style="grid-column:1/-1"><label>Photos</label>
+            <div class="photos" id="fPhotos"></div>
+            <div class="bar" style="margin:6px 0 0">
+              <label class="btn" for="fPhotoFile">Add photos</label>
+              <input type="file" id="fPhotoFile" accept="image/jpeg,image/png,image/webp" multiple style="display:none">
+              <input type="text" id="fPhotoUrl" placeholder="or paste a link to a photo on your site" style="max-width:340px">
+              <button class="link" id="fPhotoUrlAdd">Add link</button>
+            </div>
+            <div class="help">Up to eight. Show the fault if there is one &mdash; it saves a return.</div>
+          </div>
+
+          <label class="tick" id="fRpWrap" style="grid-column:1/-1;display:none">
+            <input type="checkbox" id="fRp">
+            <span>We hold the <strong>UK Responsible Person</strong> role for this product, and it is
+              registered on the UK cosmetics portal. Packet cannot list anything applied to the body without this.</span>
+          </label>
+        </div>
+        <div id="itemMsg" class="msg"></div>
+        <div class="bar" style="margin:8px 0 0">
+          <button class="btn" id="fSubmit">Send to Packet</button>
+          <button class="btn ghost" id="fDraft">Save for later</button>
+          <button class="link" id="fCancel">Cancel</button>
+        </div>
+      </div>
+
+      <div class="wrapscroll"><table id="tblItems"></table></div>
+    </section>
+
+    <!-- ---------- Orders ---------- -->
+    <section id="page-orders" class="page">
+      <h1>Orders</h1>
+      <p class="hint">When something sells it appears here with the customer&rsquo;s address. Post it,
+        then put the tracking number in and press <b>Mark as posted</b>.</p>
+      <div id="ordersMsg" class="msg"></div>
+      <h2>To post</h2>
+      <div id="ordersToShip"></div>
+      <h2>Posted and done</h2>
+      <div id="ordersDone"></div>
+    </section>
+
+    <!-- ---------- Money ---------- -->
+    <section id="page-money" class="page">
+      <h1>Money</h1>
+      <p class="hint" id="termsLine"></p>
+      <div class="cards" id="moneyCards"></div>
+      <div class="wrapscroll"><table id="tblMoney"></table></div>
+    </section>
+
+    <!-- ---------- Help ---------- -->
+    <section id="page-help" class="page">
+      <h1>How it works</h1>
+      <div class="panel" style="font-size:15px">
+        <p><b>1. You add stock.</b> Returns, end-of-season lines, packaging-damaged items &mdash; anything
+          that&rsquo;s hard to sell at full price on your own site. Tell us its condition honestly and the
+          lowest price you&rsquo;ll take.</p><br>
+        <p><b>2. We check it and put it on sale.</b> We set the Outlet price, never below your lowest.
+          You&rsquo;ll see it change to <span class="tag on">On sale</span>. If we can&rsquo;t list something
+          we&rsquo;ll say why on the item.</p><br>
+        <p><b>3. When it sells, you post it.</b> The order appears under Orders with the delivery address.
+          Post it straight to the customer and put the tracking number in.</p><br>
+        <p><b>4. We pay you.</b> The Money page shows what each sale earns you and what&rsquo;s been paid.</p><br>
+        <p><b>You never send us stock.</b> If you sell something yourself, just lower the number or take it
+          back &mdash; press <i>Take back</i> on the item. There is no minimum.</p><br>
+        <p><b>Stock numbers.</b> Keep &ldquo;How many?&rdquo; right. If something sells here that you&rsquo;ve
+          already sold elsewhere, the customer has to be refunded, which nobody enjoys.</p><br>
+        <p><b>The customer&rsquo;s details</b> are shown to you only to post their order. The address
+          disappears from this page 30 days after you mark it posted. Please don&rsquo;t keep it or use it
+          for anything else.</p><br>
+        <p>Questions: <a href="mailto:info@packetlabel.com" style="color:var(--terracotta)">info@packetlabel.com</a></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="packet-outlet.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var O   = window.PacketOutlet;
+  var cfg = window.PACKET_CONFIG || {};
+  var db  = null;
+  var state = { brand: null, items: [], orders: [], editing: null, photos: [] };
+  var MAX_PHOTOS = 8;
+
+  function $(id) { return document.getElementById(id); }
+  function note(id, text, kind) {
+    var el = $(id);
+    el.textContent = text;
+    el.className = 'msg show ' + kind;
+    if (kind === 'ok') setTimeout(function () { el.className = 'msg'; }, 4000);
+  }
+  function clearNote(id) { $(id).className = 'msg'; }
+  function esc(s) {
+    return String(s === null || s === undefined ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function safeUrl(u) { return /^https:\/\//i.test(String(u || '')) ? String(u) : ''; }
+  function day(ts) {
+    if (!ts) return '';
+    return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  // The database explains itself in plain words (see 014); show those.
+  function dbError(e) {
+    var m = (e && (e.message || e.error_description)) || 'Something went wrong.';
+    if (/row-level security/i.test(m)) return 'That was not allowed.';
+    return m;
+  }
+
+  if (!cfg.SUPABASE_URL || cfg.SUPABASE_URL.indexOf('YOUR-PROJECT') !== -1) {
+    note('loginMsg', 'This page is not set up yet.', 'err');
+    return;
+  }
+  db = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+
+  // ---------------------------------------------------------------- router
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+    var t = $('page-' + name); if (t) t.classList.add('active');
+    document.querySelectorAll('nav button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.page === name);
+    });
+    window.location.hash = name;
+  }
+  document.querySelectorAll('nav button').forEach(function (b) {
+    b.addEventListener('click', function () { showPage(this.dataset.page); });
+  });
+
+  // ------------------------------------------------------------------ auth
+  var loginForm = $('loginForm'), resetBox = $('resetBox'), newPassBox = $('newPassBox');
+
+  $('liForgot').addEventListener('click', function () {
+    $('rsEmail').value = $('liEmail').value.trim();
+    loginForm.style.display = 'none'; resetBox.style.display = 'block'; clearNote('loginMsg');
+  });
+  $('rsCancel').addEventListener('click', function () {
+    resetBox.style.display = 'none'; loginForm.style.display = 'block'; clearNote('loginMsg');
+  });
+  $('rsSend').addEventListener('click', function () {
+    var email = $('rsEmail').value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { note('loginMsg', 'That email address does not look right.', 'err'); return; }
+    var btn = this; btn.disabled = true; btn.textContent = 'Sending…';
+    db.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/brand.html' })
+      .then(function () {
+        btn.disabled = false; btn.textContent = 'Send the link';
+        note('loginMsg', 'If that address has a login, a reset link is on its way. Check spam as well.', 'ok');
+      }, function () {
+        btn.disabled = false; btn.textContent = 'Send the link';
+        note('loginMsg', 'Could not send that just now. Try again in a minute.', 'err');
+      });
+  });
+
+  var recovering = /[#&]type=recovery/.test(window.location.hash);
+  function askForNewPassword() {
+    recovering = true;
+    loginForm.style.display = 'none'; resetBox.style.display = 'none'; newPassBox.style.display = 'block';
+    $('npPass').focus();
+  }
+  if (recovering) askForNewPassword();
+  db.auth.onAuthStateChange(function (event) { if (event === 'PASSWORD_RECOVERY') askForNewPassword(); });
+
+  $('npCancel').addEventListener('click', function () {
+    db.auth.signOut().then(function () { window.location.replace(window.location.pathname); });
+  });
+  $('npSave').addEventListener('click', function () {
+    var pw = $('npPass').value, pw2 = $('npPass2').value;
+    if (pw.length < 8) { note('loginMsg', 'That needs to be at least eight characters.', 'err'); return; }
+    if (pw !== pw2)    { note('loginMsg', 'The two passwords do not match.', 'err'); return; }
+    var btn = this; btn.disabled = true; btn.textContent = 'Saving…';
+    db.auth.updateUser({ password: pw }).then(function (r) {
+      if (r.error) {
+        btn.disabled = false; btn.textContent = 'Save the new password';
+        note('loginMsg', 'Could not set that password: ' + r.error.message, 'err'); return;
+      }
+      note('loginMsg', 'Password changed. Sign in with the new one.', 'ok');
+      db.auth.signOut().then(function () {
+        setTimeout(function () { window.location.replace(window.location.pathname); }, 1200);
+      });
+    });
+  });
+
+  loginForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = $('liBtn'); btn.disabled = true; btn.textContent = 'Signing in…';
+    db.auth.signInWithPassword({ email: $('liEmail').value.trim(), password: $('liPass').value })
+      .then(function (res) {
+        btn.disabled = false; btn.textContent = 'Sign in';
+        if (res.error) { note('loginMsg', 'Those details were not accepted.', 'err'); return; }
+        start();
+      });
+  });
+
+  $('signOutBtn').addEventListener('click', function () {
+    db.auth.signOut().then(function () { window.location.replace(window.location.pathname); });
+  });
+
+  function start() {
+    db.rpc('current_user_role').then(function (r) {
+      var role = r && r.data;
+      if (role === 'owner' || role === 'staff') {
+        // Phil or Scott on the wrong page. Send them where they meant to go.
+        window.location.replace('./');
+        return;
+      }
+      if (role !== 'brand') {
+        note('loginMsg', 'That login is not set up for Packet Outlet. Email info@packetlabel.com.', 'err');
+        db.auth.signOut(); return;
+      }
+      return db.rpc('my_brand').then(function (b) {
+        if (b.error || !b.data) {
+          note('loginMsg', 'Your login is not linked to a brand yet. Email info@packetlabel.com.', 'err');
+          db.auth.signOut(); return;
+        }
+        state.brand = b.data;
+        $('brandName').textContent = b.data.name;
+        document.title = b.data.name + ' — Packet Outlet';
+        $('loginPage').style.display = 'none';
+        $('app').style.display = 'block';
+        var hash = (window.location.hash || '').replace('#', '');
+        showPage(['stock', 'orders', 'money', 'help'].indexOf(hash) > -1 ? hash : 'stock');
+        loadAll();
+      });
+    }, function () {
+      note('loginMsg', 'Could not sign you in just now. Try again in a minute.', 'err');
+    });
+  }
+
+  db.auth.getSession().then(function (res) {
+    if (recovering) return;
+    if (res.data && res.data.session) start();
+  });
+
+  // ------------------------------------------------------------------ data
+  function loadAll() {
+    return Promise.all([
+      db.from('outlet_items').select('*').order('updated_at', { ascending: false }),
+      db.rpc('brand_orders')
+    ]).then(function (res) {
+      if (res[0].error) { note('appMsg', 'Could not load your stock: ' + dbError(res[0].error), 'err'); return; }
+      if (res[1].error) { note('appMsg', 'Could not load your orders: ' + dbError(res[1].error), 'err'); return; }
+      state.items  = res[0].data || [];
+      state.orders = res[1].data || [];
+      renderStock(); renderOrders(); renderMoney();
+    });
+  }
+
+  // ----------------------------------------------------------------- stock
+  function renderStock() {
+    var n = { live: 0, submitted: 0, draft: 0, units: 0 };
+    state.items.forEach(function (i) {
+      if (n[i.status] !== undefined) n[i.status]++;
+      if (i.status === 'live') n.units += i.quantity;
+    });
+    var sold = state.orders.filter(function (o) { return o.status === 'to_ship' || o.status === 'shipped'; })
+      .reduce(function (s, o) { return s + (o.is_test ? 0 : o.quantity); }, 0);
+    $('stockCards').innerHTML =
+      card(n.live, 'On sale') + card(n.units, 'Pieces on sale') + card(n.submitted, 'With Packet') +
+      card(n.draft, 'Not sent yet') + card(sold, 'Sold');
+
+    var t = $('tblItems');
+    if (!state.items.length) {
+      t.innerHTML = '<tr><td class="empty">Nothing here yet. Press <b>Add an item</b>, or upload a spreadsheet.</td></tr>';
+      return;
+    }
+    var html = '<tr><th></th><th>Item</th><th class="num">How many</th><th class="num">Lowest</th>' +
+               '<th class="num">On sale at</th><th>Where it&rsquo;s got to</th><th></th></tr>';
+    state.items.forEach(function (i) {
+      var st = O.ITEM_STATUS[i.status] || { label: i.status, tag: 'dim' };
+      var ph = (i.photos || []).map(safeUrl).filter(Boolean)[0];
+      var acts = [];
+      if (['draft', 'submitted', 'rejected', 'withdrawn', 'live', 'paused'].indexOf(i.status) > -1)
+        acts.push('<button class="link" data-edit="' + esc(i.id) + '">Edit</button>');
+      if (['draft', 'withdrawn', 'rejected'].indexOf(i.status) > -1)
+        acts.push('<button class="link" data-send="' + esc(i.id) + '">Send to Packet</button>');
+      if (['submitted', 'live', 'paused'].indexOf(i.status) > -1)
+        acts.push('<button class="link danger" data-withdraw="' + esc(i.id) + '">Take back</button>');
+      if (i.status === 'draft')
+        acts.push('<button class="link danger" data-del="' + esc(i.id) + '">Delete</button>');
+      var soldOut = i.status === 'live' && i.quantity === 0;
+      html += '<tr>' +
+        '<td>' + (ph ? '<img class="thumb" src="' + esc(ph) + '" alt="" loading="lazy">' : '<div class="thumb"></div>') + '</td>' +
+        '<td><b>' + esc(i.title) + '</b><div class="sub">' +
+          esc([i.size, i.colour, O.conditionLabel(i.condition)].filter(Boolean).join(' · ')) +
+          (i.brand_sku ? ' · ' + esc(i.brand_sku) : '') + '</div>' +
+          (i.packet_note ? '<div class="pnote">From Packet: ' + esc(i.packet_note) + '</div>' : '') + '</td>' +
+        '<td class="num">' + esc(i.quantity) + '</td>' +
+        '<td class="num">' + esc(O.money(i.floor_minor)) + '</td>' +
+        '<td class="num">' + (i.sale_minor ? esc(O.money(i.sale_minor)) : '<span class="sub">&mdash;</span>') + '</td>' +
+        '<td>' + (soldOut ? '<span class="tag dim">Sold out</span>' : '<span class="tag ' + st.tag + '">' + esc(st.label) + '</span>') + '</td>' +
+        '<td style="white-space:nowrap">' + acts.join(' ') + '</td></tr>';
+    });
+    t.innerHTML = html;
+
+    t.querySelectorAll('[data-edit]').forEach(function (b) {
+      b.addEventListener('click', function () { openForm(findItem(this.dataset.edit)); });
+    });
+    t.querySelectorAll('[data-send]').forEach(function (b) {
+      b.addEventListener('click', function () { setStatus(this.dataset.send, 'submitted', 'Sent to Packet. We will check it and put it on sale.'); });
+    });
+    t.querySelectorAll('[data-withdraw]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (!confirm('Take this item back? It comes off sale straight away.')) return;
+        setStatus(this.dataset.withdraw, 'withdrawn', 'Taken back. It is no longer for sale.');
+      });
+    });
+    t.querySelectorAll('[data-del]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (!confirm('Delete this draft?')) return;
+        db.from('outlet_items').delete().eq('id', this.dataset.del).then(function (r) {
+          if (r.error) { note('stockMsg', dbError(r.error), 'err'); return; }
+          note('stockMsg', 'Deleted.', 'ok'); loadAll();
+        });
+      });
+    });
+  }
+
+  function card(n, l) { return '<div class="card"><div class="n">' + esc(n) + '</div><div class="l">' + esc(l) + '</div></div>'; }
+  function findItem(id) { for (var i = 0; i < state.items.length; i++) if (state.items[i].id === id) return state.items[i]; return null; }
+
+  function setStatus(id, status, okText) {
+    db.from('outlet_items').update({ status: status }).eq('id', id).select('id').then(function (r) {
+      if (r.error) { note('stockMsg', dbError(r.error), 'err'); return; }
+      note('stockMsg', okText, 'ok'); loadAll();
+    });
+  }
+
+  // ------------------------------------------------------------- the form
+  $('fCategory').innerHTML = O.CATEGORIES.map(function (c) { return '<option value="' + c.v + '">' + esc(c.label) + '</option>'; }).join('');
+  $('fCondition').innerHTML = O.CONDITIONS.map(function (c) { return '<option value="' + c.v + '">' + esc(c.label) + '</option>'; }).join('');
+
+  function syncFormBits() {
+    $('fNoteWrap').style.display = O.conditionNeedsNote($('fCondition').value) ? 'block' : 'none';
+    $('fRpWrap').style.display   = $('fCategory').value === 'beauty' ? 'flex' : 'none';
+  }
+  $('fCondition').addEventListener('change', syncFormBits);
+  $('fCategory').addEventListener('change', syncFormBits);
+
+  function openForm(item) {
+    state.editing = item || null;
+    state.photos = item ? (item.photos || []).map(safeUrl).filter(Boolean) : [];
+    $('itemPanelTitle').textContent = item ? 'Edit ' + item.title : 'Add an item';
+    $('fTitle').value     = item ? item.title : '';
+    $('fCategory').value  = item ? item.category : 'clothing';
+    $('fCondition').value = item ? item.condition : 'new_with_tags';
+    $('fNote').value      = item ? (item.condition_note || '') : '';
+    $('fSize').value      = item ? (item.size || '') : '';
+    $('fColour').value    = item ? (item.colour || '') : '';
+    $('fQty').value       = item ? item.quantity : 1;
+    $('fSku').value       = item ? (item.brand_sku || '') : '';
+    $('fRrp').value       = item && item.rrp_minor ? (item.rrp_minor / 100).toFixed(2) : '';
+    $('fFloor').value     = item ? (item.floor_minor / 100).toFixed(2) : '';
+    $('fUntil').value     = item ? (item.available_until || '') : '';
+    $('fDesc').value      = item ? (item.description || '') : '';
+    $('fRp').checked      = item ? !!item.uk_rp_confirmed : false;
+    // A live item stays live when edited; the buttons say so.
+    var live = item && (item.status === 'live' || item.status === 'paused');
+    $('fSubmit').textContent = live ? 'Save changes' : 'Send to Packet';
+    $('fDraft').style.display = live ? 'none' : 'inline-block';
+    clearNote('itemMsg');
+    syncFormBits(); renderPhotos();
+    $('itemPanel').style.display = 'block';
+    $('itemPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('fTitle').focus();
+  }
+  function closeForm() { $('itemPanel').style.display = 'none'; state.editing = null; state.photos = []; }
+
+  $('addItemBtn').addEventListener('click', function () { openForm(null); });
+  $('fCancel').addEventListener('click', closeForm);
+  $('fSubmit').addEventListener('click', function () { saveItem(true); });
+  $('fDraft').addEventListener('click', function () { saveItem(false); });
+
+  function saveItem(send) {
+    var title = $('fTitle').value.trim();
+    var floor = O.toPence($('fFloor').value), rrp = O.toPence($('fRrp').value);
+    var qty = Number($('fQty').value), cond = $('fCondition').value, cat = $('fCategory').value;
+    var noteTxt = $('fNote').value.trim();
+
+    if (!title) return note('itemMsg', 'Say what it is.', 'err');
+    if (floor === null || isNaN(floor) || floor <= 0) return note('itemMsg', 'Put in the lowest price you will accept, like 45.00.', 'err');
+    if (rrp !== null && (isNaN(rrp) || rrp <= 0)) return note('itemMsg', 'Your normal price does not look like a price.', 'err');
+    if (rrp && floor > rrp) return note('itemMsg', 'The lowest price is above your normal price.', 'err');
+    if (!/^\d+$/.test(String(qty))) return note('itemMsg', 'How many should be a whole number.', 'err');
+    if (O.conditionNeedsNote(cond) && !noteTxt) return note('itemMsg', 'Say exactly what is wrong with it. The customer sees this.', 'err');
+    if (send && cat === 'beauty' && !$('fRp').checked)
+      return note('itemMsg', 'For beauty products we need you to confirm you hold the UK Responsible Person role before we can list it. You can still save it for later.', 'err');
+
+    var row = {
+      title: title, category: cat, condition: cond,
+      condition_note: O.conditionNeedsNote(cond) ? noteTxt : (noteTxt || null),
+      size: $('fSize').value.trim() || null, colour: $('fColour').value.trim() || null,
+      quantity: qty, brand_sku: $('fSku').value.trim() || null,
+      rrp_minor: rrp, floor_minor: floor,
+      available_until: $('fUntil').value || null,
+      description: $('fDesc').value.trim() || null,
+      photos: state.photos.slice(0, MAX_PHOTOS),
+      uk_rp_confirmed: $('fRp').checked
+    };
+    var it = state.editing;
+    var live = it && (it.status === 'live' || it.status === 'paused');
+    if (!live) row.status = send ? 'submitted' : 'draft';
+
+    var q = it ? db.from('outlet_items').update(row).eq('id', it.id).select('id')
+               : db.from('outlet_items').insert(row).select('id');
+    var btns = [$('fSubmit'), $('fDraft')]; btns.forEach(function (b) { b.disabled = true; });
+    q.then(function (r) {
+      btns.forEach(function (b) { b.disabled = false; });
+      if (r.error) { note('itemMsg', dbError(r.error), 'err'); return; }
+      closeForm();
+      note('stockMsg', live ? 'Saved. It is still on sale.' :
+        send ? 'Sent to Packet. We will check it and put it on sale.' : 'Saved. Send it to Packet when it is ready.', 'ok');
+      loadAll();
+    });
+  }
+
+  // ---------------------------------------------------------------- photos
+  function renderPhotos() {
+    $('fPhotos').innerHTML = state.photos.map(function (u, i) {
+      return '<div class="ph"><img src="' + esc(u) + '" alt=""><button data-rm="' + i + '" title="Remove">&times;</button></div>';
+    }).join('');
+    $('fPhotos').querySelectorAll('[data-rm]').forEach(function (b) {
+      b.addEventListener('click', function () { state.photos.splice(Number(this.dataset.rm), 1); renderPhotos(); });
+    });
+  }
+
+  $('fPhotoUrlAdd').addEventListener('click', function () {
+    var u = $('fPhotoUrl').value.trim();
+    if (!safeUrl(u)) { note('itemMsg', 'Photo links need to start with https://', 'err'); return; }
+    if (state.photos.length >= MAX_PHOTOS) { note('itemMsg', 'That is the most photos one item can have.', 'err'); return; }
+    state.photos.push(u); $('fPhotoUrl').value = ''; renderPhotos();
+  });
+
+  // Phone photos are often 5–10MB. Shrink them in the browser first so
+  // they upload quickly and fit the 5MB limit on the photo store.
+  function shrink(file) {
+    return new Promise(function (resolve) {
+      if (!/^image\//.test(file.type)) return resolve(null);
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function () {
+        var max = 1600, w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, max / Math.max(w, h));
+        var c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (b) { resolve(b); }, 'image/jpeg', 0.85);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
+  function rid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+  $('fPhotoFile').addEventListener('change', function () {
+    var files = Array.prototype.slice.call(this.files || []);
+    this.value = '';
+    var room = MAX_PHOTOS - state.photos.length;
+    if (room <= 0) { note('itemMsg', 'That is the most photos one item can have.', 'err'); return; }
+    files = files.slice(0, room);
+    note('itemMsg', 'Uploading ' + files.length + ' photo' + (files.length === 1 ? '' : 's') + '…', 'ok');
+    var bucket = db.storage.from('outlet-photos');
+    Promise.all(files.map(function (f) {
+      return shrink(f).then(function (blob) {
+        if (!blob) return { err: f.name + ' is not a photo we can read.' };
+        var path = state.brand.id + '/' + rid() + '.jpg';
+        return bucket.upload(path, blob, { contentType: 'image/jpeg', upsert: false }).then(function (r) {
+          if (r.error) return { err: f.name + ': ' + dbError(r.error) };
+          return { url: bucket.getPublicUrl(path).data.publicUrl };
+        });
+      });
+    })).then(function (results) {
+      var errs = [];
+      results.forEach(function (x) { if (x.url) state.photos.push(x.url); else errs.push(x.err); });
+      renderPhotos();
+      if (errs.length) note('itemMsg', errs.join(' '), 'err'); else clearNote('itemMsg');
+    });
+  });
+
+  // ------------------------------------------------------ spreadsheet upload
+  $('csvTemplateBtn').addEventListener('click', function () {
+    var blob = new Blob([O.csvTemplate()], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'packet-outlet-stock.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  $('csvFile').addEventListener('change', function () {
+    var f = this.files && this.files[0]; this.value = '';
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var out = O.rowsFromCSV(reader.result);
+      if (out.problems.length) {
+        note('stockMsg', 'Nothing has been added yet. Please fix these and upload it again: ' +
+          out.problems.slice(0, 8).join(' ') + (out.problems.length > 8 ? ' …and ' + (out.problems.length - 8) + ' more.' : ''), 'err');
+        return;
+      }
+      var beauty = out.items.filter(function (i) { return i.category === 'beauty'; }).length;
+      if (!confirm('Add ' + out.items.length + ' item' + (out.items.length === 1 ? '' : 's') +
+        ' as "not sent yet"? You can check them, then send them to Packet.' +
+        (beauty ? '\n\n' + beauty + ' of them are beauty products. Each needs the Responsible Person box ticked before it can be sent.' : ''))) return;
+      var rows = out.items.map(function (i) { i.status = 'draft'; return i; });
+      db.from('outlet_items').insert(rows).select('id').then(function (r) {
+        if (r.error) { note('stockMsg', 'Nothing was added: ' + dbError(r.error), 'err'); return; }
+        note('stockMsg', 'Added ' + r.data.length + ' items. They are saved but not sent — check them, then press Send to Packet on each.', 'ok');
+        loadAll();
+      });
+    };
+    reader.readAsText(f);
+  });
+
+  // ---------------------------------------------------------------- orders
+  var CARRIERS = ['Royal Mail', 'Evri', 'DPD', 'DHL', 'Parcelforce', 'Yodel', 'UPS', 'InPost', 'Other'];
+
+  function renderOrders() {
+    var todo = state.orders.filter(function (o) { return o.status === 'to_ship'; });
+    var done = state.orders.filter(function (o) { return o.status !== 'to_ship'; });
+    var c = $('toShipCount');
+    if (todo.length) { c.textContent = todo.length; c.style.display = 'inline-block'; } else c.style.display = 'none';
+
+    $('ordersToShip').innerHTML = todo.length ? todo.map(orderCard).join('') :
+      '<div class="panel empty" style="margin:0">Nothing waiting to be posted.</div>';
+    $('ordersDone').innerHTML = done.length ? done.map(orderCard).join('') :
+      '<p class="hint">None yet.</p>';
+
+    document.querySelectorAll('[data-ship]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = this.dataset.ship;
+        var carrier = document.querySelector('[data-carrier="' + id + '"]').value;
+        var track = document.querySelector('[data-track="' + id + '"]').value.trim();
+        if (!carrier) { note('ordersMsg', 'Pick who you posted it with.', 'err'); return; }
+        if (!track && !confirm('Mark as posted without a tracking number? The customer will not be able to follow it.')) return;
+        this.disabled = true;
+        db.rpc('brand_mark_shipped', { p_order: id, p_carrier: carrier, p_tracking: track }).then(function (r) {
+          if (r.error) { note('ordersMsg', dbError(r.error), 'err'); loadAll(); return; }
+          note('ordersMsg', 'Marked as posted. Thank you.', 'ok'); loadAll();
+        });
+      });
+    });
+  }
+
+  function orderCard(o) {
+    var st = O.ORDER_STATUS[o.status] || { label: o.status, tag: 'dim' };
+    var addr = o.address_shown
+      ? '<address><b>' + esc(o.customer_name) + '</b>\n' +
+          esc([o.ship_line1, o.ship_line2, o.ship_town, o.ship_county, o.ship_postcode, o.ship_country === 'GB' ? '' : o.ship_country]
+            .filter(Boolean).join('\n')) +
+          (o.customer_phone ? '\n' + esc(o.customer_phone) : '') + '</address>'
+      : '<p class="sub">The address is no longer shown &mdash; it goes 30 days after posting.</p>';
+    var ship = '';
+    if (o.status === 'to_ship') {
+      ship = '<div class="ship"><select data-carrier="' + esc(o.id) + '"><option value="">Posted with…</option>' +
+        CARRIERS.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('') + '</select>' +
+        '<input type="text" data-track="' + esc(o.id) + '" placeholder="Tracking number" maxlength="80">' +
+        '<button class="btn" data-ship="' + esc(o.id) + '">Mark as posted</button></div>';
+    } else if (o.status === 'shipped') {
+      ship = '<p class="sub" style="margin-top:10px">Posted ' + esc(day(o.shipped_at)) + ' with ' + esc(o.carrier) +
+        (o.tracking_number ? ' &middot; ' + esc(o.tracking_number) : '') + '</p>';
+    }
+    return '<div class="order' + (o.status === 'to_ship' ? ' todo' : '') + '">' +
+      '<div class="top"><span class="ref">' + esc(o.order_ref) + '</span>' +
+        '<span class="tag ' + st.tag + '">' + esc(st.label) + '</span>' +
+        (o.is_test ? '<span class="tag test">Test order &mdash; nothing to post</span>' : '') +
+        '<span class="sub">' + esc(day(o.created_at)) + '</span></div>' +
+      '<div class="cols"><div><b>' + esc(o.quantity > 1 ? o.quantity + ' × ' : '') + esc(o.item_title) + '</b>' +
+        '<div class="sub">' + esc([o.item_size, o.item_colour, O.conditionLabel(o.item_condition)].filter(Boolean).join(' · ')) + '</div>' +
+        (o.item_brand_sku ? '<div class="sub">Your code: ' + esc(o.item_brand_sku) + '</div>' : '') +
+        '<div class="sub" style="margin-top:6px">Sold for ' + esc(O.money(o.sale_minor * o.quantity)) +
+          (o.payout_minor !== null ? ' &middot; you get ' + esc(O.money(o.payout_minor)) : '') + '</div></div>' +
+      '<div>' + addr + '</div></div>' + ship + '</div>';
+  }
+
+  // ----------------------------------------------------------------- money
+  function renderMoney() {
+    var b = state.brand;
+    $('termsLine').innerHTML = (b.commission_pct === null || b.commission_pct === undefined)
+      ? 'Your terms have not been set up here yet. Packet will confirm them in writing, and each sale&rsquo;s figure will appear once they are.'
+      : 'Packet keeps <b>' + esc(Number(b.commission_pct)) + '%</b> of each sale price and you get the rest' +
+        (b.terms_agreed_at ? ', as agreed on ' + esc(day(b.terms_agreed_at)) : '') +
+        '.';
+
+    var real = state.orders.filter(function (o) { return !o.is_test; });
+    function sum(list) { return list.reduce(function (s, o) { return s + (o.payout_minor || 0); }, 0); }
+    var owed    = real.filter(function (o) { return o.status === 'shipped' && !o.paid_out_at; });
+    var waiting = real.filter(function (o) { return o.status === 'to_ship'; });
+    var paid    = real.filter(function (o) { return o.paid_out_at; });
+    $('moneyCards').innerHTML =
+      card(O.money(sum(owed)) || '£0.00', 'Owed to you') +
+      card(O.money(sum(waiting)) || '£0.00', 'Once you post what’s waiting') +
+      card(O.money(sum(paid)) || '£0.00', 'Paid to date');
+
+    var t = $('tblMoney');
+    if (!state.orders.length) { t.innerHTML = '<tr><td class="empty">No sales yet.</td></tr>'; return; }
+    var html = '<tr><th>Order</th><th>Item</th><th class="num">Sold for</th><th class="num">You get</th><th>Paid</th></tr>';
+    state.orders.forEach(function (o) {
+      html += '<tr><td>' + esc(o.order_ref) + (o.is_test ? ' <span class="tag test">Test</span>' : '') +
+        '<div class="sub">' + esc(day(o.created_at)) + '</div></td>' +
+        '<td>' + esc(o.item_title) + '<div class="sub">' + esc((O.ORDER_STATUS[o.status] || {}).label || o.status) + '</div></td>' +
+        '<td class="num">' + esc(O.money(o.sale_minor * o.quantity)) + '</td>' +
+        '<td class="num">' + (o.payout_minor === null ? '<span class="sub">terms not set</span>' : esc(O.money(o.payout_minor))) + '</td>' +
+        '<td>' + (o.paid_out_at ? esc(day(o.paid_out_at)) + (o.payout_ref ? '<div class="sub">' + esc(o.payout_ref) + '</div>' : '')
+                 : (o.status === 'cancelled' || o.status === 'returned') ? '<span class="sub">&mdash;</span>' : '<span class="sub">Not yet</span>') + '</td></tr>';
+    });
+    t.innerHTML = html;
+  }
+})();
+</script>
+</body>
+</html>

@@ -17,6 +17,9 @@
 //   setRole {userId, role}   role is 'owner' or 'staff'
 //   resetPassword {userId, password}
 //   delete  {userId}
+//   createBrandLogin {email,password,full_name,brandId}
+//                            a login for an Outlet brand. It can only
+//                            ever see that brand's own stock and orders.
 //
 // SETUP (one-off): Netlify -> site -> Environment variables ->
 //   SUPABASE_SERVICE_ROLE_KEY = <Supabase -> Settings -> API -> service_role>
@@ -59,6 +62,7 @@ exports.handler = async (event) => {
       case 'create':        return json(200, await createUser(body));
       case 'setRole':       return json(200, await setRole(body.userId, body.role));
       case 'resetPassword': return json(200, await adminUpdate(body.userId, { password: body.password }));
+      case 'createBrandLogin': return json(200, await createBrandLogin(body));
       case 'delete':
         if (body.userId === caller.id) return json(400, { error: "You can't delete your own login." });
         return json(200, await deleteUser(body.userId));
@@ -84,9 +88,20 @@ async function listUsers() {
   if (!r.ok) throw new Error('Could not list users');
   const data = await r.json();
   const users = data.users || data || [];
-  const pr = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?select=id,role`, { headers: adminHeaders });
-  const roleMap = Object.fromEntries((pr.ok ? await pr.json() : []).map(x => [x.id, x.role]));
-  return users.map(u => ({ id: u.id, email: u.email, role: roleMap[u.id] || DEFAULT_ROLE, created_at: u.created_at }));
+  const pr = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?select=id,role,brand_id`, { headers: adminHeaders });
+  const profs = Object.fromEntries((pr.ok ? await pr.json() : []).map(x => [x.id, x]));
+  return users.map(u => {
+    const p = profs[u.id] || {};
+    // A login stamped as a brand is a brand even if its profile row is
+    // missing — the same rule current_user_role() follows in 014.
+    const stamped = u.app_metadata && u.app_metadata.packet_role === 'brand';
+    return {
+      id: u.id, email: u.email,
+      role: p.role || (stamped ? 'brand' : DEFAULT_ROLE),
+      brand_id: p.brand_id || null,
+      created_at: u.created_at, last_sign_in_at: u.last_sign_in_at || null,
+    };
+  });
 }
 
 async function createUser({ email, password, role, full_name }) {
@@ -103,6 +118,13 @@ async function createUser({ email, password, role, full_name }) {
 
 async function setRole(userId, role) {
   if (!userId) throw new Error('Missing user');
+  // A brand login is never promoted. Turning one into staff would hand
+  // an outside company the subscriber list, the cost prices and every
+  // other brand's stock. If that is truly wanted, remove the login and
+  // add the person again as staff, which is a deliberate act.
+  if ((await getRole(userId)) === 'brand' || (await isStampedBrand(userId))) {
+    throw new Error('That is a brand login. It cannot be made staff or owner.');
+  }
   // Only these two can be granted here. supplier and customer arrive
   // with the Shopify build and are not handed out from this screen.
   const safeRole = role === 'owner' ? 'owner' : DEFAULT_ROLE;
@@ -117,6 +139,64 @@ async function setRole(userId, role) {
     });
   }
   return { ok: true };
+}
+
+// ── Brand logins (Packet Outlet) ─────────────────────────────
+// The order matters, and every step is checked:
+//   1. the brand must exist on the Brands page
+//   2. the login is created already stamped packet_role = 'brand' in
+//      its app metadata. Only this key can set that; the brand cannot
+//      change it. 014's trigger reads the stamp and makes the profile
+//      a brand from the first instant, and current_user_role() falls
+//      back to it if the profile row is ever missing.
+//   3. the profile row is written again explicitly and read back
+//   4. if 3 does not come back right, the login is deleted. A half-made
+//      brand login is worse than none.
+async function createBrandLogin({ email, password, full_name, brandId }) {
+  if (!email || !password) throw new Error('Email and password are required');
+  if (String(password).length < 8) throw new Error('The password needs to be at least eight characters');
+  if (!/^[0-9a-f-]{36}$/i.test(String(brandId || ''))) throw new Error('Pick which brand this login is for');
+
+  const br = await fetch(`${SUPABASE_URL}/rest/v1/brands?id=eq.${brandId}&select=id,name`, { headers: adminHeaders });
+  const brands = br.ok ? await br.json() : [];
+  if (!brands.length) throw new Error('That brand is not on the Brands page');
+
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+    method: 'POST', headers: adminHeaders,
+    body: JSON.stringify({
+      email, password, email_confirm: true,
+      user_metadata: full_name ? { full_name } : {},
+      app_metadata: { packet_role: 'brand', brand_id: brandId },
+    }),
+  });
+  const u = await r.json();
+  if (!r.ok) throw new Error(u.msg || u.error_description || u.error || 'Could not create the login');
+
+  try {
+    const w = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?on_conflict=id`, {
+      method: 'POST',
+      headers: { ...adminHeaders, prefer: 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify({ id: u.id, role: 'brand', brand_id: brandId, full_name: full_name || '' }),
+    });
+    if (!w.ok) throw new Error('profile write failed: ' + (await w.text()));
+    const back = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${u.id}&select=role,brand_id`, { headers: adminHeaders });
+    const rows = back.ok ? await back.json() : [];
+    if (!rows[0] || rows[0].role !== 'brand' || rows[0].brand_id !== brandId) {
+      throw new Error('profile did not read back as a brand');
+    }
+  } catch (err) {
+    console.error('createBrandLogin rolled back', err);
+    await deleteUser(u.id).catch(() => {});
+    throw new Error('Could not finish setting up that login, so it has been removed. Has 014_outlet.sql been run?');
+  }
+  return { ok: true, id: u.id, brand: brands[0].name };
+}
+
+async function isStampedBrand(userId) {
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: adminHeaders });
+  if (!r.ok) return false;
+  const u = await r.json();
+  return !!(u && u.app_metadata && u.app_metadata.packet_role === 'brand');
 }
 
 async function adminUpdate(userId, fields) {

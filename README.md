@@ -26,6 +26,10 @@ website/
   assets/               Wordmark and badge
 admin/
   index.html            Single-file admin, showPage() router, Supabase Auth
+  brand.html            Packet Outlet brand login. Separate file on purpose: a brand
+                        never downloads the staff app. Rules live in 014, not here.
+  packet-outlet.js      Outlet labels, money sums and spreadsheet reading, shared by
+                        brand.html, index.html and test/outlet.test.js
   sw.js                 Network-first service worker (this is what makes it installable)
   site.webmanifest      PWA manifest
   assets/
@@ -34,6 +38,10 @@ supabase/
   002_roles_and_rls.sql     user_profiles + current_user_role() + every policy
   003_public_functions.sql  The five functions anon may execute
   004_code_email.sql        code_emailed_at bookkeeping + sender identity settings
+  ...
+  014_outlet.sql            Outlet: 'brand' role, outlet_items, outlet_orders,
+                            brand_orders(), brand_mark_shipped(), photo bucket,
+                            and security_invoker on the five older views
 netlify-functions/
   ai.js                 Generic Claude proxy — every AI feature goes through it
   manage-users.js       Owner self-manages logins (service-role, owner-gated)
@@ -101,3 +109,32 @@ marketing and needs consent that the unticked half have not given.
 Sending is fire-and-forget from the page, deliberately: the code is issued and
 saved before the send is attempted, so a Resend outage can never stop someone
 getting what they were promised.
+
+## Packet Outlet brand logins (014)
+
+A brand login has role `brand` in `user_profiles` and a `brand_id`. It is only
+ever made by `manage-users.js` → `createBrandLogin`, which also stamps
+`app_metadata.packet_role = 'brand'` so `current_user_role()` still says brand if
+the profile row is ever missing. `setRole` refuses to promote a brand login.
+
+What a brand can do is decided in the database:
+
+- `outlet_items`: RLS limits rows to its own brand; `outlet_items_guard()` stops
+  it setting `sale_minor`, `packet_note`, `brand_id`, or any status except
+  draft / submitted / withdrawn. Beauty items cannot go live without
+  `uk_rp_confirmed`, for anyone.
+- `outlet_orders`: no brand policy at all. Brands read through `brand_orders()`,
+  which hides the address 30 days after posting, and write only through
+  `brand_mark_shipped()`.
+- Photos: bucket `outlet-photos`, public read, a brand writes only under its own
+  `brand_id/` folder.
+
+`ai.js` now needs an owner/staff login, or the service key from the site's own
+functions. `callAI()` in the admin sends the login; review-competitors and
+sourcing-assistant send the service key.
+
+Password reset for brands redirects to `/brand.html`, which must be allowed in
+Supabase → Authentication → URL Configuration → Redirect URLs.
+
+Tests: `node test/outlet.test.js`.
+
