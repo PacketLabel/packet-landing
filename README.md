@@ -42,10 +42,19 @@ supabase/
   014_outlet.sql            Outlet: 'brand' role, outlet_items, outlet_orders,
                             brand_orders(), brand_mark_shipped(), photo bucket,
                             and security_invoker on the five older views
+  015_outlet_shopify.sql    Outlet items in the Shopify shop: Shopify ids, sync
+                            bookkeeping, orders from Shopify, oversold flag
 netlify-functions/
   ai.js                 Generic Claude proxy — every AI feature goes through it
   manage-users.js       Owner self-manages logins (service-role, owner-gated)
   send-code.js          Emails the discount code via Resend (service-role, verified)
+  outlet-shopify.js     Outlet stock -> Shopify products; posted parcels -> Shopify
+                        fulfilments. Every 10 min + admin buttons. Needs SHOPIFY_SHOP,
+                        SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET (Dev Dashboard app,
+                        client credentials grant, API 2026-10)
+  shopify-webhook.js    orders/paid and orders/cancelled from Shopify -> outlet_orders,
+                        HMAC-checked against the client secret; emails the brand
+  _shared/              Code the two Shopify functions share (not functions themselves)
 HARVEST.md              Go-live retro; feeds reusable wins back into the kit
 ```
 

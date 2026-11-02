@@ -70,3 +70,12 @@
 # when somebody presses a button, which is the whole design.
 [functions."build-seasonal"]
   schedule = "45 5 * * 1"
+
+# ---- Outlet ↔ Shopify ---------------------------------------------------
+# Brings Outlet stock in the Shopify shop into line with what brands
+# and Packet have changed (price, number left, on or off), and tells
+# Shopify about parcels brands have posted so the customer gets the
+# tracking email. Also runs straight away when the admin presses a
+# button. See netlify-functions/outlet-shopify.js and 015.
+[functions."outlet-shopify-cron"]
+  schedule = "*/10 * * * *"

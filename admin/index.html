@@ -788,6 +788,16 @@
         This works for any brand, whatever their own shop runs on.
       </p>
 
+      <div class="panel" id="olShop" style="margin-bottom:16px">
+        <h2 style="margin-top:0">The Shopify shop</h2>
+        <div id="olShopState" class="hint">Checking&hellip;</div>
+        <div class="acts" style="margin-top:10px">
+          <button class="btn" id="olShopConnect" style="display:none">Connect Shopify</button>
+          <button class="btn ghost" id="olShopSync">Send changes to Shopify now</button>
+        </div>
+        <div id="olShopMsg" class="msg"></div>
+      </div>
+
       <div class="cards" id="olCards"></div>
       <div id="olMsg" class="msg"></div>
 
@@ -824,8 +834,9 @@
 
       <!-- Orders -->
       <div class="sub" id="olsub-orders">
-        <p class="hint">Until the Shopify shop exists, orders go in by hand here. Leave <b>test order</b> ticked
-          to show a brand the whole thing working &mdash; a test order takes no stock and is never owed.</p>
+        <p class="hint">Orders paid for in the Shopify shop arrive here on their own, and the brand sees them straight away.
+          You can still add one by hand below. Leave <b>test order</b> ticked to show a brand the whole thing working
+          &mdash; a test order takes no stock and is never owed.</p>
         <div class="panel">
           <h2 style="margin-top:0">Add an order</h2>
           <div class="grid2">
@@ -5509,6 +5520,7 @@ e.g. Stop scanning Boots"></textarea>
       ol.brands = (r[2] && r[2].data) || [];
       ol.logins = (r[3] && r[3].ok) ? (r[3].d.users || []).filter(function (u) { return u.role === 'brand'; }) : null;
       renderOutletCards();
+      loadShopState();
       renderOutletWaiting();
       fillOutletSelects();
       renderOutletStock();
@@ -5596,6 +5608,82 @@ e.g. Stop scanning Boots"></textarea>
       if (r.error) { note('olMsg', olErr(r.error), 'err'); return; }
       note('olMsg', okText, 'ok');
       loadOutlet();
+      // Bring the shop into line straight away rather than waiting for
+      // the ten-minute run. If Shopify is not connected yet this just
+      // says so; the item is still saved here.
+      shopCall({ action: 'sync', itemId: id }).then(function (res) {
+        if (res.ok && res.d.ok) note('olMsg', okText + (res.d.showing ? ' It is in the shop.' : ' Taken out of the shop.'), 'ok');
+        else if (res.status === 503) note('olMsg', okText + ' (Shopify is not connected yet, so the shop has not changed.)', 'ok');
+        else note('olMsg', okText + ' But Shopify said: ' + ((res.d && res.d.error) || 'something went wrong') + '. It will try again within ten minutes.', 'err');
+        loadOutlet();
+      });
+    });
+  }
+
+  // ---------------------------------------------------------------- outlet ↔ shopify
+  // netlify-functions/outlet-shopify.js, 015_outlet_shopify.sql.
+  function shopCall(payload) {
+    return db.auth.getSession().then(function (s) {
+      var token = s.data && s.data.session && s.data.session.access_token;
+      return fetch('/.netlify/functions/outlet-shopify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+        body: JSON.stringify(payload)
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; });
+      }).catch(function () { return { ok: false, status: 0, d: { error: 'Could not reach the server.' } }; });
+    });
+  }
+
+  function loadShopState() {
+    var box = document.getElementById('olShopState');
+    var connectBtn = document.getElementById('olShopConnect');
+    if (!ol.shopWired) {
+      ol.shopWired = true;
+      connectBtn.addEventListener('click', function () {
+        note('olShopMsg', 'Connecting…', 'ok');
+        shopCall({ action: 'setup' }).then(function (res) {
+          if (!res.ok) { note('olShopMsg', (res.d && res.d.error) || 'That did not work.', 'err'); return; }
+          note('olShopMsg', res.d.done.join('. ') + '.', 'ok');
+          loadShopState();
+        });
+      });
+      document.getElementById('olShopSync').addEventListener('click', function () {
+        note('olShopMsg', 'Sending…', 'ok');
+        shopCall({ action: 'syncAll' }).then(function (res) {
+          if (!res.ok) { note('olShopMsg', (res.d && res.d.error) || 'That did not work.', 'err'); return; }
+          var d = res.d;
+          note('olShopMsg', d.note || (d.items_done + ' item' + (d.items_done === 1 ? '' : 's') + ' brought up to date' +
+            (d.items_failed ? ', ' + d.items_failed + ' failed' : '') +
+            (d.items_left ? ', ' + d.items_left + ' still to do (press again)' : '') +
+            (d.fulfilled ? '. ' + d.fulfilled + ' posted parcel' + (d.fulfilled === 1 ? '' : 's') + ' marked sent in Shopify' : '') + '.'),
+            d.items_failed || d.fulfil_failed ? 'err' : 'ok');
+          loadOutlet();
+        });
+      });
+    }
+    shopCall({ action: 'status' }).then(function (res) {
+      if (!res.ok) { box.innerHTML = '<div class="notice warn">Could not check the shop link: ' + esc((res.d && res.d.error) || 'no answer') +
+        '. Has <code>015_outlet_shopify.sql</code> been run, and has the site been deployed?</div>'; return; }
+      var d = res.d, lines = [], ready = d.configured && d.location_set && d.webhooks &&
+        d.webhooks.indexOf('ORDERS_PAID') > -1;
+      if (!d.configured) lines.push('<b>Not connected.</b> The Shopify keys have not been added in Netlify yet.');
+      else if (d.access_problem) lines.push('<b>Shopify refused us:</b> ' + esc(d.access_problem));
+      else if (!ready) lines.push('<b>Keys are in, but not finished.</b> Press <b>Connect Shopify</b>.');
+      else lines.push('<b>Connected</b> to ' + esc(d.shop) + (d.connected_at ? ' since ' + esc(fmt(d.connected_at)) : '') +
+        '. Paid orders arrive here on their own.');
+      if (d.configured && !d.online_store_set) lines.push('The Online Store channel was not found, so new items need publishing by hand in Shopify.');
+      lines.push(d.items_in_shop + ' item' + (d.items_in_shop === 1 ? '' : 's') + ' in the shop' +
+        (d.items_waiting ? ', ' + d.items_waiting + ' waiting to be sent' : '') + '.');
+      if (d.item_errors.length) lines.push('<span style="color:var(--warn)">' + d.item_errors.length + ' item' +
+        (d.item_errors.length === 1 ? '' : 's') + ' could not be sent — see All stock.</span>');
+      if (d.fulfil_errors) lines.push('<span style="color:var(--warn)">' + d.fulfil_errors + ' posted order' +
+        (d.fulfil_errors === 1 ? '' : 's') + ' could not be marked sent in Shopify — do it by hand there.</span>');
+      if (d.oversold) lines.push('<span style="color:var(--warn)">' + d.oversold + ' order' + (d.oversold === 1 ? ' was' : 's were') +
+        ' paid for after the brand ran out. Check with the brand, and refund in Shopify if needed.</span>');
+      box.innerHTML = lines.join('<br>');
+      connectBtn.style.display = state.role === 'owner' && d.configured ? '' : 'none';
+      connectBtn.textContent = ready ? 'Check the connection again' : 'Connect Shopify';
     });
   }
 
@@ -5643,7 +5731,10 @@ e.g. Stop scanning Boots"></textarea>
         '<td>' + esc(OL.money(i.floor_minor)) + '</td>' +
         '<td>' + (i.sale_minor ? esc(OL.money(i.sale_minor)) : '&mdash;') + '</td>' +
         '<td><span class="tag ' + st.tag + '">' + esc(st.label) + '</span>' +
-          (i.status === 'live' && i.quantity === 0 ? ' <span class="tag dim">Sold out</span>' : '') + '</td>' +
+          (i.status === 'live' && i.quantity === 0 ? ' <span class="tag dim">Sold out</span>' : '') +
+          (i.shopify_sync_error ? '<div class="hint" style="margin:0;color:var(--warn)">Shopify: ' + esc(i.shopify_sync_error) + '</div>'
+            : i.shopify_product_id ? '<div class="hint" style="margin:0">In the shop</div>'
+            : i.status === 'live' ? '<div class="hint" style="margin:0">Not in the shop yet</div>' : '') + '</td>' +
         '<td style="white-space:nowrap">' + acts.join(' ') + '</td></tr>';
     });
     t.innerHTML = html;
@@ -5686,6 +5777,9 @@ e.g. Stop scanning Boots"></textarea>
         '<td>' + esc(OL.money(o.sale_minor * o.quantity)) + '</td>' +
         '<td>' + (o.payout_minor === null ? '<span class="tag off">No terms</span>' : esc(OL.money(o.payout_minor))) + '</td>' +
         '<td><span class="tag ' + st.tag + '">' + esc(st.label) + '</span>' +
+          (o.oversold ? ' <span class="tag off">Brand had run out</span>' : '') +
+          (o.shopify_order_id ? '<div class="hint" style="margin:0">From the shop' +
+            (o.shopify_fulfilled_at ? ', customer sent tracking' : o.shopify_fulfil_error ? ', <span style="color:var(--warn)">mark sent in Shopify by hand</span>' : '') + '</div>' : '') +
           (o.tracking_number ? '<div class="hint" style="margin:0">' + esc(o.carrier + ' ' + o.tracking_number) + '</div>' :
            o.carrier ? '<div class="hint" style="margin:0">' + esc(o.carrier) + ', no tracking</div>' : '') + '</td>' +
         '<td>' + (o.paid_out_at ? esc(fmt(o.paid_out_at)) + (o.payout_ref ? '<div class="hint" style="margin:0">' + esc(o.payout_ref) + '</div>' : '') : '&mdash;') + '</td>' +
