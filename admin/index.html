@@ -803,16 +803,75 @@
 
       <div class="subnav" id="olSubnav">
         <button data-olsub="waiting" class="active">Waiting for us</button>
+        <button data-olsub="apps">New brands <span id="olAppCount" style="display:none;margin-left:4px;padding:0 6px;border-radius:9px;background:var(--terracotta);color:#fff;font-size:11px"></span></button>
         <button data-olsub="stock">All stock</button>
         <button data-olsub="orders">Orders</button>
         <button data-olsub="brands">Brands and logins</button>
+        <button data-olsub="terms">Terms and settings</button>
       </div>
 
       <!-- Waiting -->
       <div class="sub active" id="olsub-waiting">
         <p class="hint">Stock a brand has sent us. Check the photos and the condition, then set our price
-          (never below their lowest) and put it on sale, or turn it down with a reason they will see.</p>
+          (never below their lowest) and put it on sale, or turn it down with a reason they will see.
+          Where a brand has a normal Outlet discount, the price box is filled in with the suggested price.</p>
+        <div class="bar" id="olBulkBar" style="display:none">
+          <button class="btn" id="olBulk">Put everything here with a suggested price on sale</button>
+          <span class="hint" style="margin:0">Items with no suggested price, and beauty without the Responsible Person tick, are left for you.</span>
+        </div>
         <div id="olWaiting"></div>
+      </div>
+
+      <!-- New brands (017): applications, approving, inviting -->
+      <div class="sub" id="olsub-apps">
+        <div class="panel">
+          <h2 style="margin-top:0">The link to send brands</h2>
+          <p class="hint" style="margin-bottom:8px">Any brand can apply here, from anywhere, whatever their shop runs on. Put it in emails, on Instagram and in the brand pack.</p>
+          <div class="bar" style="margin:0"><code id="olApplyUrl" style="font-size:14px"></code>
+            <button class="link" id="olApplyCopy">Copy</button></div>
+        </div>
+        <div id="olAppsMsg" class="msg"></div>
+        <h2>Waiting for a decision</h2>
+        <div id="olApps"></div>
+
+        <div class="panel" id="olApprovePanel" style="display:none">
+          <h2 style="margin-top:0" id="olApproveTitle">Approve</h2>
+          <p class="hint">This makes their login and emails them a link to set a password. They then add their details, read the terms
+            and accept them online. Nothing of theirs goes on sale until they have.</p>
+          <div class="grid2">
+            <div class="field"><label for="olAPct">Packet keeps (% of each sale price)</label><input type="text" id="olAPct" inputmode="decimal" placeholder="e.g. 15"></div>
+            <div class="field"><label for="olADisc">Normal Outlet discount (% off their price) &mdash; optional</label><input type="text" id="olADisc" inputmode="decimal" placeholder="blank = price each item by hand"></div>
+          </div>
+          <label class="tick"><input type="checkbox" id="olAAuto"><span><b>Their stock lists itself.</b> Items go on sale straight away at the normal Outlet discount,
+            never below their lowest. Anything worn, faulty or with no photo still waits for us. Only for brands we trust.</span></label>
+          <div class="bar"><button class="btn" id="olAGo">Approve and send their login</button><button class="link" id="olACancel">Cancel</button></div>
+        </div>
+
+        <div class="panel" id="olInvitePanel">
+          <h2 style="margin-top:0">Invite a brand directly</h2>
+          <p class="hint">For a brand you&rsquo;ve already spoken to. Skips the application; they get their login straight away.</p>
+          <div class="grid2">
+            <div class="field"><label for="olIName">Brand or company name</label><input type="text" id="olIName"></div>
+            <div class="field"><label for="olISite">Website</label><input type="text" id="olISite" placeholder="theirbrand.com"></div>
+            <div class="field"><label for="olIContact">Contact name</label><input type="text" id="olIContact"></div>
+            <div class="field"><label for="olIEmail">Their email (the login)</label><input type="email" id="olIEmail"></div>
+            <div class="field"><label for="olICountry">They post from</label><select id="olICountry">
+              <option value="GB">United Kingdom</option><option value="IE">Ireland</option><option value="FR">France</option><option value="DE">Germany</option>
+              <option value="NL">Netherlands</option><option value="ES">Spain</option><option value="IT">Italy</option><option value="US">United States</option></select></div>
+            <div class="field"><label for="olIPlat">Their shop runs on</label><select id="olIPlat">
+              <option value="shopify">Shopify</option><option value="woocommerce">WooCommerce</option><option value="wix">Wix</option>
+              <option value="squarespace">Squarespace</option><option value="bigcommerce">BigCommerce</option><option value="etsy">Etsy</option>
+              <option value="other">Something else</option><option value="none">No online shop</option></select></div>
+            <div class="field"><label for="olICat">Mainly sells</label><select id="olICat"></select></div>
+            <div class="field"><label for="olIPct">Packet keeps (%)</label><input type="text" id="olIPct" inputmode="decimal"></div>
+            <div class="field"><label for="olIDisc">Normal Outlet discount (%) &mdash; optional</label><input type="text" id="olIDisc" inputmode="decimal"></div>
+          </div>
+          <label class="tick"><input type="checkbox" id="olIAuto"><span>Their stock lists itself (needs a normal Outlet discount).</span></label>
+          <div class="bar"><button class="btn" id="olIGo">Invite them</button></div>
+        </div>
+
+        <h2>Decided</h2>
+        <div class="wrapscroll"><table id="olAppsDone"></table></div>
       </div>
 
       <!-- All stock -->
@@ -860,12 +919,13 @@
 
       <!-- Brands and logins -->
       <div class="sub" id="olsub-brands">
-        <p class="hint">A brand has to be on the <b>Brands</b> page first. Set its terms once they are agreed
-          in writing &mdash; until then the brand sees &ldquo;terms not set&rdquo; rather than a guessed figure.
-          Only an owner can give out or remove a login.</p>
+        <p class="hint">New brands normally arrive through <b>New brands</b>: approve or invite them there and they set themselves up.
+          The set-up column shows how far each has got. Use <b>Terms and pricing</b> for terms agreed outside their login,
+          their normal Outlet discount, and the cross-border tick. Only an owner can give out or remove a login.</p>
 
         <div class="panel" id="olLoginPanel">
-          <h2 style="margin-top:0">Give a brand a login</h2>
+          <h2 style="margin-top:0">Give a brand a login by hand</h2>
+          <p class="hint">Only if you need to. The brand must be on the <b>Brands</b> page first, and you send them the password yourself.</p>
           <div class="grid2">
             <div class="field"><label for="olLBrand">Brand</label><select id="olLBrand"></select></div>
             <div class="field"><label for="olLEmail">Their email</label><input type="email" id="olLEmail"></div>
@@ -878,6 +938,37 @@
 
         <div class="wrapscroll"><table id="olTblBrands"></table></div>
 
+        <!-- The shop link (016): a brand's own Shopify feeding the Outlet -->
+        <div class="panel" id="olLinkPanel">
+          <h2 style="margin-top:0">Shop links</h2>
+          <p class="hint">For brands on Shopify. They tag products <b>packet-outlet</b> in their own shop and the stock comes across
+            on its own, every ten minutes. Sales here are taken off their Shopify stock.</p>
+          <div id="olLinkList" class="hint">Checking&hellip;</div>
+          <details id="olLinkHow" style="margin:12px 0">
+            <summary style="cursor:pointer;color:var(--terracotta)">Setting up a new brand (about 10 minutes)</summary>
+            <ol class="hint" style="margin:10px 0 0 18px;padding:0">
+              <li>Ask the brand for their Shopify address. It ends <b>.myshopify.com</b> (Shopify &rarr; Settings &rarr; Domains).</li>
+              <li>In the Shopify Dev Dashboard (dev.shopify.com/dashboard), create an app called <b>Packet Outlet &mdash; <i>Brand</i></b>.</li>
+              <li>In its settings, set the <b>App URL</b> and the <b>Allowed redirection URL</b> to:<br><code id="olLinkUrl">&hellip;</code></li>
+              <li>Give it these access scopes: <code>read_products, read_inventory, write_inventory, read_locations</code>. Turn off &ldquo;embed in Shopify admin&rdquo;. Release the version.</li>
+              <li>Distribution &rarr; <b>Custom distribution</b> &rarr; enter the brand&rsquo;s .myshopify.com address &rarr; <b>Generate link</b>. Copy the link.</li>
+              <li>Copy the app&rsquo;s <b>Client ID</b> and <b>Client secret</b> into the form below with the brand and their address, and save.</li>
+              <li>Email the brand the install link. They open it signed in to Shopify and press <b>Install</b>. That&rsquo;s it &mdash; it shows Connected here.</li>
+            </ol>
+          </details>
+          <div class="grid2">
+            <div class="field"><label for="olKBrand">Brand</label><select id="olKBrand"></select></div>
+            <div class="field"><label for="olKShop">Their Shopify address</label><input type="text" id="olKShop" placeholder="hotsquash.myshopify.com"></div>
+            <div class="field"><label for="olKId">App Client ID</label><input type="text" id="olKId" autocomplete="off"></div>
+            <div class="field"><label for="olKSecret">App Client secret</label><input type="password" id="olKSecret" autocomplete="new-password" placeholder="Leave blank to keep the saved one"></div>
+            <div class="field"><label for="olKCond">Condition if their tags don&rsquo;t say</label><select id="olKCond"></select></div>
+            <div class="field"><label for="olKCat">Category if we can&rsquo;t tell</label><select id="olKCat"></select></div>
+            <div class="field"><label for="olKPct">Their lowest price, if they don&rsquo;t tag one (% of their price)</label><input type="text" id="olKPct" inputmode="numeric" value="50"></div>
+          </div>
+          <div class="bar"><button class="btn" id="olKSave">Save the shop link</button></div>
+          <div id="olKMsg" class="msg"></div>
+        </div>
+
         <div class="panel" id="olTermsPanel" style="display:none">
           <h2 style="margin-top:0" id="olTermsTitle">Terms</h2>
           <div class="grid2">
@@ -886,10 +977,51 @@
             <div class="field" style="grid-column:1/-1"><label for="olTSrc">Where it was agreed</label>
               <input type="text" id="olTSrc" placeholder="e.g. email from Nelson, 6 Oct 2026; signed agreement v1"></div>
           </div>
-          <p class="hint">This applies to orders from now on. Orders already recorded keep the terms they were made under.</p>
-          <div class="bar"><button class="btn" id="olTSave">Save the terms</button>
+          <p class="hint">This applies to orders from now on. Orders already recorded keep the terms they were made under.
+            Use this for terms agreed outside the brand&rsquo;s login (a signed paper agreement, an email). Brands who accept online fill it in themselves.</p>
+          <h2>How their stock is priced</h2>
+          <div class="grid2">
+            <div class="field"><label for="olTOffer">Offered in their login (%)</label><input type="text" id="olTOffer" inputmode="decimal">
+              <div class="hint" style="margin:4px 0 0">What they see on the terms page before accepting.</div></div>
+            <div class="field"><label for="olTDisc">Normal Outlet discount (% off their price)</label><input type="text" id="olTDisc" inputmode="decimal" placeholder="blank = the shop default"></div>
+          </div>
+          <label class="tick"><input type="checkbox" id="olTAuto"><span><b>Their stock lists itself</b> at the normal Outlet discount. Worn, faulty or photo-less items still wait.</span></label>
+          <label class="tick" id="olTBorderWrap"><input type="checkbox" id="olTBorder"><span><b>Cross-border settled.</b> They post from outside Great Britain. Tick only once customs,
+            duty and returns are agreed with them (input for the accountant, not advice). Nothing of theirs can go on sale until this is ticked.</span></label>
+          <div class="bar"><button class="btn" id="olTSave">Save</button>
             <button class="link" id="olTCancel">Cancel</button></div>
         </div>
+      </div>
+
+      <!-- Terms and settings (017) -->
+      <div class="sub" id="olsub-terms">
+        <div class="panel">
+          <h2 style="margin-top:0">The Outlet terms</h2>
+          <p class="hint">What brands read and accept in their login. A <b>draft</b> cannot be accepted. Once a version is <b>published</b> it is
+            locked, so there is always a record of what each brand agreed to &mdash; change the wording by saving a new version.
+            Have the wording checked by a solicitor before publishing; this is not legal advice.</p>
+          <div class="wrapscroll"><table id="olTermsList"></table></div>
+        </div>
+        <div class="panel" id="olTermsEdit" style="display:none">
+          <h2 style="margin-top:0" id="olTEditTitle">Edit</h2>
+          <div class="grid2">
+            <div class="field"><label for="olTEVer">Version</label><input type="text" id="olTEVer" placeholder="v2" maxlength="20"></div>
+            <div class="field"><label for="olTETitle">Title</label><input type="text" id="olTETitle"></div>
+            <div class="field" style="grid-column:1/-1"><label for="olTEBody">Wording</label><textarea id="olTEBody" style="min-height:420px;font-size:14px;line-height:1.55"></textarea></div>
+          </div>
+          <div class="bar"><button class="btn ghost" id="olTESave">Save as draft</button>
+            <button class="btn" id="olTEPub">Publish this version</button><button class="link" id="olTEClose">Close</button></div>
+        </div>
+        <div class="panel">
+          <h2 style="margin-top:0">Settings</h2>
+          <div class="grid2">
+            <div class="field"><label for="olSDisc">Normal Outlet discount for brands with none of their own (%)</label><input type="text" id="olSDisc" inputmode="decimal" placeholder="blank = price by hand">
+              <div class="hint" style="margin:4px 0 0">Suggested price = this % off the brand&rsquo;s normal price, rounded down to 50p, never below their lowest.</div></div>
+            <div class="field"><label for="olSMail">Email new applications to</label><input type="email" id="olSMail" placeholder="blank = the sender address"></div>
+          </div>
+          <div class="bar"><button class="btn" id="olSSave">Save settings</button></div>
+        </div>
+        <div id="olTermsMsg" class="msg"></div>
       </div>
     </section>
 
@@ -5507,7 +5639,13 @@ e.g. Stop scanning Boots"></textarea>
     Promise.all([
       db.from('outlet_items').select('*').order('updated_at', { ascending: false }),
       db.from('outlet_orders').select('*').order('created_at', { ascending: false }),
-      db.from('brands').select('id,name,status,outlet_commission_pct,outlet_terms_source,outlet_terms_agreed_at').order('name'),
+      // 017's columns if it has been run; the older list if not, so the
+      // page keeps working either way.
+      db.from('brands').select(OL_BRAND_COLS_017).order('name').then(function (r) {
+        if (!r.error) { ol.has017 = true; return r; }
+        ol.has017 = false;
+        return db.from('brands').select('id,name,status,outlet_commission_pct,outlet_terms_source,outlet_terms_agreed_at').order('name');
+      }),
       state.role === 'owner' ? usersCall({ action: 'list' }) : Promise.resolve(null)
     ]).then(function (r) {
       if (r[0].error || r[1].error) {
@@ -5523,9 +5661,238 @@ e.g. Stop scanning Boots"></textarea>
       loadShopState();
       renderOutletWaiting();
       fillOutletSelects();
+      loadShopLinks();
       renderOutletStock();
       renderOutletOrders();
       renderOutletBrands();
+      loadOnboarding();
+    });
+  }
+
+  var OL_BRAND_COLS_017 = 'id,name,status,website,contact_name,contact_email,outlet_commission_pct,outlet_terms_source,outlet_terms_agreed_at,' +
+    'outlet_commission_offered_pct,outlet_terms_version,outlet_discount_pct,outlet_auto_list,country,cross_border_ok,details_done_at,' +
+    'dispatch_days,returns_address,outlet_invited_at,outlet_login_email';
+
+  // ---------------------------------------------------------------- onboarding (017)
+  function onboardCall(payload) {
+    return db.auth.getSession().then(function (s) {
+      var token = s.data && s.data.session && s.data.session.access_token;
+      return fetch('/.netlify/functions/brand-onboard', {
+        method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+        body: JSON.stringify(payload)
+      }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); });
+    });
+  }
+
+  function olBrand(id) { for (var i = 0; i < ol.brands.length; i++) if (ol.brands[i].id === id) return ol.brands[i]; return null; }
+  function olDiscountFor(brandId) {
+    var b = olBrand(brandId);
+    if (b && b.outlet_discount_pct !== null && b.outlet_discount_pct !== undefined) return Number(b.outlet_discount_pct);
+    return ol.defaultDiscount === null || ol.defaultDiscount === undefined ? null : ol.defaultDiscount;
+  }
+  // Same sum as outlet_suggest_minor() in 017.
+  function olSuggest(item) {
+    var d = olDiscountFor(item.brand_id);
+    if (d === null || isNaN(d)) return null;
+    if (!item.rrp_minor) return item.floor_minor;
+    return Math.max(item.floor_minor, Math.floor(item.rrp_minor * (100 - d) / 100 / 50) * 50);
+  }
+
+  function loadOnboarding() {
+    if (!ol.has017) {
+      ['olApps', 'olTermsList'].forEach(function (id) {
+        document.getElementById(id).innerHTML = '<div class="notice warn">Run <code>017_brand_onboarding.sql</code> in Supabase to switch this on.</div>';
+      });
+      return;
+    }
+    wireOnboarding();
+    document.getElementById('olApplyUrl').textContent = window.location.origin + '/apply.html';
+    Promise.all([
+      onboardCall({ action: 'list' }),
+      db.from('outlet_terms').select('*').order('created_at', { ascending: false }),
+      db.from('app_settings').select('key,value').in('key', ['outlet_default_discount_pct', 'outlet_notify_email'])
+    ]).then(function (r) {
+      ol.apps = r[0].ok ? (r[0].d.applications || []) : null;
+      ol.appsError = r[0].ok ? null : ((r[0].d && r[0].d.error) || 'no answer');
+      ol.termVersions = (r[1] && r[1].data) || [];
+      var set = {}; ((r[2] && r[2].data) || []).forEach(function (x) { set[x.key] = x.value; });
+      ol.defaultDiscount = /^\d+(\.\d+)?$/.test(String(set.outlet_default_discount_pct || '').trim()) ? Number(set.outlet_default_discount_pct) : null;
+      document.getElementById('olSDisc').value = ol.defaultDiscount === null ? '' : ol.defaultDiscount;
+      document.getElementById('olSMail').value = set.outlet_notify_email || '';
+      renderApps(); renderTermVersions(); renderOutletWaiting();
+    });
+  }
+
+  var APP_PLATFORM = { shopify: 'Shopify', woocommerce: 'WooCommerce', wix: 'Wix', squarespace: 'Squarespace', bigcommerce: 'BigCommerce', etsy: 'Etsy', other: 'Other', none: 'No online shop' };
+  function renderApps() {
+    var el = document.getElementById('olApps'), done = document.getElementById('olAppsDone');
+    if (ol.apps === null) {
+      el.innerHTML = '<div class="notice warn">Could not load applications: ' + esc(ol.appsError) + '. Has the site been deployed since 017?</div>';
+      return;
+    }
+    var waiting = ol.apps.filter(function (a) { return a.status === 'new'; });
+    var badge = document.getElementById('olAppCount');
+    badge.textContent = waiting.length; badge.style.display = waiting.length ? 'inline-block' : 'none';
+    el.innerHTML = waiting.length ? waiting.map(function (a) {
+      var abroad = a.country !== 'GB';
+      var rp = (a.categories || []).indexOf('beauty') > -1;
+      return '<div class="opp">' +
+        '<div class="top"><span class="name">' + esc(a.company_name) + '</span><span class="sup">applied ' + esc(fmt(a.created_at)) + ' &middot; ' + esc(a.source) + '</span></div>' +
+        '<div class="why"><a href="' + esc(a.website) + '" target="_blank" rel="noopener" style="color:var(--terracotta)">' + esc(a.website.replace(/^https:\/\//, '')) + '</a>' +
+          (a.instagram_handle ? ' &middot; <a href="https://instagram.com/' + esc(a.instagram_handle) + '" target="_blank" rel="noopener" style="color:var(--terracotta)">@' + esc(a.instagram_handle) + '</a>' : '') +
+          '<br>' + esc(a.contact_name) + ' &lt;' + esc(a.contact_email) + '&gt;' + (a.contact_phone ? ' &middot; ' + esc(a.contact_phone) : '') +
+          '<br>Sells: ' + esc((a.categories || []).map(OL.categoryLabel).join(', ')) +
+          ((a.stock_kinds || []).length ? ' &middot; Stock: ' + esc(a.stock_kinds.join(', ').replace(/_/g, ' ')) : '') +
+          (a.approx_units ? ' &middot; ' + esc(a.approx_units) : '') +
+          '<br>Shop on ' + esc(APP_PLATFORM[a.platform] || a.platform) + ' &middot; posts from ' + esc(a.country) +
+          (a.message ? '<br><i>' + esc(a.message) + '</i>' : '') + '</div>' +
+        (abroad ? '<div class="notice warn">Posts from outside Great Britain. Customs, duty and returns need agreeing before anything of theirs can go on sale.</div>' : '') +
+        (rp ? '<div class="notice' + (a.uk_rp === 'yes' ? '' : ' warn') + '">Beauty: UK Responsible Person &mdash; <b>' + esc(a.uk_rp) + '</b>. Packet cannot sell beauty without it.</div>' : '') +
+        '<div class="acts"><button class="btn" data-apok="' + esc(a.id) + '">Approve&hellip;</button>' +
+          '<button class="btn ghost" data-apno="' + esc(a.id) + '">Decline</button>' +
+          '<button class="link danger" data-apspam="' + esc(a.id) + '">Not a brand</button></div></div>';
+    }).join('') : '<div class="empty">No applications waiting.</div>';
+
+    var decided = ol.apps.filter(function (a) { return a.status !== 'new'; }).slice(0, 60);
+    done.innerHTML = decided.length ? '<tr><th>Brand</th><th>Applied</th><th>Decision</th></tr>' + decided.map(function (a) {
+      return '<tr><td><b>' + esc(a.company_name) + '</b><div class="hint" style="margin:0">' + esc(a.contact_email) + '</div></td><td>' + esc(fmt(a.created_at)) + '</td>' +
+        '<td>' + esc({ approved: 'Approved', declined: 'Declined', spam: 'Not a brand' }[a.status] || a.status) +
+        (a.reviewed_at ? ' ' + esc(fmt(a.reviewed_at)) : '') + (a.decline_reason ? '<div class="hint" style="margin:0">' + esc(a.decline_reason) + '</div>' : '') + '</td></tr>';
+    }).join('') : '<tr><td class="empty">Nothing decided yet.</td></tr>';
+
+    el.querySelectorAll('[data-apok]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (state.role !== 'owner') { note('olAppsMsg', 'Only an owner can approve a brand, because it makes a login.', 'err'); return; }
+        var a = ol.apps.filter(function (x) { return x.id === b.dataset.apok; })[0];
+        ol.approving = a.id;
+        document.getElementById('olApproveTitle').textContent = 'Approve ' + a.company_name;
+        ['olAPct', 'olADisc'].forEach(function (id) { document.getElementById(id).value = ''; });
+        document.getElementById('olAAuto').checked = false;
+        var p = document.getElementById('olApprovePanel'); p.style.display = 'block'; p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    el.querySelectorAll('[data-apno]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var why = prompt('Why not? Leave blank to decline without a reason.');
+        if (why === null) return;
+        var tell = confirm('Email them to say no? (OK = send a polite email' + (why.trim() ? ' with your reason' : '') + ', Cancel = just record it)');
+        onboardCall({ action: 'decline', id: b.dataset.apno, reason: why.trim(), tell: tell }).then(function (r) {
+          note('olAppsMsg', r.ok ? ('Declined' + (r.d.emailed ? ' and emailed.' : '.')) : (r.d.error || 'That did not work.'), r.ok ? 'ok' : 'err');
+          loadOnboarding();
+        });
+      });
+    });
+    el.querySelectorAll('[data-apspam]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        onboardCall({ action: 'spam', id: b.dataset.apspam }).then(function () { loadOnboarding(); });
+      });
+    });
+  }
+
+  // The link to send by hand, when email is not set up. Shown until
+  // dismissed, because it has to be copied.
+  function showInviteResult(r, who) {
+    var m = document.getElementById('olAppsMsg');
+    if (!r.ok) { note('olAppsMsg', r.d.error || 'That did not work.', 'err'); return; }
+    if (r.d.emailed) { note('olAppsMsg', (who || 'They') + ' have been emailed their login (' + r.d.email + ').', 'ok'); return; }
+    m.innerHTML = '<b>Login made, but not emailed.</b> ' + esc(r.d.note || '') + '<br>Send ' + esc(r.d.email) + ' this link (it works once): <br><code style="word-break:break-all">' + esc(r.d.link) + '</code>';
+    m.className = 'msg show ok';
+  }
+
+  function wireOnboarding() {
+    if (ol.onboardWired) return;
+    ol.onboardWired = true;
+    document.getElementById('olICat').innerHTML = OL.CATEGORIES.map(function (c) { return '<option value="' + c.v + '">' + esc(c.label) + '</option>'; }).join('');
+    document.getElementById('olApplyCopy').addEventListener('click', function () {
+      var t = document.getElementById('olApplyUrl').textContent;
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { note('olAppsMsg', 'Copied.', 'ok'); }, function () { note('olAppsMsg', t, 'ok'); });
+    });
+    document.getElementById('olACancel').addEventListener('click', function () { document.getElementById('olApprovePanel').style.display = 'none'; });
+    document.getElementById('olAGo').addEventListener('click', function () {
+      var btn = this; btn.disabled = true;
+      onboardCall({ action: 'approve', id: ol.approving, commission_pct: document.getElementById('olAPct').value,
+        discount_pct: document.getElementById('olADisc').value, auto_list: document.getElementById('olAAuto').checked }).then(function (r) {
+        btn.disabled = false;
+        if (r.ok) document.getElementById('olApprovePanel').style.display = 'none';
+        showInviteResult(r, r.d && r.d.brand);
+        loadOutlet();
+      });
+    });
+    document.getElementById('olIGo').addEventListener('click', function () {
+      if (state.role !== 'owner') { note('olAppsMsg', 'Only an owner can invite a brand, because it makes a login.', 'err'); return; }
+      var btn = this; btn.disabled = true;
+      onboardCall({ action: 'invite', company_name: document.getElementById('olIName').value, website: document.getElementById('olISite').value,
+        contact_name: document.getElementById('olIContact').value, contact_email: document.getElementById('olIEmail').value,
+        country: document.getElementById('olICountry').value, platform: document.getElementById('olIPlat').value,
+        categories: [document.getElementById('olICat').value], commission_pct: document.getElementById('olIPct').value,
+        discount_pct: document.getElementById('olIDisc').value, auto_list: document.getElementById('olIAuto').checked }).then(function (r) {
+        btn.disabled = false;
+        if (r.ok) ['olIName', 'olISite', 'olIContact', 'olIEmail', 'olIPct', 'olIDisc'].forEach(function (id) { document.getElementById(id).value = ''; });
+        showInviteResult(r, r.d && r.d.brand);
+        loadOutlet();
+      });
+    });
+
+    // Terms
+    document.getElementById('olTEClose').addEventListener('click', function () { document.getElementById('olTermsEdit').style.display = 'none'; });
+    document.getElementById('olTESave').addEventListener('click', function () { saveTermVersion(false); });
+    document.getElementById('olTEPub').addEventListener('click', function () { saveTermVersion(true); });
+    document.getElementById('olSSave').addEventListener('click', function () {
+      var d = document.getElementById('olSDisc').value.trim(), m = document.getElementById('olSMail').value.trim();
+      if (d !== '' && !(Number(d) >= 0 && Number(d) < 100)) { note('olTermsMsg', 'The discount should be between 0 and 99.', 'err'); return; }
+      db.from('app_settings').upsert([{ key: 'outlet_default_discount_pct', value: d }, { key: 'outlet_notify_email', value: m }], { onConflict: 'key' })
+        .then(function (r) { note('olTermsMsg', r.error ? olErr(r.error) : 'Settings saved.', r.error ? 'err' : 'ok'); loadOnboarding(); });
+    });
+  }
+
+  function renderTermVersions() {
+    var t = document.getElementById('olTermsList');
+    var current = ol.termVersions.filter(function (v) { return v.published_at; })
+      .sort(function (a, b) { return a.published_at < b.published_at ? 1 : -1; })[0];
+    t.innerHTML = '<tr><th>Version</th><th>State</th><th>Brands accepted</th><th></th></tr>' + (ol.termVersions.map(function (v) {
+      var n = ol.brands.filter(function (b) { return b.outlet_terms_version === v.version; }).length;
+      return '<tr><td><b>' + esc(v.version) + '</b><div class="hint" style="margin:0">' + esc(v.title) + '</div></td>' +
+        '<td>' + (v.published_at ? (current && current.version === v.version ? '<span class="tag on">In use</span> ' : '<span class="tag dim">Replaced</span> ') +
+          'published ' + esc(fmt(v.published_at)) : '<span class="tag mid">Draft</span>') +
+          (/^\s*DRAFT/.test(v.body) ? '<div class="hint" style="margin:2px 0 0;color:var(--warn)">Still says DRAFT at the top</div>' : '') + '</td>' +
+        '<td>' + n + '</td>' +
+        '<td><button class="link" data-tedit="' + esc(v.version) + '">' + (v.published_at ? 'Read / copy to a new version' : 'Edit') + '</button></td></tr>';
+    }).join('') || '<tr><td colspan="4" class="empty">No versions yet.</td></tr>') +
+      '<tr><td colspan="4"><button class="link" data-tedit="">Start a new version</button></td></tr>';
+    t.querySelectorAll('[data-tedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var v = ol.termVersions.filter(function (x) { return x.version === b.dataset.tedit; })[0];
+        var locked = v && v.published_at;
+        var next = 'v' + (ol.termVersions.length + 1);
+        ol.editingTerms = v && !locked ? v.version : null;
+        document.getElementById('olTEditTitle').textContent = v && !locked ? 'Edit draft ' + v.version : 'New version';
+        document.getElementById('olTEVer').value = v && !locked ? v.version : next;
+        document.getElementById('olTEVer').disabled = !!(v && !locked);
+        document.getElementById('olTETitle').value = v ? v.title : (current ? current.title : 'Packet Outlet brand terms');
+        document.getElementById('olTEBody').value = v ? v.body.trim() : (current ? current.body.trim() : '');
+        var p = document.getElementById('olTermsEdit'); p.style.display = 'block'; p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  function saveTermVersion(publish) {
+    if (state.role !== 'owner') { note('olTermsMsg', 'Only an owner can change the terms.', 'err'); return; }
+    var ver = document.getElementById('olTEVer').value.trim(), title = document.getElementById('olTETitle').value.trim();
+    var body = document.getElementById('olTEBody').value;
+    if (!/^[A-Za-z0-9._-]{1,20}$/.test(ver)) { note('olTermsMsg', 'Give the version a short name like v2.', 'err'); return; }
+    if (!title || body.trim().length < 200) { note('olTermsMsg', 'The terms need a title and their full wording.', 'err'); return; }
+    if (publish) {
+      if (/^\s*DRAFT/.test(body)) { note('olTermsMsg', 'The wording still starts with DRAFT. Take that line out once a solicitor has checked it.', 'err'); return; }
+      if (!confirm('Publish ' + ver + '? Brands will be asked to accept it, and it cannot be changed afterwards.')) return;
+    }
+    var row = { version: ver, title: title, body: body };
+    if (publish) row.published_at = new Date().toISOString();
+    var q = ol.editingTerms ? db.from('outlet_terms').update(row).eq('version', ol.editingTerms) : db.from('outlet_terms').insert(row);
+    q.then(function (r) {
+      if (r.error) { note('olTermsMsg', olErr(r.error), 'err'); return; }
+      document.getElementById('olTermsEdit').style.display = 'none';
+      note('olTermsMsg', publish ? ver + ' is published. Brands see it in their login now.' : 'Draft saved.', 'ok');
+      loadOnboarding();
     });
   }
 
@@ -5557,6 +5924,19 @@ e.g. Stop scanning Boots"></textarea>
   function renderOutletWaiting() {
     var list = ol.items.filter(function (i) { return i.status === 'submitted'; });
     var el = document.getElementById('olWaiting');
+    var bulkable = list.filter(function (i) { return olSuggest(i) && !(i.category === 'beauty' && !i.uk_rp_confirmed); });
+    document.getElementById('olBulkBar').style.display = ol.has017 && bulkable.length ? 'flex' : 'none';
+    document.getElementById('olBulk').textContent = 'Put ' + bulkable.length + ' item' + (bulkable.length === 1 ? '' : 's') + ' on sale at the suggested price';
+    document.getElementById('olBulk').onclick = function () {
+      if (!confirm('Put ' + bulkable.length + ' item(s) on sale at the suggested price? Check the photos and fault notes first.')) return;
+      db.rpc('outlet_list_at_suggested', { p_ids: bulkable.map(function (i) { return i.id; }) }).then(function (r) {
+        if (r.error) { note('olMsg', olErr(r.error), 'err'); return; }
+        var sk = r.data.skipped || [];
+        note('olMsg', r.data.listed + ' put on sale.' + (sk.length ? ' Left: ' + sk.map(function (x) { return x.title + ' (' + x.why + ')'; }).join('; ') : ''), sk.length ? 'err' : 'ok');
+        shopCall({ action: 'syncAll' }).then(function () { loadOutlet(); });
+        loadOutlet();
+      });
+    };
     if (!list.length) { el.innerHTML = '<div class="empty">Nothing waiting. When a brand sends stock it appears here.</div>'; return; }
     el.innerHTML = list.map(function (i) {
       var beautyBlock = i.category === 'beauty' && !i.uk_rp_confirmed;
@@ -5578,7 +5958,8 @@ e.g. Stop scanning Boots"></textarea>
         '<div style="margin-top:10px">' + (photoStrip(i.photos, 84) || '<span class="hint">No photos. Ask for some before listing.</span>') + '</div>' +
         '<div class="acts">' +
           '<input type="text" data-olprice="' + esc(i.id) + '" placeholder="Our price (£)" inputmode="decimal" style="max-width:150px"' +
-            (i.sale_minor ? ' value="' + esc((i.sale_minor / 100).toFixed(2)) + '"' : '') + '>' +
+            (i.sale_minor ? ' value="' + esc((i.sale_minor / 100).toFixed(2)) + '"'
+              : olSuggest(i) ? ' value="' + esc((olSuggest(i) / 100).toFixed(2)) + '" title="Suggested: ' + esc(olDiscountFor(i.brand_id)) + '% off their price"' : '') + '>' +
           '<button class="btn" data-ollive="' + esc(i.id) + '"' + (beautyBlock ? ' disabled' : '') + '>Put on sale</button>' +
           '<button class="btn ghost" data-olreject="' + esc(i.id) + '">Turn down</button>' +
         '</div></div>';
@@ -5684,6 +6065,104 @@ e.g. Stop scanning Boots"></textarea>
       box.innerHTML = lines.join('<br>');
       connectBtn.style.display = state.role === 'owner' && d.configured ? '' : 'none';
       connectBtn.textContent = ready ? 'Check the connection again' : 'Connect Shopify';
+    });
+  }
+
+  // ---------------------------------------------------------------- shop links
+  // netlify-functions/brand-shop.js, 016_brand_shop_link.sql.
+  function linkCall(payload) {
+    return db.auth.getSession().then(function (s) {
+      var token = s.data && s.data.session && s.data.session.access_token;
+      return fetch('/.netlify/functions/brand-shop', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+        body: JSON.stringify(payload)
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, d: d }; });
+      }).catch(function () { return { ok: false, status: 0, d: { error: 'Could not reach the server.' } }; });
+    });
+  }
+
+  function loadShopLinks() {
+    var list = document.getElementById('olLinkList');
+    if (!ol.linkWired) {
+      ol.linkWired = true;
+      document.getElementById('olKCond').innerHTML = OL.CONDITIONS.map(function (c) { return '<option value="' + c.v + '">' + esc(c.label) + '</option>'; }).join('');
+      document.getElementById('olKCat').innerHTML = OL.CATEGORIES.map(function (c) { return '<option value="' + c.v + '">' + esc(c.label) + '</option>'; }).join('');
+      document.getElementById('olKSave').addEventListener('click', function () {
+        var payload = {
+          action: 'save', brand_id: document.getElementById('olKBrand').value,
+          shop: document.getElementById('olKShop').value, client_id: document.getElementById('olKId').value,
+          client_secret: document.getElementById('olKSecret').value,
+          default_condition: document.getElementById('olKCond').value, default_category: document.getElementById('olKCat').value,
+          lowest_pct: document.getElementById('olKPct').value
+        };
+        if (!payload.brand_id) { note('olKMsg', 'Pick the brand.', 'err'); return; }
+        linkCall(payload).then(function (res) {
+          if (!res.ok) { note('olKMsg', (res.d && res.d.error) || 'That did not save.', 'err'); return; }
+          document.getElementById('olKSecret').value = '';
+          note('olKMsg', 'Saved for ' + res.d.shop + '. ' + (res.d.has_keys
+            ? 'Now email the brand the install link from the Dev Dashboard.'
+            : 'It still needs the app\'s Client ID and secret before the brand can install it.'), 'ok');
+          loadShopLinks();
+        });
+      });
+    }
+    var bs = document.getElementById('olKBrand'), keep = bs.value;
+    bs.innerHTML = '<option value="">Pick a brand</option>' + ol.brands.filter(function (b) { return ['declined', 'rejected'].indexOf(b.status) === -1; })
+      .map(function (b) { return '<option value="' + esc(b.id) + '">' + esc(b.name) + '</option>'; }).join('');
+    bs.value = keep;
+
+    linkCall({ action: 'list' }).then(function (res) {
+      if (!res.ok) {
+        list.innerHTML = '<div class="notice warn">Could not check the shop links: ' + esc((res.d && res.d.error) || 'no answer') +
+          '. Has <code>016_brand_shop_link.sql</code> been run, and has the site been deployed?</div>';
+        return;
+      }
+      document.getElementById('olLinkUrl').textContent = res.d.app_url;
+      var shops = res.d.shops || [];
+      var had = !!ol.links; ol.links = shops;
+      if (!had && shops.length) renderOutletBrands();
+      if (!shops.length) { list.innerHTML = 'No shops linked yet.'; return; }
+      var label = { waiting: 'Waiting for the brand to install', connected: 'Connected', error: 'Problem', disconnected: 'Switched off' };
+      var needs = shops.filter(function (s) { return s.needs_packet_app && s.status === 'waiting'; });
+      list.innerHTML = '<div class="wrapscroll"><table><tr><th>Brand</th><th>Shop</th><th>State</th><th>Last checked</th><th>Sizes tagged</th><th></th></tr>' +
+        shops.map(function (s) {
+          var w = (s.last_warnings || []).length;
+          return '<tr><td><b>' + esc(olBrandName(s.brand_id)) + '</b></td><td>' + esc(s.platform === 'woocommerce' ? s.site_url : s.shop_domain) +
+            '<div class="hint" style="margin:0">' + (s.platform === 'woocommerce' ? 'WooCommerce' : 'Shopify') + '</div></td>' +
+            '<td>' + (s.needs_packet_app && s.status === 'waiting' ? '<b style="color:var(--terracotta)">Asked us to make their app</b>'
+              : esc(s.platform === 'woocommerce' && s.status === 'waiting' ? 'Waiting for the brand to approve in WordPress' : (label[s.status] || s.status))) +
+            (s.last_error ? '<div class="hint" style="color:var(--warn);margin:2px 0 0">' + esc(s.last_error) + '</div>' : '') +
+            (w ? '<div class="hint" style="margin:2px 0 0" title="' + esc((s.last_warnings || []).join('\n')) + '">' + w + ' note' + (w === 1 ? '' : 's') + ' for the brand</div>' : '') + '</td>' +
+            '<td>' + (s.last_sync_at ? esc(fmt(s.last_sync_at)) : '&mdash;') + '</td><td>' + esc(s.items_linked) + '</td>' +
+            '<td style="white-space:nowrap">' +
+            (s.status === 'connected' || s.status === 'error' ? '<button class="link" data-lsync="' + esc(s.brand_id) + '">Check now</button> ' : '') +
+            (state.role === 'owner' && s.status !== 'disconnected' ? '<button class="link danger" data-loff="' + esc(s.brand_id) + '">Switch off</button>' : '') +
+            '</td></tr>';
+        }).join('') + '</table></div>' +
+        (needs.length ? '<div class="notice warn" style="margin-top:10px">' + needs.length + ' Shopify brand' + (needs.length === 1 ? ' has' : 's have') +
+          ' asked us to set up their link: make the app (steps below), then save its keys against the brand. Once Shopify approves one shared Packet app, this step goes away.</div>' : '');
+      list.querySelectorAll('[data-lsync]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          note('olKMsg', 'Checking their shop…', 'ok');
+          linkCall({ action: 'sync', brand_id: this.dataset.lsync }).then(function (r) {
+            if (!r.ok || !r.d.ok) { note('olKMsg', (r.d && r.d.error) || 'That did not work.', 'err'); loadShopLinks(); return; }
+            note('olKMsg', r.d.added + ' new, ' + r.d.updated + ' updated' +
+              (r.d.stock_taken ? ', ' + r.d.stock_taken + ' sale(s) taken off their Shopify stock' : '') + '.', 'ok');
+            loadOutlet();
+          });
+        });
+      });
+      list.querySelectorAll('[data-loff]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (!confirm('Switch off this brand\'s shop link? Their items stay, but stop following their shop.')) return;
+          linkCall({ action: 'disconnect', brand_id: this.dataset.loff }).then(function (r) {
+            note('olKMsg', r.ok ? 'Switched off.' : ((r.d && r.d.error) || 'That did not work.'), r.ok ? 'ok' : 'err');
+            loadShopLinks();
+          });
+        });
+      });
     });
   }
 
@@ -5859,9 +6338,26 @@ e.g. Stop scanning Boots"></textarea>
       t.innerHTML = '<tr><td class="empty">No brands here yet. Brands marked as a soft yes, invited or connected on the Brands page show up here, and so does any brand with a login.</td></tr>';
       return;
     }
-    var html = '<tr><th>Brand</th><th>Terms</th><th>Stock</th><th>Logins</th><th></th></tr>';
+    var html = '<tr><th>Brand</th>' + (ol.has017 ? '<th>Set-up</th>' : '') + '<th>Terms</th><th>Stock</th><th>Logins</th><th></th></tr>';
+    var linkBy = {}; (ol.links || []).forEach(function (l) { linkBy[l.brand_id] = l; });
     show.forEach(function (b) {
       var c = counts[b.id] || { live: 0, waiting: 0 };
+      var setup = '';
+      if (ol.has017) {
+        var lk = linkBy[b.id];
+        var steps = [
+          ['Login', !!((loginsBy[b.id] || []).length || b.outlet_invited_at)],
+          ['Signed in', (loginsBy[b.id] || []).some(function (u) { return u.last_sign_in_at; })],
+          ['Details', !!b.details_done_at],
+          ['Terms', b.outlet_commission_pct !== null],
+          ['Stock', !!(c.live || c.waiting || (lk && lk.status === 'connected'))]
+        ];
+        if (b.country && b.country !== 'GB') steps.push(['Cross-border', !!b.cross_border_ok]);
+        setup = '<td style="white-space:nowrap">' + steps.map(function (st) {
+          return '<span class="tag ' + (st[1] ? 'on' : 'dim') + '" style="margin:0 3px 3px 0">' + (st[1] ? '&#10003; ' : '') + esc(st[0]) + '</span>';
+        }).join('') + (lk ? '<div class="hint" style="margin:2px 0 0">' + esc(lk.platform === 'woocommerce' ? 'WooCommerce' : 'Shopify') + ': ' + esc(lk.status) + (lk.needs_packet_app ? ' &mdash; <b>needs an app made</b>' : '') + '</div>' : '') +
+          (b.outlet_auto_list ? '<div class="hint" style="margin:2px 0 0">Lists itself at ' + esc(olDiscountFor(b.id)) + '% off</div>' : '') + '</td>';
+      }
       var terms = b.outlet_commission_pct === null
         ? '<span class="tag off">Not agreed</span>'
         : 'We keep ' + esc(Number(b.outlet_commission_pct)) + '%' +
@@ -5873,13 +6369,27 @@ e.g. Stop scanning Boots"></textarea>
             (u.last_sign_in_at ? 'last in ' + esc(fmt(u.last_sign_in_at)) : 'never signed in') +
             ' <button class="link danger" data-olrmlogin="' + esc(u.id) + '" data-email="' + esc(u.email) + '">Remove</button></div>';
         }).join('') || '<span class="hint">None</span>';
-      html += '<tr><td><b>' + esc(b.name) + '</b><div class="hint" style="margin:0">' + esc(b.status) + '</div></td>' +
+      if (b.outlet_commission_pct === null && b.outlet_commission_offered_pct !== null && b.outlet_commission_offered_pct !== undefined) {
+        terms = '<span class="tag mid">Offered ' + esc(Number(b.outlet_commission_offered_pct)) + '%</span><div class="hint" style="margin:0">waiting for them to accept</div>';
+      }
+      html += '<tr><td><b>' + esc(b.name) + '</b><div class="hint" style="margin:0">' + esc(b.status) + (b.country && b.country !== 'GB' ? ' &middot; ' + esc(b.country) : '') + '</div></td>' +
+        setup +
         '<td>' + terms + '</td>' +
         '<td>' + c.live + ' on sale' + (c.waiting ? ', ' + c.waiting + ' waiting' : '') + '</td>' +
         '<td>' + logins + '</td>' +
-        '<td><button class="link" data-olterms="' + esc(b.id) + '">Set terms</button></td></tr>';
+        '<td style="white-space:nowrap"><button class="link" data-olterms="' + esc(b.id) + '">Terms and pricing</button>' +
+          (ol.has017 && state.role === 'owner' && ((loginsBy[b.id] || []).length || b.outlet_login_email) ? '<br><button class="link" data-olresend="' + esc(b.id) + '">Send a new login link</button>' : '') + '</td></tr>';
     });
     t.innerHTML = html;
+    t.querySelectorAll('[data-olresend]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        onboardCall({ action: 'resend', brand_id: this.dataset.olresend }).then(function (r) {
+          if (!r.ok) { note('olMsg', r.d.error || 'That did not work.', 'err'); return; }
+          if (r.d.emailed) note('olMsg', 'A new link has gone to ' + r.d.email + '.', 'ok');
+          else { var m = document.getElementById('olMsg'); m.innerHTML = 'Not emailed. Send ' + esc(r.d.email) + ' this link: <code style="word-break:break-all">' + esc(r.d.link) + '</code>'; m.className = 'msg show ok'; }
+        });
+      });
+    });
 
     t.querySelectorAll('[data-olterms]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -5889,6 +6399,16 @@ e.g. Stop scanning Boots"></textarea>
         document.getElementById('olTPct').value  = b.outlet_commission_pct === null ? '' : b.outlet_commission_pct;
         document.getElementById('olTDate').value = b.outlet_terms_agreed_at || '';
         document.getElementById('olTSrc').value  = b.outlet_terms_source || '';
+        ['olTOffer', 'olTDisc', 'olTAuto', 'olTBorder', 'olTBorderWrap'].forEach(function (id) {
+          var el = document.getElementById(id); (el.closest('.field') || el.closest('.tick') || el).style.display = ol.has017 ? '' : 'none';
+        });
+        if (ol.has017) {
+          document.getElementById('olTOffer').value = b.outlet_commission_offered_pct === null || b.outlet_commission_offered_pct === undefined ? '' : b.outlet_commission_offered_pct;
+          document.getElementById('olTDisc').value = b.outlet_discount_pct === null || b.outlet_discount_pct === undefined ? '' : b.outlet_discount_pct;
+          document.getElementById('olTAuto').checked = !!b.outlet_auto_list;
+          document.getElementById('olTBorder').checked = !!b.cross_border_ok;
+          document.getElementById('olTBorderWrap').style.display = b.country && b.country !== 'GB' ? '' : 'none';
+        }
         document.getElementById('olTermsPanel').style.display = 'block';
         document.getElementById('olTermsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -5913,13 +6433,27 @@ e.g. Stop scanning Boots"></textarea>
     // Same rule as the rest of the admin: a number with no evidence
     // behind it is not saved.
     if (pct !== null && !src) { note('olMsg', 'Say where the terms were agreed — an email or a signed agreement.', 'err'); return; }
-    db.from('brands').update({
+    var patch = {
       outlet_commission_pct: pct, outlet_terms_source: pct === null ? null : src,
       outlet_terms_agreed_at: pct === null ? null : date
-    }).eq('id', ol.terms).then(function (r) {
+    };
+    if (ol.has017) {
+      var num = function (id, max) { var v = document.getElementById(id).value.trim(); return v === '' ? null : Number(v); };
+      patch.outlet_commission_offered_pct = num('olTOffer');
+      patch.outlet_discount_pct = num('olTDisc');
+      patch.outlet_auto_list = document.getElementById('olTAuto').checked;
+      patch.cross_border_ok = document.getElementById('olTBorder').checked;
+      if ([patch.outlet_commission_offered_pct, patch.outlet_discount_pct].some(function (v) { return v !== null && (!isFinite(v) || v < 0 || v >= 100.0001); })) {
+        note('olMsg', 'Percentages should be between 0 and 100.', 'err'); return;
+      }
+      if (patch.outlet_auto_list && patch.outlet_discount_pct === null && ol.defaultDiscount === null) {
+        note('olMsg', 'Set a normal Outlet discount (here or under Terms and settings) before stock can list itself.', 'err'); return;
+      }
+    }
+    db.from('brands').update(patch).eq('id', ol.terms).then(function (r) {
       if (r.error) { note('olMsg', olErr(r.error), 'err'); return; }
       document.getElementById('olTermsPanel').style.display = 'none';
-      note('olMsg', pct === null ? 'Terms cleared.' : 'Terms saved. New orders use them from now on.', 'ok');
+      note('olMsg', pct === null ? 'Saved. No agreed terms recorded.' : 'Saved. New orders use these terms from now on.', 'ok');
       loadOutlet();
     });
   }

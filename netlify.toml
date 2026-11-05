@@ -79,3 +79,10 @@
 # button. See netlify-functions/outlet-shopify.js and 015.
 [functions."outlet-shopify-cron"]
   schedule = "*/10 * * * *"
+
+# The shop link (016): every ten minutes, takes Packet sales off each
+# connected brand's own Shopify stock, then reads the products they
+# have tagged packet-outlet and brings the Outlet into line.
+# See netlify-functions/brand-shop.js.
+[functions."brand-shop-cron"]
+  schedule = "*/10 * * * *"

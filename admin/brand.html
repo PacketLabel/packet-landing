@@ -56,6 +56,8 @@
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:16px 18px}
   .card .n{font-family:'Lora',Georgia,serif;font-size:26px;line-height:1.1}
+  .tagtbl{border-collapse:collapse;font-size:13px}.tagtbl td{padding:5px 10px 5px 0;vertical-align:top;border-top:1px solid var(--line)}
+  .tagtbl code{background:rgba(58,46,39,.06);padding:1px 5px;border-radius:2px;white-space:nowrap}
   .card .l{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--brown-soft);margin-top:5px}
   .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
 
@@ -124,7 +126,31 @@
   .order address{font-style:normal;font-size:14px;white-space:pre-line}
   .order .ship{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
   .order .ship select{max-width:170px}.order .ship input{max-width:230px}
-  @media (max-width:560px){ main{padding:20px 16px 50px} header{padding:12px 16px} nav{margin-left:0;width:100%} }
+  /* Set-up page (017) */
+  .steps{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:12px}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:18px 20px}
+  .step .sh{display:flex;align-items:center;gap:12px;cursor:pointer}
+  .step .num{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    font-family:'Lora',Georgia,serif;font-size:14px;color:var(--brown-soft)}
+  .step.done .num{background:var(--ok);border-color:var(--ok);color:#fff}
+  .step.now .num{background:var(--terracotta);border-color:var(--terracotta);color:#fff}
+  .step .st{font-family:'Lora',Georgia,serif;font-size:17px}
+  .step .ss{font-size:13px;color:var(--brown-soft);margin-left:auto;text-align:right}
+  .step .sb{display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+  .step.open .sb{display:block}
+  .terms{background:#fff;border:1px solid var(--line);padding:16px 18px;max-height:340px;overflow:auto;white-space:pre-wrap;font-size:14px;line-height:1.55;margin:10px 0 14px}
+  .pct{font-family:'Lora',Georgia,serif;font-size:30px;line-height:1}
+  .ways{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:6px 0 14px}
+  .way{background:#fff;border:1px solid var(--line);border-radius:3px;padding:14px;text-align:left;cursor:pointer;font-family:inherit;color:inherit}
+  .way b{display:block;font-weight:500;font-size:15px;margin-bottom:3px}
+  .way span{font-size:12px;color:var(--brown-soft)}
+  .way:hover{border-color:var(--brown-soft)}
+  .way.sel{border-color:var(--terracotta);box-shadow:0 0 0 2px rgba(192,98,63,.18)}
+  .wayp{display:none}.wayp.show{display:block}
+  ol.how{margin:6px 0 12px 18px;padding:0;font-size:14px}
+  ol.how li{margin-bottom:4px}
+  code{background:rgba(58,46,39,.06);padding:1px 5px;border-radius:2px}
+  @media (max-width:560px){ main{padding:20px 16px 50px} header{padding:12px 16px} nav{margin-left:0;width:100%} .step .ss{display:none} }
 </style>
 </head>
 <body>
@@ -164,7 +190,7 @@
 
     <p class="hint" style="margin:22px 0 0;font-size:12px">
       This login is for brands selling through Packet Outlet.
-      Not set up yet? Email <a href="mailto:info@packetlabel.com" style="color:var(--terracotta)">info@packetlabel.com</a>.
+      Not with us yet? <a href="apply.html" style="color:var(--terracotta)">Apply to sell</a>.
     </p>
   </div>
 </div>
@@ -175,6 +201,7 @@
     <img src="assets/packet-wordmark.png" alt="Packet">
     <span class="brandname" id="brandName"></span>
     <nav>
+      <button data-page="setup">Get set up <span class="count" id="setupCount" style="display:none"></span></button>
       <button data-page="stock" class="active">Your stock</button>
       <button data-page="orders">Orders <span class="count" id="toShipCount" style="display:none"></span></button>
       <button data-page="money">Money</button>
@@ -186,12 +213,147 @@
   <main>
     <div id="appMsg" class="msg"></div>
 
+    <!-- ---------- Set up (017) ---------- -->
+    <section id="page-setup" class="page">
+      <h1>Get set up</h1>
+      <p class="hint" id="setupLede">Three steps, about ten minutes. You can stop and come back &mdash; everything saves as you go.</p>
+      <div id="setupMsg" class="msg"></div>
+      <ol class="steps">
+        <li class="step" id="stepDetails">
+          <div class="sh" data-step="stepDetails"><span class="num">1</span><span class="st">Your business</span><span class="ss" id="ssDetails"></span></div>
+          <div class="sb">
+            <div class="grid2">
+              <div class="field"><label for="dLegal">Legal name of the business</label><input type="text" id="dLegal" maxlength="200" placeholder="e.g. Fern &amp; Thread Ltd"></div>
+              <div class="field"><label for="dNumber">Company number <span style="text-transform:none;letter-spacing:0">(if a company)</span></label><input type="text" id="dNumber" maxlength="40"></div>
+              <div class="field"><label for="dCountry">You post orders from</label>
+                <select id="dCountry">
+                  <option value="GB">United Kingdom</option><option value="IE">Ireland</option><option value="FR">France</option>
+                  <option value="DE">Germany</option><option value="NL">Netherlands</option><option value="ES">Spain</option>
+                  <option value="IT">Italy</option><option value="DK">Denmark</option><option value="SE">Sweden</option>
+                  <option value="PT">Portugal</option><option value="BE">Belgium</option><option value="US">United States</option>
+                </select></div>
+              <div class="field"><label for="dPhone">Phone</label><input type="text" id="dPhone" maxlength="40"></div>
+              <div class="field" style="grid-column:1/-1"><label for="dReturns">Where returns should go</label>
+                <textarea id="dReturns" maxlength="600" placeholder="Full address, with postcode" style="min-height:70px"></textarea>
+                <div class="help">Customers contact Packet; we give them this address for change-of-mind returns.</div></div>
+              <div class="field"><label for="dDays">You post orders within</label>
+                <select id="dDays"><option value="">Choose&hellip;</option><option value="1">1 working day</option><option value="2">2 working days</option>
+                  <option value="3">3 working days</option><option value="4">4 working days</option><option value="5">5 working days</option></select></div>
+            </div>
+            <div class="notice" id="dBorder" style="display:none">You post from outside Great Britain. Before anything goes on sale, Packet
+              will be in touch to agree how customs, duty and returns work for your parcels.</div>
+            <div class="bar" style="margin:4px 0 0"><button class="btn" id="dSave">Save</button></div>
+          </div>
+        </li>
+
+        <li class="step" id="stepTerms">
+          <div class="sh" data-step="stepTerms"><span class="num">2</span><span class="st">The terms</span><span class="ss" id="ssTerms"></span></div>
+          <div class="sb" id="termsBody"></div>
+        </li>
+
+        <li class="step" id="stepStock">
+          <div class="sh" data-step="stepStock"><span class="num">3</span><span class="st">Your stock</span><span class="ss" id="ssStock"></span></div>
+          <div class="sb">
+            <p style="margin:0 0 4px">How should your stock reach us? Choose whichever suits &mdash; you can change later.</p>
+            <div class="ways" id="ways">
+              <button class="way" data-way="shopify"><b>Shopify</b><span>Plug your shop in. Tag what to offer; it keeps itself up to date.</span></button>
+              <button class="way" data-way="woo"><b>WooCommerce</b><span>Plug your WordPress shop in. Tag what to offer.</span></button>
+              <button class="way" data-way="export"><b>Any other shop</b><span>Wix, Squarespace, Etsy, BigCommerce&hellip; upload the product file your shop exports.</span></button>
+              <button class="way" data-way="sheet"><b>A spreadsheet</b><span>Fill in our template and upload it.</span></button>
+              <button class="way" data-way="hand"><b>One at a time</b><span>Add each item with photos here.</span></button>
+            </div>
+
+            <div class="wayp" id="way-shopify">
+              <div class="field"><label for="wShop">Your Shopify address</label><input type="text" id="wShop" placeholder="yourbrand.myshopify.com" style="max-width:360px">
+                <div class="help">It ends <b>.myshopify.com</b>. In Shopify: Settings &rarr; Domains.</div></div>
+              <details style="margin:0 0 12px"><summary style="cursor:pointer;color:var(--terracotta);font-size:14px">I&rsquo;ve made a Packet app in my own Shopify (optional)</summary>
+                <ol class="how">
+                  <li>In Shopify, go to Settings &rarr; Apps &rarr; Develop apps, and open the Dev Dashboard. Create an app called <b>Packet Outlet</b>.</li>
+                  <li>Give it these permissions: <code>read_products, read_inventory, write_inventory, read_locations</code>. Release it and install it on your shop.</li>
+                  <li>Copy its <b>Client ID</b> and <b>Client secret</b> into the boxes below.</li>
+                </ol>
+                <div class="grid2">
+                  <div class="field"><label for="wId">Client ID</label><input type="text" id="wId" autocomplete="off"></div>
+                  <div class="field"><label for="wSecret">Client secret</label><input type="password" id="wSecret" autocomplete="new-password"></div>
+                </div>
+                <div class="hint" style="margin:0">If you skip this, Packet sets the app up for you and emails you a link to press Install &mdash; usually within a working day.</div>
+              </details>
+              <div class="bar"><button class="btn" id="wShopGo">Connect my Shopify</button></div>
+            </div>
+
+            <div class="wayp" id="way-woo">
+              <div class="field"><label for="wSite">Your shop&rsquo;s web address</label><input type="text" id="wSite" placeholder="https://yourbrand.com" style="max-width:360px">
+                <div class="help">You&rsquo;ll be asked to sign in to WordPress and approve Packet. Packet needs read and write access so it can take sold items off your stock.</div></div>
+              <div class="bar"><button class="btn" id="wSiteGo">Connect my WooCommerce</button></div>
+            </div>
+
+            <div class="howtag hint" id="howTag" style="display:none;margin:4px 0 12px">
+              <b>Then choose what to offer:</b> add the tag <code>packet-outlet</code> to any product in your own shop. Every size and colour comes across.
+              More tags are on the <a href="#stock" data-go="stock" style="color:var(--terracotta)">Your stock</a> page.</div>
+
+            <div class="wayp" id="way-export">
+              <p class="hint" style="margin:0 0 8px">In your shop&rsquo;s admin, open <b>Products</b> and look for <b>Export</b> (CSV). Save the file, then upload it here as it is.
+                We recognise Shopify, WooCommerce, Wix, Squarespace, Etsy and BigCommerce files. Upload just the products you want to offer, or everything and send only some.</p>
+              <div class="grid2">
+                <div class="field"><label for="xCond">Their condition</label><select id="xCond"></select></div>
+                <div class="field"><label for="xPct">Your lowest price, as % of your price</label><input type="text" id="xPct" value="50" inputmode="numeric"></div>
+                <div class="field"><label for="xCat">If we can&rsquo;t tell the category</label><select id="xCat"></select></div>
+              </div>
+              <div class="hint" style="margin:-4px 0 12px">You can change any item afterwards. Upload the file again whenever stock changes &mdash; matching items update rather than double up.</div>
+              <div class="bar"><label class="btn" for="xFile" style="background:var(--terracotta);color:var(--cream);border:0">Upload my product file</label>
+                <input type="file" id="xFile" accept=".csv,.tsv,.txt,text/csv" style="display:none"></div>
+            </div>
+
+            <div class="wayp" id="way-sheet">
+              <p class="hint" style="margin:0 0 8px">One row per item: title, condition, your normal price and the lowest you&rsquo;ll accept. Keep the sheet and upload it again whenever stock changes.</p>
+              <div class="bar"><button class="btn ghost" data-click="csvTemplateBtn">Download the template</button>
+                <button class="btn" data-click="csvFileBtn">Upload it</button></div>
+            </div>
+
+            <div class="wayp" id="way-hand">
+              <div class="bar"><button class="btn" id="wHandGo">Add my first item</button></div>
+            </div>
+
+            <div id="wayMsg" class="msg"></div>
+          </div>
+        </li>
+      </ol>
+      <div class="notice" id="setupDone" style="display:none"></div>
+    </section>
+
     <!-- ---------- Stock ---------- -->
     <section id="page-stock" class="page active">
       <h1>Your stock</h1>
       <p class="hint">What you&rsquo;d like Packet Outlet to sell. You keep it and post it; we list it and find the buyer.
         Add items one at a time, or upload a spreadsheet of them.</p>
 
+      <!-- The shop link (016): their own Shopify feeding this page -->
+      <div class="panel" id="shopLink" style="margin-bottom:16px;display:none">
+        <h2 style="margin-top:0">Your shop link</h2>
+        <div id="shopLinkState"></div>
+        <div class="bar" id="shopLinkActs" style="display:none;margin:12px 0 0">
+          <button class="btn" id="shopLinkSync">Check my shop now</button>
+        </div>
+        <div id="shopLinkMsg" class="msg"></div>
+        <details style="margin-top:10px">
+          <summary style="cursor:pointer;color:var(--terracotta);font-size:14px">How to choose what comes across</summary>
+          <div class="hint" style="margin:10px 0 0">
+            <p style="margin:0 0 8px">In your own Shopify admin, add the tag <b id="shopLinkTag">packet-outlet</b> to any product you want on Packet Outlet.
+              Every size and colour of it comes across, with your photos and description. Take the tag off, archive it or sell out,
+              and Packet follows within ten minutes.</p>
+            <p style="margin:0 0 6px">Optional tags, if the defaults aren&rsquo;t right for a product:</p>
+            <table class="tagtbl">
+              <tr><td><code>packet-condition:returned as new</code></td><td>Its condition. Any of: new with tags, new tags removed, returned as new, tried on, packaging damaged, small fault.</td></tr>
+              <tr><td><code>packet-note:small pull on cuff</code></td><td>What is wrong with it. Needed for tried on, packaging damaged and small fault.</td></tr>
+              <tr><td><code>packet-lowest:45</code></td><td>The least a customer may pay, in &pound;. Otherwise it&rsquo;s <span id="shopLinkPct">50</span>% of your price.</td></tr>
+              <tr><td><code>packet-qty:3</code></td><td>Offer at most this many, however many you hold.</td></tr>
+              <tr><td><code>packet-rp-confirmed</code></td><td>Beauty only: you hold the UK Responsible Person role for it.</td></tr>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <div class="notice" id="notReady" style="display:none"></div>
       <div class="cards" id="stockCards"></div>
 
       <div class="bar">
@@ -199,9 +361,24 @@
         <label class="btn" for="csvFile">Upload a spreadsheet</label>
         <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none">
         <button class="link" id="csvTemplateBtn">Download the spreadsheet template</button>
+        <button class="btn" id="sendAllBtn" style="display:none"></button>
       </div>
+      <p class="hint">Keep one spreadsheet and upload it again whenever your stock changes. Rows with
+        the same <b>your_code</b> as something already here update it instead of adding it twice, and a
+        quantity of <b>0</b> marks it sold out.</p>
 
       <div id="stockMsg" class="msg"></div>
+
+      <!-- What an upload will do, before anything is saved -->
+      <div class="panel" id="csvPanel" style="display:none">
+        <h2 style="margin-top:0">Your spreadsheet</h2>
+        <div id="csvSummary"></div>
+        <div class="bar">
+          <button class="btn" id="csvGo">Send to Packet</button>
+          <button class="btn" id="csvDraft" style="background:transparent;color:inherit;border:1px solid currentColor">Save without sending</button>
+          <button class="link" id="csvCancel">Cancel</button>
+        </div>
+      </div>
 
       <!-- Add / edit -->
       <div class="panel" id="itemPanel" style="display:none">
@@ -405,10 +582,13 @@
         btn.disabled = false; btn.textContent = 'Save the new password';
         note('loginMsg', 'Could not set that password: ' + r.error.message, 'err'); return;
       }
-      note('loginMsg', 'Password changed. Sign in with the new one.', 'ok');
-      db.auth.signOut().then(function () {
-        setTimeout(function () { window.location.replace(window.location.pathname); }, 1200);
-      });
+      // Signed in already (the link did that), and now there is a
+      // password: go straight in. A first-time brand lands on Get set up.
+      recovering = false;
+      newPassBox.style.display = 'none'; loginForm.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Save the new password';
+      history.replaceState(null, '', window.location.pathname);
+      start();
     });
   });
 
@@ -450,7 +630,17 @@
         $('loginPage').style.display = 'none';
         $('app').style.display = 'block';
         var hash = (window.location.hash || '').replace('#', '');
-        showPage(['stock', 'orders', 'money', 'help'].indexOf(hash) > -1 ? hash : 'stock');
+        var q = new URLSearchParams(window.location.search);
+        if (q.has('success')) {
+          // Back from WooCommerce's approve screen.
+          if (q.get('success') === '1') note('setupMsg', 'WooCommerce has connected. Your tagged products come across within ten minutes — or press “Check my shop now” on Your stock.', 'ok');
+          else note('setupMsg', 'WooCommerce was not connected. You can try again below.', 'err');
+          history.replaceState(null, '', window.location.pathname + '#setup');
+          hash = 'setup';
+        }
+        var pages = ['setup', 'stock', 'orders', 'money', 'help'];
+        showPage(pages.indexOf(hash) > -1 ? hash : (setupLeft() ? 'setup' : 'stock'));
+        renderSetup();
         loadAll();
       });
     }, function () {
@@ -474,8 +664,206 @@
       state.items  = res[0].data || [];
       state.orders = res[1].data || [];
       renderStock(); renderOrders(); renderMoney();
+      loadShopLink();
+      renderSetup();
     });
   }
+
+  // ---------------------------------------------------------------- set up
+  // 017_brand_onboarding.sql. The database decides; this page explains.
+  function callFn(name, body) {
+    return db.auth.getSession().then(function (s) {
+      var token = s.data && s.data.session && s.data.session.access_token;
+      return fetch('/.netlify/functions/' + name, {
+        method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+        body: JSON.stringify(body)
+      }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); });
+    });
+  }
+
+  function stockDone() {
+    var b = state.brand || {};
+    return !!(b.stock_connected || (state.shop && state.shop.status === 'connected') || state.items.length || b.has_items);
+  }
+  function setupLeft() {
+    var b = state.brand || {};
+    return (b.details_done ? 0 : 1) + (b.terms_needed ? 1 : 0) + (stockDone() ? 0 : 1);
+  }
+  function refreshBrand() {
+    return db.rpc('my_brand').then(function (r) { if (!r.error && r.data) { state.brand = r.data; renderSetup(); renderMoney(); } });
+  }
+
+  function stepState(id, done, now, summary) {
+    var el = $(id);
+    el.classList.toggle('done', !!done); el.classList.toggle('now', !done && !!now);
+    $(id === 'stepDetails' ? 'ssDetails' : id === 'stepTerms' ? 'ssTerms' : 'ssStock').textContent = summary;
+  }
+
+  var setupOpened = false;
+  function renderSetup() {
+    var b = state.brand; if (!b) return;
+    var left = setupLeft();
+    $('setupCount').textContent = left; $('setupCount').style.display = left ? 'inline-block' : 'none';
+
+    // 1. Details
+    if (!$('stepDetails').dataset.filled) {
+      $('dLegal').value = b.legal_name || ''; $('dNumber').value = b.company_number || '';
+      $('dCountry').value = b.country || 'GB'; $('dPhone').value = b.business_phone || '';
+      $('dReturns').value = b.returns_address || ''; $('dDays').value = b.dispatch_days ? String(b.dispatch_days) : '';
+      $('stepDetails').dataset.filled = '1';
+    }
+    $('dBorder').style.display = ($('dCountry').value !== 'GB' && !b.cross_border_ok) ? 'block' : 'none';
+    stepState('stepDetails', b.details_done, true, b.details_done ? 'Done' : 'About 2 minutes');
+
+    // 2. Terms
+    var tb = $('termsBody'), pct = b.offered_pct;
+    if (!b.terms_needed) {
+      tb.innerHTML = '<p style="margin:0">' + (b.terms_version
+        ? 'You accepted terms <b>' + esc(b.terms_version) + '</b>' + (b.terms_agreed_at ? ' on ' + esc(day(b.terms_agreed_at)) : '') + '.'
+        : 'Your terms were agreed with Packet directly.') +
+        ' Packet keeps <b>' + esc(Number(b.commission_pct)) + '%</b> of each sale price and you get the rest.</p>';
+      stepState('stepTerms', true, false, 'Agreed');
+    } else if (!b.terms) {
+      tb.innerHTML = '<p style="margin:0">We&rsquo;re putting the finishing touches to our terms. We&rsquo;ll email you as soon as they&rsquo;re ready to read &mdash; meanwhile you can carry on and add your stock.</p>';
+      stepState('stepTerms', false, false, 'Coming soon');
+    } else if (pct === null || pct === undefined) {
+      tb.innerHTML = '<p style="margin:0">Packet hasn&rsquo;t set your percentage yet. Email <a href="mailto:info@packetlabel.com" style="color:var(--terracotta)">info@packetlabel.com</a>.</p>';
+      stepState('stepTerms', false, false, 'Waiting for Packet');
+    } else {
+      if (tb.dataset.version !== b.terms.version) {
+        tb.dataset.version = b.terms.version;
+        tb.innerHTML =
+          '<div class="cards" style="margin-bottom:6px"><div class="card"><div class="pct">' + esc(Number(pct)) + '%</div><div class="l">Packet keeps, of each sale price</div></div>' +
+          '<div class="card"><div class="pct">' + esc(100 - Number(pct)) + '%</div><div class="l">You get</div></div></div>' +
+          (b.terms_version ? '<div class="notice">We&rsquo;ve updated our terms since you last accepted them. Please read the new version.</div>' : '') +
+          '<div class="terms" id="tText"></div>' +
+          '<div class="grid2"><div class="field"><label for="tName">Your full name</label><input type="text" id="tName" maxlength="120"></div>' +
+          '<div class="field"><label for="tJob">Your job title</label><input type="text" id="tJob" maxlength="120" placeholder="e.g. Director, Owner"></div></div>' +
+          '<label class="tick"><input type="checkbox" id="tAgree"><span id="tAgreeText"></span></label>' +
+          '<div class="bar" style="margin:6px 0 0"><button class="btn" id="tAccept">Accept the terms</button></div>' +
+          '<p class="hint" style="margin:10px 0 0">We keep a copy of exactly what you accepted, with the date and time.</p>';
+        $('tText').textContent = b.terms.title + '\n\n' + b.terms.body.trim();
+        $('tAccept').addEventListener('click', acceptTerms);
+      }
+      var agreeText = $('tAgreeText');
+      if (agreeText) agreeText.textContent = 'I have read these terms and accept them on behalf of ' + (b.legal_name || b.name) + ', and I am allowed to.';
+      stepState('stepTerms', false, b.details_done, b.details_done ? 'About 3 minutes' : 'After step 1');
+    }
+
+    // 3. Stock
+    var sd = stockDone();
+    var s = state.shop;
+    stepState('stepStock', sd, b.details_done, sd ? (s && s.status === 'connected' ? (s.platform === 'woocommerce' ? 'WooCommerce connected' : 'Shopify connected') : state.items.length + ' item' + (state.items.length === 1 ? '' : 's') + ' added')
+      : (s && s.status === 'waiting' ? 'Waiting to connect' : 'Choose how'));
+
+    // Which step is open
+    if (!setupOpened) {
+      setupOpened = true;
+      var first = !b.details_done ? 'stepDetails' : b.terms_needed && b.terms && pct !== null && pct !== undefined ? 'stepTerms' : !sd ? 'stepStock' : null;
+      if (first) $(first).classList.add('open');
+    }
+
+    // All done
+    var ready = !left && b.cross_border_ok;
+    $('setupDone').style.display = !left ? 'block' : 'none';
+    $('setupDone').innerHTML = ready
+      ? '<b>You&rsquo;re all set.</b> Items you send go to Packet to be checked and priced' + (b.auto_list ? ', and most go on sale straight away' : '') +
+        '. When something sells it appears under <a href="#orders" data-go="orders" style="color:var(--terracotta)">Orders</a>.'
+      : '<b>Nearly there.</b> You post from outside Great Britain, so Packet will be in touch about customs and returns before anything goes on sale.';
+    $('setupLede').style.display = left ? 'block' : 'none';
+
+    var nr = $('notReady');
+    if (b.terms_needed || !b.cross_border_ok) {
+      nr.style.display = 'block';
+      nr.innerHTML = b.terms_needed
+        ? 'You can add stock now. Nothing goes on sale until you&rsquo;ve accepted the terms on <a href="#setup" data-go="setup" style="color:var(--terracotta)">Get set up</a>.'
+        : 'You can add stock now. Packet will agree customs and returns with you before anything goes on sale.';
+    } else nr.style.display = 'none';
+  }
+
+  document.querySelectorAll('.step .sh').forEach(function (h) {
+    h.addEventListener('click', function () { $(this.dataset.step).classList.toggle('open'); });
+  });
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('[data-go]');
+    if (a) { e.preventDefault(); showPage(a.dataset.go); }
+    var c = e.target.closest && e.target.closest('[data-click]');
+    if (c) { e.preventDefault(); $(c.dataset.click === 'csvFileBtn' ? 'csvFile' : c.dataset.click).click(); }
+  });
+  $('dCountry').addEventListener('change', function () { $('dBorder').style.display = this.value !== 'GB' ? 'block' : 'none'; });
+
+  $('dSave').addEventListener('click', function () {
+    var btn = this; btn.disabled = true;
+    db.rpc('brand_save_details', { p: {
+      legal_name: $('dLegal').value, company_number: $('dNumber').value, country: $('dCountry').value,
+      business_phone: $('dPhone').value, returns_address: $('dReturns').value, dispatch_days: $('dDays').value
+    } }).then(function (r) {
+      btn.disabled = false;
+      if (r.error) { note('setupMsg', dbError(r.error), 'err'); return; }
+      note('setupMsg', 'Saved.', 'ok');
+      $('stepDetails').classList.remove('open');
+      refreshBrand().then(function () {
+        var b = state.brand;
+        if (b.terms_needed && b.terms) $('stepTerms').classList.add('open'); else if (!stockDone()) $('stepStock').classList.add('open');
+      });
+    });
+  });
+
+  function acceptTerms() {
+    var b = state.brand;
+    if (!$('tAgree').checked) { note('setupMsg', 'Tick the box to say you accept the terms.', 'err'); return; }
+    var btn = $('tAccept'); btn.disabled = true;
+    db.rpc('brand_accept_terms', { p_version: b.terms.version, p_name: $('tName').value, p_job_title: $('tJob').value,
+      p_user_agent: navigator.userAgent }).then(function (r) {
+      btn.disabled = false;
+      if (r.error) { note('setupMsg', dbError(r.error), 'err'); return; }
+      note('setupMsg', 'Thank you — the terms are agreed.', 'ok');
+      $('stepTerms').classList.remove('open');
+      refreshBrand().then(function () { if (!stockDone()) $('stepStock').classList.add('open'); });
+    });
+  }
+
+  // Ways in
+  O.CONDITIONS.forEach(function (c) { $('xCond').insertAdjacentHTML('beforeend', '<option value="' + c.v + '">' + esc(c.label) + '</option>'); });
+  O.CATEGORIES.forEach(function (c) { $('xCat').insertAdjacentHTML('beforeend', '<option value="' + c.v + '">' + esc(c.label) + '</option>'); });
+  $('xCond').value = 'returned_as_new';
+  document.querySelectorAll('.way').forEach(function (w) {
+    w.addEventListener('click', function () {
+      document.querySelectorAll('.way').forEach(function (x) { x.classList.toggle('sel', x === w); });
+      document.querySelectorAll('.wayp').forEach(function (p) { p.classList.toggle('show', p.id === 'way-' + w.dataset.way); });
+      $('howTag').style.display = w.dataset.way === 'shopify' || w.dataset.way === 'woo' ? 'block' : 'none';
+      clearNote('wayMsg');
+    });
+  });
+  $('wHandGo').addEventListener('click', function () { showPage('stock'); $('addItemBtn').click(); });
+  $('xFile').addEventListener('change', function () {
+    var f = this.files && this.files[0]; this.value = '';
+    if (!f) return;
+    var pct = parseInt($('xPct').value, 10);
+    if (!(pct >= 1 && pct <= 100)) { note('wayMsg', 'Put your lowest price as a percentage between 1 and 100.', 'err'); return; }
+    readSheet(f, { default_condition: $('xCond').value, lowest_pct: pct, default_category: $('xCat').value, default_quantity: 1 });
+  });
+
+  $('wShopGo').addEventListener('click', function () {
+    var btn = this; btn.disabled = true; note('wayMsg', 'Connecting…', 'ok');
+    callFn('brand-shop', { action: 'connect_shopify', shop: $('wShop').value, client_id: $('wId').value, client_secret: $('wSecret').value })
+      .then(function (d) {
+        btn.disabled = false;
+        if (d.error) { note('wayMsg', d.error, 'err'); return; }
+        if (d.install_url) { window.location.href = d.install_url; return; }
+        if (d.connected) note('wayMsg', 'Connected. Tag products packet-outlet in Shopify and they come across within ten minutes.', 'ok');
+        else if (d.waiting) note('wayMsg', 'Thanks — we’ve asked Packet to set up your link. You’ll get an email with an install link, usually within a working day.', 'ok');
+        loadShopLink(); refreshBrand();
+      }, function () { btn.disabled = false; note('wayMsg', 'Could not reach Packet just now.', 'err'); });
+  });
+  $('wSiteGo').addEventListener('click', function () {
+    var btn = this; btn.disabled = true; note('wayMsg', 'Connecting…', 'ok');
+    callFn('brand-shop', { action: 'connect_woo', site: $('wSite').value }).then(function (d) {
+      btn.disabled = false;
+      if (d.error) { note('wayMsg', d.error, 'err'); return; }
+      if (d.install_url) window.location.href = d.install_url;
+    }, function () { btn.disabled = false; note('wayMsg', 'Could not reach Packet just now.', 'err'); });
+  });
 
   // ----------------------------------------------------------------- stock
   function renderStock() {
@@ -489,6 +877,9 @@
     $('stockCards').innerHTML =
       card(n.live, 'On sale') + card(n.units, 'Pieces on sale') + card(n.submitted, 'With Packet') +
       card(n.draft, 'Not sent yet') + card(sold, 'Sold');
+    var sab = $('sendAllBtn');
+    sab.style.display = n.draft ? 'inline-block' : 'none';
+    sab.textContent = 'Send everything not sent (' + n.draft + ')';
 
     var t = $('tblItems');
     if (!state.items.length) {
@@ -514,7 +905,8 @@
         '<td>' + (ph ? '<img class="thumb" src="' + esc(ph) + '" alt="" loading="lazy">' : '<div class="thumb"></div>') + '</td>' +
         '<td><b>' + esc(i.title) + '</b><div class="sub">' +
           esc([i.size, i.colour, O.conditionLabel(i.condition)].filter(Boolean).join(' · ')) +
-          (i.brand_sku ? ' · ' + esc(i.brand_sku) : '') + '</div>' +
+          (i.brand_sku ? ' · ' + esc(i.brand_sku) : '') +
+          (i.source === 'shopify' ? ' · <span style="color:var(--terracotta)">from your shop</span>' : '') + '</div>' +
           (i.packet_note ? '<div class="pnote">From Packet: ' + esc(i.packet_note) + '</div>' : '') + '</td>' +
         '<td class="num">' + esc(i.quantity) + '</td>' +
         '<td class="num">' + esc(O.money(i.floor_minor)) + '</td>' +
@@ -714,29 +1106,184 @@
     document.body.appendChild(a); a.click(); a.remove();
   });
 
+  var pendingCSV = null;
+
+  function closeCSV() { pendingCSV = null; $('csvPanel').style.display = 'none'; }
+
+  function describePlan(p, send) {
+    var lines = [];
+    var plural = function (n, a, b) { return n + ' ' + (n === 1 ? a : b); };
+    if (p.adds.length) lines.push(plural(p.adds.length, 'new item', 'new items') + ' to add');
+    var changed = p.updates.length - p.soldOut;
+    if (changed > 0) lines.push(plural(changed, 'item', 'items') + ' you already have, updated with the figures in the sheet');
+    if (p.soldOut) lines.push(plural(p.soldOut, 'item', 'items') + ' marked sold out (quantity 0)');
+    if (p.skipped.length) lines.push(plural(p.skipped.length, 'new row', 'new rows') + ' with a quantity of 0, left out');
+    if (send && p.held) lines.push(plural(p.held, 'beauty product', 'beauty products') +
+      ' kept as not sent: put <b>yes</b> in the uk_responsible_person column, or tick the box on the item, to confirm you hold the UK Responsible Person role');
+    if (send && p.notResent) lines.push(plural(p.notResent, 'item', 'items') +
+      ' you took back or we turned down: updated, but not sent again. Press Send to Packet on them if you want them back on sale');
+    return '<ul style="margin:0 0 12px 18px;padding:0">' + lines.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul>';
+  }
+
   $('csvFile').addEventListener('change', function () {
     var f = this.files && this.files[0]; this.value = '';
-    if (!f) return;
+    if (f) readSheet(f, null);
+  });
+
+  // opts: null for Packet's own sheet; the defaults from Get set up for a
+  // shop's export file (see packet-outlet.js readShopExport).
+  function readSheet(f, opts) {
+    closeCSV();
+    showPage('stock');
     var reader = new FileReader();
     reader.onload = function () {
-      var out = O.rowsFromCSV(reader.result);
-      if (out.problems.length) {
-        note('stockMsg', 'Nothing has been added yet. Please fix these and upload it again: ' +
-          out.problems.slice(0, 8).join(' ') + (out.problems.length > 8 ? ' …and ' + (out.problems.length - 8) + ' more.' : ''), 'err');
+      var out = O.rowsFromCSV(reader.result, opts);
+      var plan = out.problems.length ? null : O.planUpload(out.items, state.items, true);
+      var problems = out.problems.length ? out.problems : plan.problems;
+      if (problems.length) {
+        note('stockMsg', 'Nothing has been saved yet. Please fix these and upload it again: ' +
+          problems.slice(0, 8).join(' ') + (problems.length > 8 ? ' …and ' + (problems.length - 8) + ' more.' : ''), 'err');
         return;
       }
-      var beauty = out.items.filter(function (i) { return i.category === 'beauty'; }).length;
-      if (!confirm('Add ' + out.items.length + ' item' + (out.items.length === 1 ? '' : 's') +
-        ' as "not sent yet"? You can check them, then send them to Packet.' +
-        (beauty ? '\n\n' + beauty + ' of them are beauty products. Each needs the Responsible Person box ticked before it can be sent.' : ''))) return;
-      var rows = out.items.map(function (i) { i.status = 'draft'; return i; });
-      db.from('outlet_items').insert(rows).select('id').then(function (r) {
-        if (r.error) { note('stockMsg', 'Nothing was added: ' + dbError(r.error), 'err'); return; }
-        note('stockMsg', 'Added ' + r.data.length + ' items. They are saved but not sent — check them, then press Send to Packet on each.', 'ok');
-        loadAll();
-      });
+      if (!plan.adds.length && !plan.updates.length) {
+        note('stockMsg', 'There was nothing to add or change in that sheet.', 'err'); return;
+      }
+      clearNote('stockMsg');
+      pendingCSV = out.items;
+      $('csvSummary').innerHTML = (out.format ? '<p style="margin:0 0 8px">Read as a <b>' + esc(O.SHOPS[out.format]) + '</b> export.</p>' : '') + describePlan(plan, true);
+      $('csvPanel').style.display = 'block';
+      $('csvPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
     reader.readAsText(f);
+  }
+
+  $('csvCancel').addEventListener('click', closeCSV);
+  $('csvGo').addEventListener('click', function () { runCSV(true); });
+  $('csvDraft').addEventListener('click', function () { runCSV(false); });
+
+  // New rows go in one insert. Updates go one row at a time (each
+  // has its own figures), a few at once so a big sheet is quick.
+  function runCSV(send) {
+    if (!pendingCSV) return;
+    var plan = O.planUpload(pendingCSV, state.items, send);
+    var btns = [$('csvGo'), $('csvDraft')]; btns.forEach(function (b) { b.disabled = true; });
+    note('stockMsg', 'Saving…', 'ok');
+    var failures = [];
+    var addStep = plan.adds.length
+      ? db.from('outlet_items').insert(plan.adds).select('id').then(function (r) {
+          if (r.error) failures.push('The new items were not added: ' + dbError(r.error));
+        })
+      : Promise.resolve();
+    addStep.then(function () {
+      var queue = plan.updates.slice();
+      function worker() {
+        var u = queue.shift();
+        if (!u) return Promise.resolve();
+        return db.from('outlet_items').update(u.row).eq('id', u.id).select('id').then(function (r) {
+          if (r.error) failures.push((u.row.brand_sku || u.row.title) + ': ' + dbError(r.error));
+          return worker();
+        });
+      }
+      return Promise.all([worker(), worker(), worker(), worker()]);
+    }).then(function () {
+      btns.forEach(function (b) { b.disabled = false; });
+      closeCSV();
+      var done = (plan.adds.length ? plan.adds.length + ' added' : '') +
+        (plan.adds.length && plan.updates.length ? ', ' : '') +
+        (plan.updates.length ? plan.updates.length + ' updated' : '');
+      if (failures.length) {
+        note('stockMsg', 'Some of it did not save. ' + failures.slice(0, 5).join(' ') +
+          (failures.length > 5 ? ' …and ' + (failures.length - 5) + ' more.' : '') +
+          ' Everything else is saved, so you can upload the same sheet again once it is fixed.', 'err');
+      } else {
+        note('stockMsg', 'Done: ' + done + '. ' + (send ? 'New items are with Packet; we will check them and put them on sale.'
+          : 'New items are saved but not sent. Press Send everything not sent when you are ready.'), 'ok');
+      }
+      loadAll();
+    });
+  }
+
+  // Everything still "not sent yet", in one go. Beauty items need the
+  // Responsible Person box first, so they are left for the brand.
+  $('sendAllBtn').addEventListener('click', function () {
+    var ready = state.items.filter(function (i) {
+      return i.status === 'draft' && i.quantity > 0 && (i.category !== 'beauty' || i.uk_rp_confirmed);
+    });
+    if (!ready.length) { note('stockMsg', 'Nothing is ready to send. Beauty items need the Responsible Person box ticked first.', 'err'); return; }
+    if (!confirm('Send ' + ready.length + ' item' + (ready.length === 1 ? '' : 's') + ' to Packet?')) return;
+    this.disabled = true; var btn = this;
+    db.from('outlet_items').update({ status: 'submitted' })
+      .in('id', ready.map(function (i) { return i.id; })).select('id').then(function (r) {
+        btn.disabled = false;
+        if (r.error) { note('stockMsg', dbError(r.error), 'err'); return; }
+        note('stockMsg', 'Sent ' + r.data.length + ' to Packet. We will check them and put them on sale.', 'ok');
+        loadAll();
+      });
+  });
+
+  // ------------------------------------------------------------ shop link
+  // 016_brand_shop_link.sql, netlify-functions/brand-shop.js
+  function loadShopLink() {
+    db.rpc('brand_shop_status').then(function (r) {
+      var box = $('shopLink');
+      if (r.error) { box.style.display = 'none'; return; }   // 016 not run yet: say nothing
+      var s = (r.data || [])[0];
+      box.style.display = 'block';
+      $('shopLinkActs').style.display = s && s.status !== 'waiting' && s.status !== 'disconnected' ? 'flex' : 'none';
+      state.shop = s || null;
+      if (!s) {
+        $('shopLinkState').innerHTML = '<p class="hint" style="margin:0">On Shopify or WooCommerce? Plug your shop in so your Outlet stock comes across ' +
+          'and keeps itself up to date &mdash; no spreadsheets. <a href="#setup" data-go="setup" style="color:var(--terracotta)">Connect it on Get set up</a>.</p>';
+        renderSetup();
+        return;
+      }
+      var where = s.platform === 'woocommerce' ? s.site_url : s.shop_domain;
+      var shopName = s.platform === 'woocommerce' ? 'WooCommerce' : 'Shopify';
+      $('shopLinkTag').textContent = s.outlet_tag; $('shopLinkPct').textContent = s.lowest_pct;
+      var html;
+      if (s.status === 'waiting' && s.needs_packet_app) html = '<p style="margin:0"><b>Waiting for Packet.</b> We&rsquo;re setting up the link for <b>' + esc(where) +
+        '</b> and will email you an install link, usually within a working day.</p>';
+      else if (s.status === 'waiting') html = '<p style="margin:0"><b>Nearly there.</b> Finish connecting <b>' + esc(where) + '</b>: ' +
+        (s.platform === 'woocommerce' ? 'press Connect again on Get set up and approve Packet in WordPress.' : 'open the install link we emailed you, while signed in to Shopify, and press <b>Install</b>.') + '</p>';
+      else if (s.status === 'disconnected') html = '<p style="margin:0"><b>Not connected.</b> ' + esc(s.last_error || 'The link to ' + where + ' is switched off.') +
+        ' You can connect again on <a href="#setup" data-go="setup" style="color:var(--terracotta)">Get set up</a>.</p>';
+      else html = '<p style="margin:0"><span class="tag ' + (s.status === 'connected' ? 'on' : 'off') + '">' + (s.status === 'connected' ? 'Connected' : 'Problem') + '</span> ' +
+        '<b>' + esc(where) + '</b> <span class="sub">' + shopName + '</span>' + (s.last_sync_at ? ' &middot; last checked ' + esc(when(s.last_sync_at)) : '') +
+        ' &middot; ' + s.items_linked + ' size' + (s.items_linked === 1 ? '' : 's') + ' tagged <b>' + esc(s.outlet_tag) + '</b></p>' +
+        (s.status === 'error' && s.last_error ? '<p class="pnote">' + esc(s.last_error) + '</p>' : '') +
+        '<p class="hint" style="margin:6px 0 0">Items from your shop follow it: the number left is taken from ' + shopName + ', and when something sells here we take it off your ' + shopName + ' stock.</p>';
+      var w = s.last_warnings || [];
+      if (w.length) html += '<div class="pnote" style="margin-top:8px"><b>Needs a look:</b><ul style="margin:4px 0 0 18px;padding:0">' +
+        w.slice(0, 8).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+      $('shopLinkState').innerHTML = html;
+      renderSetup();
+    });
+  }
+
+  function when(ts) {
+    var mins = Math.round((Date.now() - new Date(ts).getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + ' min ago';
+    var d = new Date(ts);
+    return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  $('shopLinkSync').addEventListener('click', function () {
+    var btn = this; btn.disabled = true;
+    note('shopLinkMsg', 'Checking your shop…', 'ok');
+    db.auth.getSession().then(function (s) {
+      var token = s.data && s.data.session && s.data.session.access_token;
+      return fetch('/.netlify/functions/brand-shop', {
+        method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'sync' })
+      }).then(function (r) { return r.json().catch(function () { return {}; }); });
+    }).then(function (d) {
+      btn.disabled = false;
+      if (!d || !d.ok) { note('shopLinkMsg', (d && d.error) || 'Could not reach your shop just now. It will try again within ten minutes.', 'err'); loadShopLink(); return; }
+      note('shopLinkMsg', 'Done: ' + d.added + ' new, ' + d.updated + ' updated' +
+        (d.stock_taken ? ', ' + d.stock_taken + ' Packet sale' + (d.stock_taken === 1 ? '' : 's') + ' taken off your Shopify stock' : '') + '.', 'ok');
+      loadAll();
+    }, function () { btn.disabled = false; note('shopLinkMsg', 'Could not reach Packet just now.', 'err'); });
   });
 
   // ---------------------------------------------------------------- orders

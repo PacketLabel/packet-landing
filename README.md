@@ -28,6 +28,9 @@ admin/
   index.html            Single-file admin, showPage() router, Supabase Auth
   brand.html            Packet Outlet brand login. Separate file on purpose: a brand
                         never downloads the staff app. Rules live in 014, not here.
+                        "Get set up" (017): details, terms, connect stock.
+  apply.html            Public "apply to sell" page. Posts to brand-onboard.js only;
+                        never touches the database.
   packet-outlet.js      Outlet labels, money sums and spreadsheet reading, shared by
                         brand.html, index.html and test/outlet.test.js
   sw.js                 Network-first service worker (this is what makes it installable)
@@ -44,6 +47,10 @@ supabase/
                             and security_invoker on the five older views
   015_outlet_shopify.sql    Outlet items in the Shopify shop: Shopify ids, sync
                             bookkeeping, orders from Shopify, oversold flag
+  016_brand_shop_link.sql   A brand's own Shopify feeding the Outlet (brand_shops)
+  017_brand_onboarding.sql  Any brand, any time: applications, versioned terms
+                            accepted online, business details, per-brand pricing
+                            and auto-listing, cross-border gate, WooCommerce links
 netlify-functions/
   ai.js                 Generic Claude proxy — every AI feature goes through it
   manage-users.js       Owner self-manages logins (service-role, owner-gated)
@@ -54,9 +61,35 @@ netlify-functions/
                         client credentials grant, API 2026-10)
   shopify-webhook.js    orders/paid and orders/cancelled from Shopify -> outlet_orders,
                         HMAC-checked against the client secret; emails the brand
+  brand-shop.js         Shop links: a brand's Shopify (Packet's app, or their own app
+                        via client credentials) or WooCommerce (wc-auth approve screen,
+                        keys posted to ?woo=callback). Every 10 min via brand-shop-cron.
+  brand-onboard.js      apply (public, rate-limited, honeypot) / list / decline / spam
+                        (staff) / approve / invite / resend (owners). Makes the brand,
+                        the stamped login (shared rules in _shared/brand-login.js) and
+                        emails a set-password link via Resend.
   _shared/              Code the two Shopify functions share (not functions themselves)
 HARVEST.md              Go-live retro; feeds reusable wins back into the kit
 ```
+
+## Onboarding a brand (017)
+
+Any brand, any platform, any time. Packet decides twice — take them, and the
+commission — and the brand does the rest in their own login:
+
+1. **Apply** at `apply.html`, or Packet invites them from Outlet → New brands.
+2. **Approve** (owner): commission offered (never defaulted), optional normal
+   Outlet discount and auto-listing. Login made, set-password link emailed.
+3. **Set up** in `brand.html`: business details → accept the published terms
+   (copy of wording + % kept in `brand_agreements`) → connect stock: Shopify,
+   WooCommerce, any shop's own export file (Shopify, WooCommerce, Wix,
+   Squarespace, Etsy, BigCommerce recognised in `packet-outlet.js`), the
+   template sheet, or by hand.
+4. Nothing goes live without agreed terms, and nothing from outside GB without
+   an owner's cross-border tick (`outlet_items_ready()` in 017).
+
+Shop links refuse shops not priced in GBP. Terms v1 is seeded as a DRAFT and
+cannot be accepted until an owner publishes it; published versions are locked.
 
 ## Deliberately NOT carried over from the kit
 

@@ -170,7 +170,24 @@ function gid(type, id) {
   return String(id).indexOf('gid://') === 0 ? String(id) : 'gid://shopify/' + type + '/' + id;
 }
 
+// "Fern & Thread" -> "fern-and-thread"
+function slug(name) {
+  return String(name || 'brand').toLowerCase().replace(/&/g, ' and ').normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'brand';
+}
+function brandCollectionInput(brandName, handle) {
+  return {
+    title: brandName + ' Outlet', handle: handle,
+    descriptionHtml: '<p>Returns, end-of-season and sample stock from ' + esc(brandName) + ', at outlet prices. Sent to you direct from ' + esc(brandName) + '.</p>',
+    ruleSet: { appliedDisjunctively: false, rules: [
+      { column: 'VENDOR', relation: 'EQUALS', condition: String(brandName).slice(0, 255) },
+      { column: 'TAG', relation: 'EQUALS', condition: 'outlet' }
+    ] }
+  };
+}
+
 module.exports = {
+  slug, brandCollectionInput,
   SKU_PREFIX, skuFor, itemIdFromSku, productInput, shopStatus, needsSync,
   verifyHmac, orderRows, pounds, gid, CONDITION_LABELS
 };

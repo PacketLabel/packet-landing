@@ -142,54 +142,10 @@ async function setRole(userId, role) {
 }
 
 // ── Brand logins (Packet Outlet) ─────────────────────────────
-// The order matters, and every step is checked:
-//   1. the brand must exist on the Brands page
-//   2. the login is created already stamped packet_role = 'brand' in
-//      its app metadata. Only this key can set that; the brand cannot
-//      change it. 014's trigger reads the stamp and makes the profile
-//      a brand from the first instant, and current_user_role() falls
-//      back to it if the profile row is ever missing.
-//   3. the profile row is written again explicitly and read back
-//   4. if 3 does not come back right, the login is deleted. A half-made
-//      brand login is worse than none.
-async function createBrandLogin({ email, password, full_name, brandId }) {
-  if (!email || !password) throw new Error('Email and password are required');
-  if (String(password).length < 8) throw new Error('The password needs to be at least eight characters');
-  if (!/^[0-9a-f-]{36}$/i.test(String(brandId || ''))) throw new Error('Pick which brand this login is for');
-
-  const br = await fetch(`${SUPABASE_URL}/rest/v1/brands?id=eq.${brandId}&select=id,name`, { headers: adminHeaders });
-  const brands = br.ok ? await br.json() : [];
-  if (!brands.length) throw new Error('That brand is not on the Brands page');
-
-  const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-    method: 'POST', headers: adminHeaders,
-    body: JSON.stringify({
-      email, password, email_confirm: true,
-      user_metadata: full_name ? { full_name } : {},
-      app_metadata: { packet_role: 'brand', brand_id: brandId },
-    }),
-  });
-  const u = await r.json();
-  if (!r.ok) throw new Error(u.msg || u.error_description || u.error || 'Could not create the login');
-
-  try {
-    const w = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?on_conflict=id`, {
-      method: 'POST',
-      headers: { ...adminHeaders, prefer: 'resolution=merge-duplicates,return=representation' },
-      body: JSON.stringify({ id: u.id, role: 'brand', brand_id: brandId, full_name: full_name || '' }),
-    });
-    if (!w.ok) throw new Error('profile write failed: ' + (await w.text()));
-    const back = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${u.id}&select=role,brand_id`, { headers: adminHeaders });
-    const rows = back.ok ? await back.json() : [];
-    if (!rows[0] || rows[0].role !== 'brand' || rows[0].brand_id !== brandId) {
-      throw new Error('profile did not read back as a brand');
-    }
-  } catch (err) {
-    console.error('createBrandLogin rolled back', err);
-    await deleteUser(u.id).catch(() => {});
-    throw new Error('Could not finish setting up that login, so it has been removed. Has 014_outlet.sql been run?');
-  }
-  return { ok: true, id: u.id, brand: brands[0].name };
+// The rules live in _shared/brand-login.js, shared with brand-onboard.js.
+const BrandLogin = require('./_shared/brand-login.js');
+async function createBrandLogin(body) {
+  return BrandLogin.createBrandLogin({ email: body.email, password: body.password, full_name: body.full_name, brandId: body.brandId });
 }
 
 async function isStampedBrand(userId) {

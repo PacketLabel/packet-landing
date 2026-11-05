@@ -57,5 +57,42 @@ check('every problem listed, nothing saved', [bad.items.length, bad.problems.len
 var missing = O.rowsFromCSV('title,price\nA,10\n');
 check('missing columns named', missing.problems.length, 2);
 
+var dup = O.rowsFromCSV('title,condition,lowest_price,your_code\nA,new,10,HS-1\nB,new,10,hs-1\n');
+check('same code twice is refused', dup.problems, ['Row 3: your_code "hs-1" is also on row 2. Each code can only appear once.']);
+var zero = O.rowsFromCSV('title,condition,lowest_price,quantity\nA,new,10,0\n');
+check('quantity 0 is allowed (means sold out)', [zero.problems, zero.items[0] && zero.items[0].quantity], [[], 0]);
+var rp = O.rowsFromCSV('title,category,condition,lowest_price,UK Responsible Person\nSerum,skincare,new,10,Yes\n');
+check('Responsible Person column read', rp.items[0] && rp.items[0].uk_rp_confirmed, true);
+
+console.log('planUpload — re-uploading the same sheet updates, never duplicates');
+var have = [
+  { id: 'a', brand_sku: 'HS-1', status: 'live',      quantity: 3, sale_minor: 2000, uk_rp_confirmed: false },
+  { id: 'b', brand_sku: 'HS-2', status: 'draft',     quantity: 1, sale_minor: null, uk_rp_confirmed: false },
+  { id: 'c', brand_sku: 'HS-3', status: 'withdrawn', quantity: 2, sale_minor: null, uk_rp_confirmed: false },
+  { id: 'd', brand_sku: 'HS-4', status: 'draft',     quantity: 1, sale_minor: null, uk_rp_confirmed: true }
+];
+var sheet = O.rowsFromCSV(
+  'title,category,condition,lowest_price,quantity,your_code,photo_links\n' +
+  'Dress,clothing,new,15,0,HS-1,\n' +                 // live, now sold out elsewhere
+  'Top,clothing,new,12,2,hs-2,https://x.com/a.jpg\n' + // draft -> sent (code match ignores case)
+  'Skirt,clothing,new,12,2,HS-3,\n' +                  // taken back -> updated, not re-sent
+  'Serum,beauty,new,9,1,HS-4,\n' +                     // beauty, RP already ticked on the item
+  'Coat,clothing,new,40,1,HS-9,\n' +                   // new
+  'Lip oil,beauty,new,8,1,,\n' +                       // new beauty, no RP -> held back
+  'Scarf,clothing,new,8,0,,\n').items;                 // new with 0 -> left out
+var plan = O.planUpload(sheet, have, true);
+check('two new items, two held/skipped counted', [plan.adds.length, plan.adds.map(function (r) { return r.status; }), plan.skipped, plan.held], [2, ['submitted', 'draft'], ['Scarf'], 1]);
+check('four existing items updated', plan.updates.map(function (u) { return u.id; }), ['a', 'b', 'c', 'd']);
+check('live item: quantity 0, status untouched, photos kept', [plan.updates[0].row.quantity, plan.updates[0].row.status, 'photos' in plan.updates[0].row], [0, undefined, false]);
+check('draft item sent', plan.updates[1].row.status, 'submitted');
+check('taken-back item not re-sent', [plan.updates[2].row.status, plan.notResent], [undefined, 1]);
+check('beauty with RP already ticked is sent, tick not cleared', [plan.updates[3].row.status, 'uk_rp_confirmed' in plan.updates[3].row], ['submitted', false]);
+check('sold-out count', plan.soldOut, 1);
+var drafts = O.planUpload(sheet, have, false);
+check('"save without sending" sends nothing', drafts.adds.concat(drafts.updates.map(function (u) { return u.row; }))
+  .filter(function (r) { return r.status === 'submitted'; }).length, 0);
+var tooHigh = O.planUpload(O.rowsFromCSV('title,condition,lowest_price,your_code\nDress,new,25,HS-1\n').items, have, true);
+check('lowest price above live price stops the whole upload', [tooHigh.updates.length, tooHigh.problems.length], [0, 1]);
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

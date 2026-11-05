@@ -226,6 +226,7 @@ async function syncItem(db, settings, item, brandName) {
         patch = { shopify_synced_at: item.updated_at, shopify_sync_error: null };
       } else {
         patch = await createProduct(settings, item, brandName);
+        await ensureBrandCollection(db, settings, item.brand_id, brandName).catch(function (e) { console.warn('brand collection', e.message); });
       }
     } else {
       try {
@@ -245,6 +246,33 @@ async function syncItem(db, settings, item, brandName) {
     await db.patch('outlet_items', 'id=eq.' + item.id, { shopify_sync_error: String(err.message).slice(0, 500) }).catch(function () {});
     return { ok: false, id: item.id, error: err.message };
   }
+}
+
+// ── Each brand's own page in the shop (017) ─────────────────
+// /collections/outlet-<brand>: everything from that brand in the
+// Outlet, kept up to date by Shopify itself (vendor + the outlet tag).
+// Made the first time one of their items goes on sale, so a brand can
+// be sent a link to "your page on Packet" without anyone building it.
+const made = {};
+async function ensureBrandCollection(db, settings, brandId, brandName) {
+  if (!brandName || made[brandId]) return;
+  let row;
+  try { row = (await db.select('brands', 'select=shopify_collection_id&id=eq.' + brandId))[0]; }
+  catch (e) { return; }                                  // 017 not run: skip quietly
+  if (!row || row.shopify_collection_id) { made[brandId] = true; return; }
+  const handle = 'outlet-' + C.slug(brandName);
+  const found = await S.gql('query($q: String!) { collections(first: 5, query: $q) { nodes { id handle } } }', { q: 'handle:' + handle });
+  let id = (found.collections.nodes.filter(function (c) { return c.handle === handle; })[0] || {}).id;
+  if (!id) {
+    const r = await S.gql(`mutation c($input: CollectionInput!) {
+        collectionCreate(input: $input) { collection { id } userErrors { field message } } }`,
+      { input: C.brandCollectionInput(brandName, handle) });
+    S.must(r.collectionCreate, 'Making ' + brandName + '\'s page');
+    id = r.collectionCreate.collection.id;
+    if (settings.shopify_publication_id) await publish(id, settings.shopify_publication_id).catch(function (e) { console.warn('publish', e.message); });
+  }
+  await db.patch('brands', 'id=eq.' + brandId, { shopify_collection_id: id });
+  made[brandId] = true;
 }
 
 async function createProduct(settings, item, brandName) {

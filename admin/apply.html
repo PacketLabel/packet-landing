@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sell with Packet Outlet</title>
+<meta name="description" content="Turn your returns, end-of-season and sample stock into sales. You keep the stock and post it; Packet finds the buyer.">
+<link rel="icon" href="assets/packet-badge.png">
+<meta name="theme-color" content="#F6EFE6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!--
+  Packet Outlet — the public "apply to sell" page. Built 4 November 2026.
+
+  Any brand can apply, from anywhere, on any shop platform. The form
+  posts to netlify-functions/brand-onboard.js (action "apply"); this
+  page never talks to the database. Packet reviews each application
+  in the admin (Outlet → Applications) and, if it's a yes, the brand
+  gets an email with their own login. See 017_brand_onboarding.sql.
+-->
+<style>
+  :root{
+    --cream:#F6EFE6;--panel:#FFFCF7;--brown:#3A2E27;--brown-soft:#6B5B50;
+    --terracotta:#C0623F;--terracotta-dark:#A6512F;--line:rgba(58,46,39,.14);
+    --ok:#4F7A4A;--warn:#8A3324;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--cream);color:var(--brown);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-weight:400;line-height:1.6;-webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;z-index:0;
+    background-image:radial-gradient(rgba(58,46,39,.06) 1px,transparent 1px);background-size:4px 4px}
+  .wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:30px 24px 70px}
+  header{display:flex;align-items:center;gap:14px;margin-bottom:46px}
+  header img{height:28px;width:auto}
+  header .k{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--terracotta);font-weight:500;
+    border-left:1px solid var(--line);padding-left:14px}
+  header a{margin-left:auto;font-size:13px;color:var(--brown-soft);text-decoration:none;border-bottom:1px solid var(--line)}
+  header a:hover{color:var(--terracotta);border-color:var(--terracotta)}
+
+  .layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:56px;align-items:start}
+  .intro{position:sticky;top:30px}
+  h1{font-family:'Lora',Georgia,serif;font-weight:400;font-size:clamp(34px,4.6vw,54px);line-height:1.08;letter-spacing:-.01em;margin-bottom:20px}
+  h1 em{font-style:italic;color:var(--terracotta)}
+  .lede{font-size:17px;color:var(--brown-soft);max-width:440px;margin-bottom:34px}
+  .steps{list-style:none;counter-reset:s;border-top:1px solid var(--line)}
+  .steps li{counter-increment:s;display:grid;grid-template-columns:44px 1fr;gap:6px;padding:16px 0;border-bottom:1px solid var(--line);
+    opacity:0;transform:translateY(8px);animation:rise .6s ease forwards}
+  .steps li:nth-child(1){animation-delay:.08s}.steps li:nth-child(2){animation-delay:.16s}
+  .steps li:nth-child(3){animation-delay:.24s}.steps li:nth-child(4){animation-delay:.32s}
+  .steps li::before{content:counter(s,decimal-leading-zero);font-family:'Lora',Georgia,serif;font-size:15px;color:var(--terracotta);padding-top:1px}
+  .steps b{display:block;font-weight:500;font-size:15px}
+  .steps span{font-size:14px;color:var(--brown-soft)}
+  .facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+  .facts span{font-size:12px;letter-spacing:.06em;padding:6px 11px;border:1px solid var(--line);border-radius:20px;color:var(--brown-soft);background:rgba(255,252,247,.6)}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  form,.done{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:34px 34px 30px;
+    box-shadow:0 1px 0 rgba(58,46,39,.04),0 24px 48px -32px rgba(58,46,39,.35)}
+  form h2,.done h2{font-family:'Lora',Georgia,serif;font-weight:400;font-size:24px;margin-bottom:4px}
+  .sub{font-size:14px;color:var(--brown-soft);margin-bottom:24px}
+  fieldset{border:0;margin:0 0 22px;padding:22px 0 0;border-top:1px solid var(--line)}
+  legend{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terracotta);font-weight:500;padding-right:10px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .full{grid-column:1/-1}
+  .field{margin-bottom:14px}
+  label.l{display:block;font-size:13px;font-weight:500;margin-bottom:6px}
+  label.l small{font-weight:400;color:var(--brown-soft)}
+  input[type=text],input[type=email],input[type=tel],select,textarea{
+    width:100%;padding:11px 13px;font-family:inherit;font-size:15px;color:var(--brown);
+    background:#fff;border:1px solid var(--line);border-radius:2px;line-height:1.4;transition:border-color .15s,box-shadow .15s}
+  textarea{resize:vertical;min-height:96px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--terracotta);box-shadow:0 0 0 3px rgba(192,98,63,.12)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chips label{position:relative;cursor:pointer}
+  .chips input{position:absolute;opacity:0;pointer-events:none}
+  .chips span{display:inline-block;padding:7px 13px;border:1px solid var(--line);border-radius:20px;font-size:14px;background:#fff;transition:all .15s}
+  .chips label:hover span{border-color:var(--brown-soft)}
+  .chips input:checked + span{background:var(--brown);border-color:var(--brown);color:var(--cream)}
+  .chips input:focus-visible + span{box-shadow:0 0 0 3px rgba(192,98,63,.25)}
+  .tick{display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer}
+  .tick input{margin-top:4px;flex:none;accent-color:var(--terracotta)}
+  .note{font-size:13px;color:var(--brown-soft);margin-top:6px}
+  .rp{display:none;background:rgba(192,98,63,.06);border-left:3px solid var(--terracotta);padding:12px 14px;margin-top:12px;font-size:14px}
+  .rp.show{display:block}
+  .rp .chips{margin-top:8px}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  button{margin-top:6px;width:100%;padding:15px 18px;font-family:inherit;font-size:15px;font-weight:500;letter-spacing:.02em;cursor:pointer;
+    background:var(--terracotta);color:var(--cream);border:0;border-radius:2px;transition:background .15s}
+  button:hover{background:var(--terracotta-dark)}
+  button:disabled{opacity:.55;cursor:wait}
+  .msg{display:none;font-size:14px;padding:12px 14px;border-radius:2px;margin-bottom:16px;background:rgba(138,51,36,.09);color:var(--warn)}
+  .msg.show{display:block}
+  .small{font-size:12px;color:var(--brown-soft);margin-top:14px;text-align:center}
+  .small a{color:var(--terracotta)}
+  .done{display:none;text-align:left}
+  .done .mark{width:46px;height:46px;border-radius:50%;background:rgba(79,122,74,.13);color:var(--ok);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
+  .done p{margin-bottom:12px}
+  @media (max-width:900px){ .layout{grid-template-columns:1fr;gap:34px} .intro{position:static} }
+  @media (max-width:560px){ .wrap{padding:22px 16px 50px} header{margin-bottom:30px} header .k{display:none}
+    form,.done{padding:24px 18px} .grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="assets/packet-wordmark.png" alt="Packet">
+    <span class="k">Outlet &middot; for brands</span>
+    <a href="brand.html">Already selling with us? Sign in</a>
+  </header>
+
+  <div class="layout">
+    <section class="intro">
+      <h1>Your returns and end&#8209;of&#8209;season stock, <em>sold</em>.</h1>
+      <p class="lede">Packet Outlet sells independent brands&rsquo; returns, last-season lines and samples to our shoppers at outlet prices &mdash;
+        away from your full-price customers. You keep the stock. We find the buyer.</p>
+      <ol class="steps">
+        <li><div><b>Apply</b><span>Two minutes, below. We read every one ourselves and reply within two working days.</span></div></li>
+        <li><div><b>Get your login</b><span>Add your details, read the terms and accept them online. No paperwork to post.</span></div></li>
+        <li><div><b>Connect your stock</b><span>Plug in your Shopify or WooCommerce shop, upload the product file from any other shop, or add items one at a time.</span></div></li>
+        <li><div><b>Post what sells</b><span>The order appears in your login. Post it straight to the customer. We pay you what&rsquo;s owed.</span></div></li>
+      </ol>
+      <div class="facts"><span>No stock sent to us</span><span>No minimum</span><span>Nothing to pay up front</span><span>You set your lowest price</span></div>
+    </section>
+
+    <section>
+      <form id="f" novalidate>
+        <h2>Apply to sell</h2>
+        <p class="sub">Tell us about your brand. Nothing is agreed until you&rsquo;ve read and accepted the terms in your own login.</p>
+        <div id="msg" class="msg" role="alert"></div>
+
+        <fieldset><legend>Your brand</legend>
+          <div class="grid">
+            <div class="field full"><label class="l" for="company_name">Brand or company name</label><input type="text" id="company_name" name="company_name" autocomplete="organization" required></div>
+            <div class="field"><label class="l" for="website">Website</label><input type="text" id="website" name="website" placeholder="yourbrand.com" inputmode="url" autocomplete="url" required></div>
+            <div class="field"><label class="l" for="instagram_handle">Instagram <small>(optional)</small></label><input type="text" id="instagram_handle" name="instagram_handle" placeholder="@yourbrand"></div>
+            <div class="field"><label class="l" for="country">You post from</label>
+              <select id="country" name="country">
+                <option value="GB">United Kingdom (Great Britain)</option><option value="GB-NIR">Northern Ireland</option>
+                <option value="IE">Ireland</option><option value="FR">France</option><option value="DE">Germany</option>
+                <option value="NL">Netherlands</option><option value="ES">Spain</option><option value="IT">Italy</option>
+                <option value="DK">Denmark</option><option value="SE">Sweden</option><option value="PT">Portugal</option>
+                <option value="BE">Belgium</option><option value="US">United States</option>
+              </select></div>
+            <div class="field"><label class="l" for="platform">Your own shop runs on</label>
+              <select id="platform" name="platform">
+                <option value="shopify">Shopify</option><option value="woocommerce">WooCommerce (WordPress)</option>
+                <option value="wix">Wix</option><option value="squarespace">Squarespace</option><option value="bigcommerce">BigCommerce</option>
+                <option value="etsy">Etsy</option><option value="other">Something else</option><option value="none">I don&rsquo;t have an online shop</option>
+              </select></div>
+          </div>
+        </fieldset>
+
+        <fieldset><legend>What you&rsquo;d sell with us</legend>
+          <div class="field"><label class="l">You sell</label>
+            <div class="chips" id="cats">
+              <label><input type="checkbox" name="categories" value="clothing"><span>Clothing</span></label>
+              <label><input type="checkbox" name="categories" value="footwear"><span>Footwear</span></label>
+              <label><input type="checkbox" name="categories" value="accessories"><span>Accessories</span></label>
+              <label><input type="checkbox" name="categories" value="jewellery"><span>Jewellery</span></label>
+              <label><input type="checkbox" name="categories" value="beauty"><span>Beauty &amp; skincare</span></label>
+              <label><input type="checkbox" name="categories" value="home"><span>Home</span></label>
+              <label><input type="checkbox" name="categories" value="kids"><span>Kids</span></label>
+              <label><input type="checkbox" name="categories" value="pets"><span>Pets</span></label>
+              <label><input type="checkbox" name="categories" value="other"><span>Something else</span></label>
+            </div>
+            <div class="rp" id="rpBox">
+              Packet can only sell beauty, skincare, haircare, fragrance and nail products if you hold the <b>UK Responsible Person</b> role for them.
+              Do you?
+              <div class="chips">
+                <label><input type="radio" name="uk_rp" value="yes"><span>Yes, we do</span></label>
+                <label><input type="radio" name="uk_rp" value="no"><span>No</span></label>
+                <label><input type="radio" name="uk_rp" value="unknown"><span>Not sure</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="field"><label class="l">The kind of stock <small>(tick any)</small></label>
+            <div class="chips">
+              <label><input type="checkbox" name="stock_kinds" value="returns"><span>Customer returns</span></label>
+              <label><input type="checkbox" name="stock_kinds" value="end_of_season"><span>End of season</span></label>
+              <label><input type="checkbox" name="stock_kinds" value="samples"><span>Samples</span></label>
+              <label><input type="checkbox" name="stock_kinds" value="seconds"><span>Seconds / small faults</span></label>
+              <label><input type="checkbox" name="stock_kinds" value="damaged_packaging"><span>Damaged packaging</span></label>
+              <label><input type="checkbox" name="stock_kinds" value="overstock"><span>Overstock</span></label>
+            </div></div>
+          <div class="field"><label class="l" for="approx_units">Roughly how many items at any one time?</label>
+            <select id="approx_units" name="approx_units">
+              <option value="">Choose&hellip;</option><option>Under 20</option><option>20 to 100</option><option>100 to 500</option><option>More than 500</option>
+            </select></div>
+        </fieldset>
+
+        <fieldset><legend>You</legend>
+          <div class="grid">
+            <div class="field"><label class="l" for="contact_name">Your name</label><input type="text" id="contact_name" name="contact_name" autocomplete="name" required></div>
+            <div class="field"><label class="l" for="contact_email">Email</label><input type="email" id="contact_email" name="contact_email" autocomplete="email" required>
+              <div class="note">Your login will be made for this address.</div></div>
+            <div class="field"><label class="l" for="contact_phone">Phone <small>(optional)</small></label><input type="tel" id="contact_phone" name="contact_phone" autocomplete="tel"></div>
+            <div class="field full"><label class="l" for="message">Anything else? <small>(optional)</small></label>
+              <textarea id="message" name="message" maxlength="3000" placeholder="What you'd like to clear, how you found us, any questions"></textarea></div>
+          </div>
+          <div class="hp" aria-hidden="true"><label for="company_fax">Leave this empty</label><input type="text" id="company_fax" name="company_fax" tabindex="-1" autocomplete="off"></div>
+          <label class="tick"><input type="checkbox" id="agree_contact" name="agree_contact">
+            <span>Packet can use these details to contact me about selling on Packet Outlet. We won&rsquo;t add you to any mailing list.</span></label>
+        </fieldset>
+
+        <button type="submit" id="go">Send my application</button>
+        <p class="small">Questions first? <a href="mailto:info@packetlabel.com">info@packetlabel.com</a> &middot; Packet Label Limited, company 17392293</p>
+      </form>
+
+      <div class="done" id="done" aria-live="polite">
+        <div class="mark">&#10003;</div>
+        <h2>Thank you &mdash; we have it.</h2>
+        <p>We read every application ourselves and will reply within two working days. A copy is on its way to your inbox (check spam, just in case).</p>
+        <p>If it&rsquo;s a fit, you&rsquo;ll get a second email with your own login, where you can read the terms and connect your stock.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var f = document.getElementById('f'), msg = document.getElementById('msg'), go = document.getElementById('go');
+  function vals(name) { return Array.prototype.map.call(f.querySelectorAll('input[name="' + name + '"]:checked'), function (i) { return i.value; }); }
+  function showRp() { document.getElementById('rpBox').classList.toggle('show', vals('categories').indexOf('beauty') > -1); }
+  document.getElementById('cats').addEventListener('change', showRp);
+
+  // Platform from the link Packet sends, e.g. apply.html?shop=woocommerce
+  var q = new URLSearchParams(location.search);
+  if (q.get('shop')) { var p = document.getElementById('platform'); if (p.querySelector('option[value="' + q.get('shop') + '"]')) p.value = q.get('shop'); }
+
+  function fail(text) { msg.textContent = text; msg.classList.add('show'); msg.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    msg.classList.remove('show');
+    var body = {
+      action: 'apply',
+      company_name: f.company_name.value, website: f.website.value, instagram_handle: f.instagram_handle.value,
+      country: f.country.value, platform: f.platform.value,
+      categories: vals('categories'), stock_kinds: vals('stock_kinds'), uk_rp: (vals('uk_rp')[0] || ''),
+      approx_units: f.approx_units.value,
+      contact_name: f.contact_name.value, contact_email: f.contact_email.value, contact_phone: f.contact_phone.value,
+      message: f.message.value, company_fax: f.company_fax.value,
+      agree_contact: f.agree_contact.checked
+    };
+    var missing = [];
+    if (!body.company_name.trim()) missing.push('your brand name');
+    if (!body.website.trim()) missing.push('your website');
+    if (!body.categories.length) missing.push('what you sell');
+    if (!body.contact_name.trim()) missing.push('your name');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.contact_email.trim())) missing.push('a working email');
+    if (missing.length) { fail('Please add ' + missing.join(', ') + '.'); return; }
+    if (!body.agree_contact) { fail('Tick the box so we can reply to you.'); return; }
+
+    go.disabled = true; go.textContent = 'Sending…';
+    fetch('/.netlify/functions/brand-onboard', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        go.disabled = false; go.textContent = 'Send my application';
+        if (!res.ok || !res.d.ok) { fail(res.d.error || 'That did not go through. Please try again, or email info@packetlabel.com.'); return; }
+        f.style.display = 'none';
+        var d = document.getElementById('done'); d.style.display = 'block'; d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, function () {
+        go.disabled = false; go.textContent = 'Send my application';
+        fail('Could not reach us just now. Check your connection and try again.');
+      });
+  });
+})();
+</script>
+</body>
+</html>
