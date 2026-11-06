@@ -383,7 +383,7 @@
 
       <!-- What an upload will do, before anything is saved -->
       <div class="panel" id="csvPanel" style="display:none">
-        <h2 style="margin-top:0">Your spreadsheet</h2>
+        <h2 style="margin-top:0">Your file</h2>
         <div id="csvSummary"></div>
         <div class="field" style="margin:14px 0 4px">
           <label for="csvDisc">Your Outlet price: take this much off your normal prices</label>
@@ -1324,15 +1324,12 @@
       var box = $('shopLink');
       if (r.error) { box.style.display = 'none'; return; }   // 016 not run yet: say nothing
       var s = (r.data || [])[0];
-      box.style.display = 'block';
-      $('shopLinkActs').style.display = s && s.status !== 'waiting' && s.status !== 'disconnected' ? 'flex' : 'none';
       state.shop = s || null;
-      if (!s) {
-        $('shopLinkState').innerHTML = '<p class="hint" style="margin:0">On Shopify or WooCommerce? Plug your shop in so your Outlet stock comes across ' +
-          'and keeps itself up to date &mdash; no spreadsheets. <a href="#setup" data-go="setup" style="color:var(--terracotta)">Connect it on Get set up</a>.</p>';
-        renderSetup();
-        return;
-      }
+      // No shop linked: say nothing. The "Connect your shop" button is
+      // there for anyone who wants one; the box only appears once a shop is.
+      if (!s) { box.style.display = 'none'; renderSetup(); return; }
+      box.style.display = 'block';
+      $('shopLinkActs').style.display = s.status !== 'waiting' && s.status !== 'disconnected' ? 'flex' : 'none';
       var where = s.platform === 'woocommerce' ? s.site_url : s.shop_domain;
       var shopName = s.platform === 'woocommerce' ? 'WooCommerce' : 'Shopify';
       $('shopLinkTag').textContent = s.outlet_tag; $('shopLinkPct').textContent = s.lowest_pct;
