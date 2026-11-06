@@ -122,12 +122,12 @@
   }
 
   var CSV_COLUMNS = ['title', 'category', 'condition', 'condition_note', 'size', 'colour',
-                     'quantity', 'normal_price', 'lowest_price', 'your_code', 'description',
+                     'quantity', 'normal_price', 'lowest_price', 'outlet_price', 'your_code', 'description',
                      'photo_links', 'available_until', 'uk_responsible_person'];
 
   function csvTemplate() {
     return CSV_COLUMNS.join(',') + '\n' +
-      '"Recycled wool cardigan",clothing,returned_as_new,,M,Olive,1,89.00,45.00,SS-CARD-OL-M,' +
+      '"Recycled wool cardigan",clothing,returned_as_new,,M,Olive,1,89.00,45.00,62.00,SS-CARD-OL-M,' +
       '"Returned unworn, tags attached",https://example.com/photo1.jpg,\n';
   }
 
@@ -164,12 +164,20 @@
 
   // Same reading as the shop link (brand-shop-core.js categoryFrom), for
   // the category names a shop export uses ("Womens > Dresses").
+  // The same sum as outlet_suggest_minor() in 017: pct off the normal
+  // price, rounded down to the 50p, never below the lowest.
+  function outletPrice(rrp, floor, pct) {
+    if (pct === null || pct === undefined || pct === '' || isNaN(Number(pct))) return null;
+    if (!rrp) return floor;
+    return Math.max(floor, Math.floor(rrp * (100 - Number(pct)) / 100 / 50) * 50);
+  }
+
   function guessCategory(text) {
     var s = String(text || '').toLowerCase();
     if (/skin|hair|fragrance|perfume|make ?up|cosmetic|beauty|nail|serum|lip/.test(s)) return 'beauty';
     if (/shoe|boot|trainer|sneaker|sandal|heel|loafer/.test(s)) return 'footwear';
     if (/ring|necklace|earring|bracelet|jewel/.test(s)) return 'jewellery';
-    if (/bag|scarf|hat\b|belt|glove|sunglass|purse|wallet/.test(s)) return 'accessories';
+    if (/bag|tote|scarf|hats?\b|beanie|\bcap\b|belt|glove|sunglass|purse|wallet|card holder/.test(s)) return 'accessories';
     if (/kid|child|baby|toddler/.test(s)) return 'kids';
     if (/\bpet|\bdog|\bcat\b|collar/.test(s)) return 'pets';
     if (/home|mug|candle|cushion|throw|ceramic|kitchen/.test(s)) return 'home';
@@ -376,6 +384,8 @@
       quantity: ['quantity', 'qty', 'stock', 'how_many'],
       normal_price: ['normal_price', 'rrp', 'full_price', 'price'],
       lowest_price: ['lowest_price', 'lowest', 'minimum_price', 'min_price', 'floor'],
+      // The brand's asking price on the Outlet (018). Optional.
+      outlet_price: ['outlet_price', 'your_outlet_price', 'packet_price', 'outlet'],
       your_code: ['your_code', 'sku', 'code', 'product_code'],
       description: ['description', 'details'],
       photo_links: ['photo_links', 'photos', 'photo', 'images', 'image'],
@@ -442,6 +452,10 @@
 
       var photos = get('photo_links').split(/[\s|;]+/).filter(function (u) { return /^https:\/\//i.test(u); });
 
+      var bp = get('outlet_price') ? toPence(get('outlet_price')) : null;
+      if (bp !== null && (isNaN(bp) || bp <= 0)) { problems.push(line + 'outlet_price "' + get('outlet_price') + '" is not a price.'); bp = null; }
+      if (bp && floor && !isNaN(floor) && bp < floor) problems.push(line + 'the outlet price is below your lowest price.');
+
       items.push({
         title: title.slice(0, 200),
         category: cat || 'other',
@@ -459,6 +473,7 @@
         uk_rp_confirmed: /^(y|yes|true|1|x)$/i.test(get('uk_rp')),
         _row: rowNo
       });
+      if (bp) items[items.length - 1].brand_price_minor = bp;
     }
     if (!items.length && !problems.length) problems.push('There are no rows under the heading row.');
     return { items: problems.length ? [] : items, problems: problems };
@@ -492,7 +507,7 @@
     items.forEach(function (it) {
       var line = 'Row ' + it._row + ': ';
       var row = {};
-      Object.keys(it).forEach(function (k) { if (k !== '_row') row[k] = it[k]; });
+      Object.keys(it).forEach(function (k) { if (k.charAt(0) !== '_') row[k] = it[k]; });
       var rpOk = row.category !== 'beauty' || row.uk_rp_confirmed;
       var old = row.brand_sku ? byCode[String(row.brand_sku).trim().toLowerCase()] : null;
 
@@ -534,7 +549,7 @@
     conditionNeedsNote: conditionNeedsNote,
     money: money, toPence: toPence, payout: payout,
     parseCSV: parseCSV, rowsFromCSV: rowsFromCSV, csvTemplate: csvTemplate,
-    readShopExport: readShopExport, SHOPS: SHOPS,
+    readShopExport: readShopExport, SHOPS: SHOPS, outletPrice: outletPrice,
     CSV_COLUMNS: CSV_COLUMNS
   };
 

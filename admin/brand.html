@@ -356,14 +356,24 @@
       <div class="notice" id="notReady" style="display:none"></div>
       <div class="cards" id="stockCards"></div>
 
+      <div class="bar" id="discBar" style="margin-bottom:4px">
+        <span>Your usual Outlet discount</span>
+        <input type="text" id="discPct" inputmode="decimal" placeholder="none" style="max-width:80px"> <span>% off your normal price</span>
+        <button class="link" id="discSave">Save</button>
+        <span class="hint" id="discHint" style="margin:0">Used for anything you send without its own outlet price.</span>
+      </div>
       <div class="bar">
         <button class="btn" id="addItemBtn">Add an item</button>
-        <label class="btn" for="csvFile">Upload a spreadsheet</label>
-        <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none">
+        <label class="btn" for="csvFile">Upload a file</label>
+        <input type="file" id="csvFile" accept=".csv,.tsv,.txt,text/csv" style="display:none">
+        <button class="btn ghost" data-go="setup" id="connectShopBtn">Connect your shop</button>
         <button class="link" id="csvTemplateBtn">Download the spreadsheet template</button>
         <button class="btn" id="sendAllBtn" style="display:none"></button>
       </div>
-      <p class="hint">Keep one spreadsheet and upload it again whenever your stock changes. Rows with
+      <p class="hint">Upload our spreadsheet, or the product export file straight from your own shop
+        (Shopify, WooCommerce, Wix, Squarespace, Etsy, BigCommerce). You can use more than one way: a connected
+        shop, files and items added by hand all sit side by side here.
+        Keep one spreadsheet and upload it again whenever your stock changes. Rows with
         the same <b>your_code</b> as something already here update it instead of adding it twice, and a
         quantity of <b>0</b> marks it sold out.</p>
 
@@ -373,6 +383,16 @@
       <div class="panel" id="csvPanel" style="display:none">
         <h2 style="margin-top:0">Your spreadsheet</h2>
         <div id="csvSummary"></div>
+        <div class="field" style="margin:14px 0 4px">
+          <label for="csvDisc">Your Outlet price: take this much off your normal prices</label>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <input type="text" id="csvDisc" inputmode="decimal" placeholder="e.g. 20" style="max-width:90px"> <span>% off</span>
+            <span class="hint" id="csvDiscEg" style="margin:0"></span>
+          </div>
+          <div class="help">Applied to every item in this file that doesn&rsquo;t already have an outlet price in it, never below your lowest.
+            Leave it blank and Packet sets the price. You can change any single item afterwards.</div>
+        </div>
+        <label class="tick" style="margin:4px 0 0"><input type="checkbox" id="csvDiscKeep" checked><span>Use this as my usual Outlet discount</span></label>
         <div class="bar">
           <button class="btn" id="csvGo">Send to Packet</button>
           <button class="btn" id="csvDraft" style="background:transparent;color:inherit;border:1px solid currentColor">Save without sending</button>
@@ -400,6 +420,8 @@
             <div class="help">Optional. What it sells for at full price.</div></div>
           <div class="field"><label for="fFloor">Lowest price you&rsquo;ll accept (£)</label><input type="text" id="fFloor" inputmode="decimal" placeholder="45.00">
             <div class="help">The least a customer can pay for it. We will never list it below this.</div></div>
+          <div class="field"><label for="fBrandPrice">Your Outlet price (£) &mdash; optional</label><input type="text" id="fBrandPrice" inputmode="decimal" placeholder="e.g. 65.00">
+            <div class="help" id="fBrandPriceHelp">What you&rsquo;d like it to sell for on Packet. Blank uses your usual Outlet discount.</div></div>
           <div class="field"><label for="fUntil">Available until</label><input type="date" id="fUntil">
             <div class="help">Optional. We take it down on this date.</div></div>
           <div class="field" style="grid-column:1/-1"><label for="fDesc">Anything else a buyer should know</label>
@@ -836,6 +858,7 @@
     });
   });
   $('wHandGo').addEventListener('click', function () { showPage('stock'); $('addItemBtn').click(); });
+  $('connectShopBtn').addEventListener('click', function () { $('stepStock').classList.add('open'); setTimeout(function () { $('stepStock').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); });
   $('xFile').addEventListener('change', function () {
     var f = this.files && this.files[0]; this.value = '';
     if (!f) return;
@@ -866,7 +889,19 @@
   });
 
   // ----------------------------------------------------------------- stock
+  // On sale: Packet's price. Otherwise what the brand has asked for, or
+  // what their usual discount works out at — marked as theirs, because
+  // Packet still confirms it.
+  function outletPriceCell(i, usual) {
+    if (i.sale_minor && (i.status === 'live' || i.status === 'paused')) return esc(O.money(i.sale_minor));
+    var ask = i.brand_price_minor || (usual !== null && usual !== undefined && i.rrp_minor ? O.outletPrice(i.rrp_minor, i.floor_minor, usual) : null);
+    if (!ask) return '<span class="sub">Packet sets</span>';
+    return esc(O.money(ask)) + '<div class="sub">' + (i.brand_price_minor ? 'your price' : 'your ' + esc(Number(usual)) + '% off') + '</div>';
+  }
+
   function renderStock() {
+    var ud = state.brand && state.brand.brand_discount_pct;
+    if (document.activeElement !== $('discPct')) $('discPct').value = ud === null || ud === undefined ? '' : Number(ud);
     var n = { live: 0, submitted: 0, draft: 0, units: 0 };
     state.items.forEach(function (i) {
       if (n[i.status] !== undefined) n[i.status]++;
@@ -887,7 +922,8 @@
       return;
     }
     var html = '<tr><th></th><th>Item</th><th class="num">How many</th><th class="num">Lowest</th>' +
-               '<th class="num">On sale at</th><th>Where it&rsquo;s got to</th><th></th></tr>';
+               '<th class="num">Outlet price</th><th>Where it&rsquo;s got to</th><th></th></tr>';
+    var usual = state.brand && state.brand.brand_discount_pct;
     state.items.forEach(function (i) {
       var st = O.ITEM_STATUS[i.status] || { label: i.status, tag: 'dim' };
       var ph = (i.photos || []).map(safeUrl).filter(Boolean)[0];
@@ -910,7 +946,7 @@
           (i.packet_note ? '<div class="pnote">From Packet: ' + esc(i.packet_note) + '</div>' : '') + '</td>' +
         '<td class="num">' + esc(i.quantity) + '</td>' +
         '<td class="num">' + esc(O.money(i.floor_minor)) + '</td>' +
-        '<td class="num">' + (i.sale_minor ? esc(O.money(i.sale_minor)) : '<span class="sub">&mdash;</span>') + '</td>' +
+        '<td class="num">' + outletPriceCell(i, usual) + '</td>' +
         '<td>' + (soldOut ? '<span class="tag dim">Sold out</span>' : '<span class="tag ' + st.tag + '">' + esc(st.label) + '</span>') + '</td>' +
         '<td style="white-space:nowrap">' + acts.join(' ') + '</td></tr>';
     });
@@ -974,6 +1010,10 @@
     $('fSku').value       = item ? (item.brand_sku || '') : '';
     $('fRrp').value       = item && item.rrp_minor ? (item.rrp_minor / 100).toFixed(2) : '';
     $('fFloor').value     = item ? (item.floor_minor / 100).toFixed(2) : '';
+    $('fBrandPrice').value = item && item.brand_price_minor ? (item.brand_price_minor / 100).toFixed(2) : '';
+    var ud = state.brand && state.brand.brand_discount_pct;
+    $('fBrandPriceHelp').textContent = 'What you\u2019d like it to sell for on Packet. ' +
+      (ud !== null && ud !== undefined ? 'Blank uses your usual ' + Number(ud) + '% off.' : 'Blank and Packet sets the price.');
     $('fUntil').value     = item ? (item.available_until || '') : '';
     $('fDesc').value      = item ? (item.description || '') : '';
     $('fRp').checked      = item ? !!item.uk_rp_confirmed : false;
@@ -1004,6 +1044,9 @@
     if (floor === null || isNaN(floor) || floor <= 0) return note('itemMsg', 'Put in the lowest price you will accept, like 45.00.', 'err');
     if (rrp !== null && (isNaN(rrp) || rrp <= 0)) return note('itemMsg', 'Your normal price does not look like a price.', 'err');
     if (rrp && floor > rrp) return note('itemMsg', 'The lowest price is above your normal price.', 'err');
+    var bpTxt = $('fBrandPrice').value.trim(), bp = bpTxt ? O.toPence(bpTxt) : null;
+    if (bpTxt && (bp === null || isNaN(bp) || bp <= 0)) return note('itemMsg', 'Your Outlet price does not look like a price.', 'err');
+    if (bp && bp < floor) return note('itemMsg', 'Your Outlet price is below the lowest price you\u2019ll accept.', 'err');
     if (!/^\d+$/.test(String(qty))) return note('itemMsg', 'How many should be a whole number.', 'err');
     if (O.conditionNeedsNote(cond) && !noteTxt) return note('itemMsg', 'Say exactly what is wrong with it. The customer sees this.', 'err');
     if (send && cat === 'beauty' && !$('fRp').checked)
@@ -1014,7 +1057,7 @@
       condition_note: O.conditionNeedsNote(cond) ? noteTxt : (noteTxt || null),
       size: $('fSize').value.trim() || null, colour: $('fColour').value.trim() || null,
       quantity: qty, brand_sku: $('fSku').value.trim() || null,
-      rrp_minor: rrp, floor_minor: floor,
+      rrp_minor: rrp, floor_minor: floor, brand_price_minor: bp,
       available_until: $('fUntil').value || null,
       description: $('fDesc').value.trim() || null,
       photos: state.photos.slice(0, MAX_PHOTOS),
@@ -1109,6 +1152,22 @@
   var pendingCSV = null;
 
   function closeCSV() { pendingCSV = null; $('csvPanel').style.display = 'none'; }
+  function csvDiscExample() {
+    var d = $('csvDisc').value.replace('%', '').trim();
+    var eg = (pendingCSV || []).filter(function (i) { return i.rrp_minor; })[0];
+    $('csvDiscEg').textContent = d !== '' && eg && Number(d) >= 0 && Number(d) < 100
+      ? 'e.g. ' + eg.title + ': ' + O.money(eg.rrp_minor) + ' \u2192 ' + O.money(eg.brand_price_minor || O.outletPrice(eg.rrp_minor, eg.floor_minor, Number(d))) : '';
+  }
+  $('csvDisc').addEventListener('input', csvDiscExample);
+  $('discSave').addEventListener('click', function () {
+    var t = $('discPct').value.replace('%', '').trim(), d = t === '' ? null : Number(t);
+    if (d !== null && !(d >= 0 && d < 100)) { note('stockMsg', 'The discount should be between 0 and 99%.', 'err'); return; }
+    db.rpc('brand_set_discount', { p_pct: d }).then(function (r) {
+      if (r.error) { note('stockMsg', dbError(r.error), 'err'); return; }
+      note('stockMsg', d === null ? 'Cleared. Packet will price anything without its own outlet price.' : 'Saved. Anything without its own outlet price will be ' + d + '% off your normal price.', 'ok');
+      refreshBrand().then(renderStock);
+    });
+  });
 
   function describePlan(p, send) {
     var lines = [];
@@ -1137,7 +1196,23 @@
     showPage('stock');
     var reader = new FileReader();
     reader.onload = function () {
+      // A shop's own export uploaded from this page: use the defaults
+      // on Get set up (condition, lowest %, category) and say so.
+      var usedDefaults = false;
+      if (!opts) {
+        var ex = O.readShopExport(O.parseCSV(reader.result));
+        if (ex) {
+          var pct = parseInt($('xPct').value, 10);
+          opts = { default_condition: $('xCond').value, lowest_pct: pct >= 1 && pct <= 100 ? pct : 50,
+                   default_category: $('xCat').value, default_quantity: 1 };
+          usedDefaults = true;
+        }
+      }
       var out = O.rowsFromCSV(reader.result, opts);
+      if (usedDefaults && !out.problems.length) {
+        out.defaultsNote = 'Every item is set to <b>' + esc(O.conditionLabel(opts.default_condition)) + '</b>, with your lowest price at <b>' +
+          esc(opts.lowest_pct) + '%</b> of your price. Change those defaults on <a href="#setup" data-go="setup" style="color:var(--terracotta)">Get set up</a> → Any other shop before uploading, or edit items afterwards.';
+      }
       var plan = out.problems.length ? null : O.planUpload(out.items, state.items, true);
       var problems = out.problems.length ? out.problems : plan.problems;
       if (problems.length) {
@@ -1150,7 +1225,11 @@
       }
       clearNote('stockMsg');
       pendingCSV = out.items;
-      $('csvSummary').innerHTML = (out.format ? '<p style="margin:0 0 8px">Read as a <b>' + esc(O.SHOPS[out.format]) + '</b> export.</p>' : '') + describePlan(plan, true);
+      var ud = state.brand && state.brand.brand_discount_pct;
+      $('csvDisc').value = ud === null || ud === undefined ? '' : Number(ud);
+      csvDiscExample();
+      $('csvSummary').innerHTML = (out.format ? '<p style="margin:0 0 8px">Read as a <b>' + esc(O.SHOPS[out.format]) + '</b> export.' +
+        (out.defaultsNote ? ' ' + out.defaultsNote : '') + '</p>' : '') + describePlan(plan, true);
       $('csvPanel').style.display = 'block';
       $('csvPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
@@ -1165,6 +1244,14 @@
   // has its own figures), a few at once so a big sheet is quick.
   function runCSV(send) {
     if (!pendingCSV) return;
+    var dTxt = $('csvDisc').value.replace('%', '').trim(), d = dTxt === '' ? null : Number(dTxt);
+    if (d !== null && !(d >= 0 && d < 100)) { note('stockMsg', 'The Outlet discount should be between 0 and 99%.', 'err'); return; }
+    if (d !== null) pendingCSV.forEach(function (it) {
+      if (it.brand_price_minor === undefined && it.rrp_minor) it.brand_price_minor = O.outletPrice(it.rrp_minor, it.floor_minor, d);
+    });
+    if ($('csvDiscKeep').checked && dTxt !== '' && (!state.brand || Number(state.brand.brand_discount_pct) !== d)) {
+      db.rpc('brand_set_discount', { p_pct: d }).then(function (r) { if (!r.error) refreshBrand(); });
+    }
     var plan = O.planUpload(pendingCSV, state.items, send);
     var btns = [$('csvGo'), $('csvDraft')]; btns.forEach(function (b) { b.disabled = true; });
     note('stockMsg', 'Saving…', 'ok');

@@ -5641,7 +5641,10 @@ e.g. Stop scanning Boots"></textarea>
       db.from('outlet_orders').select('*').order('created_at', { ascending: false }),
       // 017's columns if it has been run; the older list if not, so the
       // page keeps working either way.
-      db.from('brands').select(OL_BRAND_COLS_017).order('name').then(function (r) {
+      db.from('brands').select(OL_BRAND_COLS_017 + ',brand_discount_pct').order('name').then(function (r) {
+        if (!r.error) { ol.has017 = true; return r; }
+        return db.from('brands').select(OL_BRAND_COLS_017).order('name');
+      }).then(function (r) {
         if (!r.error) { ol.has017 = true; return r; }
         ol.has017 = false;
         return db.from('brands').select('id,name,status,outlet_commission_pct,outlet_terms_source,outlet_terms_agreed_at').order('name');
@@ -5690,12 +5693,22 @@ e.g. Stop scanning Boots"></textarea>
     if (b && b.outlet_discount_pct !== null && b.outlet_discount_pct !== undefined) return Number(b.outlet_discount_pct);
     return ol.defaultDiscount === null || ol.defaultDiscount === undefined ? null : ol.defaultDiscount;
   }
-  // Same sum as outlet_suggest_minor() in 017.
+  // Same order as outlet_item_suggest() in 018: the brand's price on the
+  // item, then the brand's usual discount, then Packet's.
   function olSuggest(item) {
-    var d = olDiscountFor(item.brand_id);
+    if (item.brand_price_minor) return Math.max(item.floor_minor, item.brand_price_minor);
+    var b = olBrand(item.brand_id);
+    var d = b && b.brand_discount_pct !== null && b.brand_discount_pct !== undefined ? Number(b.brand_discount_pct) : olDiscountFor(item.brand_id);
     if (d === null || isNaN(d)) return null;
     if (!item.rrp_minor) return item.floor_minor;
     return Math.max(item.floor_minor, Math.floor(item.rrp_minor * (100 - d) / 100 / 50) * 50);
+  }
+
+  function olSuggestWhy(i) {
+    if (i.brand_price_minor) return 'The brand\u2019s own price';
+    var b = olBrand(i.brand_id);
+    if (b && b.brand_discount_pct !== null && b.brand_discount_pct !== undefined) return 'The brand\u2019s usual ' + Number(b.brand_discount_pct) + '% off';
+    return 'Packet\u2019s ' + olDiscountFor(i.brand_id) + '% off their price';
   }
 
   function loadOnboarding() {
@@ -5959,7 +5972,8 @@ e.g. Stop scanning Boots"></textarea>
         '<div class="acts">' +
           '<input type="text" data-olprice="' + esc(i.id) + '" placeholder="Our price (£)" inputmode="decimal" style="max-width:150px"' +
             (i.sale_minor ? ' value="' + esc((i.sale_minor / 100).toFixed(2)) + '"'
-              : olSuggest(i) ? ' value="' + esc((olSuggest(i) / 100).toFixed(2)) + '" title="Suggested: ' + esc(olDiscountFor(i.brand_id)) + '% off their price"' : '') + '>' +
+              : olSuggest(i) ? ' value="' + esc((olSuggest(i) / 100).toFixed(2)) + '" title="' + esc(olSuggestWhy(i)) + '"' : '') + '>' +
+          (olSuggest(i) && !i.sale_minor ? '<span class="hint" style="margin:0 0 0 8px">' + esc(olSuggestWhy(i)) + '</span>' : '') +
           '<button class="btn" data-ollive="' + esc(i.id) + '"' + (beautyBlock ? ' disabled' : '') + '>Put on sale</button>' +
           '<button class="btn ghost" data-olreject="' + esc(i.id) + '">Turn down</button>' +
         '</div></div>';
