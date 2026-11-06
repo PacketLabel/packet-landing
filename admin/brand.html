@@ -146,7 +146,8 @@
   .way span{font-size:12px;color:var(--brown-soft)}
   .way:hover{border-color:var(--brown-soft)}
   .way.sel{border-color:var(--terracotta);box-shadow:0 0 0 2px rgba(192,98,63,.18)}
-  .wayp{display:none}.wayp.show{display:block}
+  .wayp{display:none}.wayp.show{display:block;border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
+  .wayh{font-weight:500;font-size:15px;margin:0 0 10px}
   ol.how{margin:6px 0 12px 18px;padding:0;font-size:14px}
   ol.how li{margin-bottom:4px}
   code{background:rgba(58,46,39,.06);padding:1px 5px;border-radius:2px}
@@ -254,7 +255,8 @@
         <li class="step" id="stepStock">
           <div class="sh" data-step="stepStock"><span class="num">3</span><span class="st">Your stock</span><span class="ss" id="ssStock"></span></div>
           <div class="sb">
-            <p style="margin:0 0 4px">How should your stock reach us? Choose whichever suits &mdash; you can change later.</p>
+            <p style="margin:0 0 4px">How should your stock reach us? <b>Pick as many as you need</b> &mdash; tap again to unpick.</p>
+            <p class="hint" style="margin:0 0 4px">Most brands use one, but you can mix them: say, your Shopify for main stock plus a spreadsheet for samples. Each one has its own button below, so there&rsquo;s nothing else to save here.</p>
             <div class="ways" id="ways">
               <button class="way" data-way="shopify"><b>Shopify</b><span>Plug your shop in. Tag what to offer; it keeps itself up to date.</span></button>
               <button class="way" data-way="woo"><b>WooCommerce</b><span>Plug your WordPress shop in. Tag what to offer.</span></button>
@@ -850,10 +852,17 @@
   O.CATEGORIES.forEach(function (c) { $('xCat').insertAdjacentHTML('beforeend', '<option value="' + c.v + '">' + esc(c.label) + '</option>'); });
   $('xCond').value = 'returned_as_new';
   document.querySelectorAll('.way').forEach(function (w) {
+    var head = document.createElement('div'); head.className = 'wayh'; head.textContent = w.querySelector('b').textContent;
+    $('way-' + w.dataset.way).insertBefore(head, $('way-' + w.dataset.way).firstChild);
+    w.setAttribute('aria-pressed', 'false');
     w.addEventListener('click', function () {
-      document.querySelectorAll('.way').forEach(function (x) { x.classList.toggle('sel', x === w); });
-      document.querySelectorAll('.wayp').forEach(function (p) { p.classList.toggle('show', p.id === 'way-' + w.dataset.way); });
-      $('howTag').style.display = w.dataset.way === 'shopify' || w.dataset.way === 'woo' ? 'block' : 'none';
+      // More than one can be picked: each tap turns that way on or off.
+      var on = w.classList.toggle('sel');
+      w.setAttribute('aria-pressed', on ? 'true' : 'false');
+      $('way-' + w.dataset.way).classList.toggle('show', on);
+      var linked = document.querySelector('.way.sel[data-way="shopify"], .way.sel[data-way="woo"]');
+      $('howTag').style.display = linked ? 'block' : 'none';
+      if (on) setTimeout(function () { $('way-' + w.dataset.way).scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 30);
       clearNote('wayMsg');
     });
   });
