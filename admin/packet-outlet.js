@@ -541,8 +541,29 @@
     return plan;
   }
 
+  // Sizes of one thing share one product in the shop. Same rule as
+  // netlify-functions/_shared/outlet-shopify-core.js groupKey (checked
+  // against it in test/shopify-sizes-flow.test.js).
+  var GROUPABLE = { new_with_tags: true, new_no_tags: true, returned_as_new: true };
+  function groupKey(item) {
+    if (!item || !item.brand_id || !String(item.size || '').trim()) return null;
+    if (!GROUPABLE[item.condition] || String(item.condition_note || '').trim()) return null;
+    var n = function (v) { return String(v || '').toLowerCase().replace(/\s+/g, ' ').trim(); };
+    return [item.brand_id, n(item.title), n(item.colour), item.condition].join('|');
+  }
+  // 6, 8, 10 / XS, S, M, L / anything else as it came.
+  var LETTER = ['xxxs', 'xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', '2xl', '3xl'];
+  function sizeOrder(a, b) {
+    var x = String(a || '').trim().toLowerCase(), y = String(b || '').trim().toLowerCase();
+    var nx = parseFloat(x), ny = parseFloat(y);
+    if (!isNaN(nx) && !isNaN(ny) && nx !== ny) return nx - ny;
+    var lx = LETTER.indexOf(x), ly = LETTER.indexOf(y);
+    if (lx > -1 && ly > -1) return lx - ly;
+    return 0;
+  }
+
   var api = {
-    planUpload: planUpload,
+    planUpload: planUpload, groupKey: groupKey, sizeOrder: sizeOrder,
     CONDITIONS: CONDITIONS, CATEGORIES: CATEGORIES,
     ITEM_STATUS: ITEM_STATUS, ORDER_STATUS: ORDER_STATUS,
     conditionLabel: conditionLabel, categoryLabel: categoryLabel,

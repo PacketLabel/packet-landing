@@ -5,7 +5,8 @@
 // Keeps the Shopify shop in step with Outlet stock (015_outlet_shopify.sql).
 //
 //   An item Packet puts on sale becomes a product in the shop, tagged
-//   "outlet" so it lands in the Outlet collection. After that only the
+//   "outlet" so it lands in the Outlet collection. Other sizes of the
+//   same thing join that product as sizes (core: groupKey). After that only the
 //   price, the number left and whether it shows are ever changed here —
 //   Shopify owns the wording and photos (Decision 3).
 //
@@ -225,17 +226,23 @@ async function syncItem(db, settings, item, brandName) {
       if (item.status !== 'live') {
         patch = { shopify_synced_at: item.updated_at, shopify_sync_error: null };
       } else {
-        patch = await createProduct(settings, item, brandName);
+        patch = await listItem(db, settings, item, brandName);
         await ensureBrandCollection(db, settings, item.brand_id, brandName).catch(function (e) { console.warn('brand collection', e.message); });
       }
     } else {
       try {
-        await updateProduct(settings, item);
+        await updateProduct(db, settings, item);
         patch = { shopify_synced_at: item.updated_at, shopify_sync_error: null };
       } catch (err) {
-        // Deleted by hand in Shopify: forget it, and list it afresh if it should be on sale.
-        if (/does not exist|not found|invalid id/i.test(err.message) && item.status === 'live') {
-          patch = await createProduct(settings, item, brandName);
+        // Deleted by hand in Shopify: forget it for every size that was on
+        // it, and list this one afresh if it should be on sale. The other
+        // sizes join it as they come round.
+        if (/does not exist|not found|invalid id/i.test(err.message)) {
+          await db.patch('outlet_items', 'shopify_product_id=eq.' + encodeURIComponent(item.shopify_product_id) + '&id=neq.' + item.id,
+            { shopify_product_id: null, shopify_variant_id: null, shopify_inventory_item_id: null, shopify_synced_at: null });
+          patch = item.status === 'live'
+            ? await listItem(db, settings, item, brandName)
+            : { shopify_product_id: null, shopify_variant_id: null, shopify_inventory_item_id: null, shopify_synced_at: item.updated_at, shopify_sync_error: null };
         } else throw err;
       }
     }
@@ -275,6 +282,39 @@ async function ensureBrandCollection(db, settings, brandId, brandName) {
   made[brandId] = true;
 }
 
+// A new size of something already in the shop joins that product;
+// anything else becomes a product of its own.
+async function listItem(db, settings, item, brandName) {
+  if (C.groupKey(item)) {
+    const inShop = await db.select('outlet_items',
+      'select=id,brand_id,title,colour,size,condition,condition_note,shopify_product_id&brand_id=eq.' + item.brand_id + '&shopify_product_id=not.is.null');
+    const productId = C.productToJoin(item, inShop);
+    if (productId) return addSize(settings, item, productId);
+  }
+  return createProduct(settings, item, brandName);
+}
+
+async function addSize(settings, item, productId) {
+  const r = await S.gql(`mutation a($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+      productVariantsBulkCreate(productId: $productId, variants: $variants) {
+        productVariants { id inventoryItem { id } } userErrors { field message } } }`,
+    { productId: C.gid('Product', productId), variants: [C.sizeVariantInput(item, settings.shopify_location_id)] });
+  S.must(r.productVariantsBulkCreate, 'Adding size ' + item.size + ' to Shopify');
+  const v = (r.productVariantsBulkCreate.productVariants || [])[0];
+  // It may have been hidden while every other size was sold out.
+  const u = await S.gql(`mutation u($product: ProductUpdateInput!) {
+      productUpdate(product: $product) { product { id } userErrors { field message } } }`,
+    { product: { id: C.gid('Product', productId), status: 'ACTIVE' } });
+  S.must(u.productUpdate, 'Showing it');
+  return {
+    shopify_product_id: productId,
+    shopify_variant_id: v ? v.id : null,
+    shopify_inventory_item_id: v && v.inventoryItem ? v.inventoryItem.id : null,
+    shopify_synced_at: item.updated_at,
+    shopify_sync_error: null
+  };
+}
+
 async function createProduct(settings, item, brandName) {
   const input = C.productInput(item, brandName, settings.shopify_location_id);
   const r = await S.gql(`mutation s($input: ProductSetInput!) {
@@ -296,9 +336,11 @@ async function createProduct(settings, item, brandName) {
   };
 }
 
-async function updateProduct(settings, item) {
+async function updateProduct(db, settings, item) {
   const productId = C.gid('Product', item.shopify_product_id);
-  const st = C.shopStatus(item);
+  // Shows while any size on it is on sale with some left.
+  const peers = await db.select('outlet_items', 'select=id,status,quantity,sale_minor&shopify_product_id=eq.' + encodeURIComponent(item.shopify_product_id));
+  const st = C.groupStatus(peers.filter(function (p) { return p.id !== item.id; }).concat([item]));
 
   const u = await S.gql(`mutation u($product: ProductUpdateInput!) {
       productUpdate(product: $product) { product { id } userErrors { field message } } }`,
@@ -318,7 +360,7 @@ async function updateProduct(settings, item) {
       { key: crypto.randomUUID(),
         input: { name: 'available', reason: 'correction',
                  quantities: [{ inventoryItemId: item.shopify_inventory_item_id, locationId: settings.shopify_location_id,
-                                quantity: Math.max(0, item.quantity | 0), changeFromQuantity: null }] } });
+                                quantity: C.shopQuantity(item), changeFromQuantity: null }] } });
     S.must(q.inventorySetQuantities, 'Changing the number left');
   }
 }
@@ -332,8 +374,9 @@ async function syncAll(db, budget) {
   const brands = await brandNames(db);
   const items = (await db.select('outlet_items',
     'select=*&or=(status.eq.live,shopify_product_id.not.is.null)&order=updated_at.asc&limit=500')).filter(C.needsSync);
+  const queue = C.orderForSync(items);
 
-  for (const item of items) {
+  for (const item of queue) {
     if (Date.now() > budget) { result.items_left++; continue; }
     const r = await syncItem(db, settings, item, brands[item.brand_id]);
     if (r.ok) result.items_done++; else result.items_failed++;

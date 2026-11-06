@@ -1055,7 +1055,19 @@
     var price = live ? i.sale_minor : ask;
     $('pvP').textContent = price ? O.money(price) : 'Price set by Packet';
     $('pvPn').textContent = live ? 'On sale now.' : (price ? 'Your asking price. Packet confirms it before this goes on sale.' : 'Packet sets the price before this goes on sale.');
-    $('pvOpt').innerHTML = (i.size ? 'Size<br><span>' + esc(i.size) + '</span>' : '') + (i.colour ? (i.size ? '<br>' : '') + 'Colour: ' + esc(i.colour) : '');
+    // Every size of it, as the shop's picker will show them: sold-out or
+    // taken-back sizes struck through, the one you clicked selected.
+    var key = O.groupKey(i);
+    var sizes = key ? state.items.filter(function (x) { return O.groupKey(x) === key && ['rejected'].indexOf(x.status) === -1; }) : [i];
+    sizes.sort(function (a, b) { return O.sizeOrder(a.size, b.size); });
+    var gone = function (x) { return !x.quantity || x.status === 'withdrawn'; };
+    $('pvOpt').innerHTML = (i.size ? 'Size<br>' + sizes.map(function (x) {
+        return '<span data-sz="' + esc(x.id) + '" style="cursor:pointer;' + (x.id === i.id ? 'background:var(--brown);color:#fff;' : '') +
+          (gone(x) ? 'text-decoration:line-through;opacity:.45;' : '') + '" title="' + (gone(x) ? 'None left' : esc(x.quantity) + ' left') + '">' + esc(x.size) + '</span>';
+      }).join('') : '') + (i.colour ? (i.size ? '<br>' : '') + 'Colour: ' + esc(i.colour) : '');
+    $('pvOpt').querySelectorAll('[data-sz]').forEach(function (b) {
+      b.addEventListener('click', function () { if (this.dataset.sz !== i.id) openPreview(findItem(this.dataset.sz)); });
+    });
     var d = ['<p><strong>Condition:</strong> ' + esc(O.conditionLabel(i.condition)) + '</p>'];
     if (i.condition_note) d.push('<p><strong>Please note:</strong> ' + esc(i.condition_note) + '</p>');
     String(i.description || '').split(/\n{2,}/).forEach(function (para) { if (para.trim()) d.push('<p>' + esc(para.trim()).replace(/\n/g, '<br>') + '</p>'); });

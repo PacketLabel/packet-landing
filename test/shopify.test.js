@@ -95,5 +95,47 @@ check('unknown item is reported, not guessed', C.orderRows(order, {}).problems.l
 check('no address is reported', C.orderRows(Object.assign({}, order, { shipping_address: null }), byId).problems.length, 1);
 check('Shopify test order is a test', C.orderRows(Object.assign({}, order, { test: true }), byId).rows[0].is_test, true);
 
+
+console.log('sizes of one thing become one product');
+var base = { brand_id: 'b1', title: 'Linen wrap dress', colour: 'Sage', condition: 'returned_as_new', condition_note: null, status: 'live', quantity: 2, sale_minor: 7600 };
+var d10 = Object.assign({ id: 'i10', size: '10' }, base), d12 = Object.assign({ id: 'i12', size: '12' }, base);
+check('same brand, title, colour, condition: same group', C.groupKey(d10) === C.groupKey(d12) && !!C.groupKey(d10), true);
+check('case and spaces do not matter', C.groupKey(Object.assign({}, d12, { title: ' linen  WRAP dress ', colour: 'sage' })), C.groupKey(d10));
+check('another colour is another product', C.groupKey(Object.assign({}, d12, { colour: 'Navy' })) === C.groupKey(d10), false);
+check('another brand is another product', C.groupKey(Object.assign({}, d12, { brand_id: 'b2' })) === C.groupKey(d10), false);
+check('another condition is another product', C.groupKey(Object.assign({}, d12, { condition: 'new_with_tags' })) === C.groupKey(d10), false);
+check('no size: on its own', C.groupKey(Object.assign({}, d10, { size: '' })), null);
+check('worn: on its own', C.groupKey(Object.assign({}, d10, { condition: 'returned_worn', condition_note: 'Tried on' })), null);
+check('faulty: on its own', C.groupKey(Object.assign({}, d10, { condition: 'minor_fault', condition_note: 'Pull' })), null);
+check('a note of its own: on its own', C.groupKey(Object.assign({}, d10, { condition_note: 'Missing belt' })), null);
+
+var inShop = [Object.assign({}, d10, { shopify_product_id: 'gid://shopify/Product/1' })];
+check('size 12 joins the size 10 product', C.productToJoin(d12, inShop), 'gid://shopify/Product/1');
+check('nothing in the shop yet: its own product', C.productToJoin(d12, []), null);
+check('a second size 10 never doubles a size', C.productToJoin(Object.assign({}, d10, { id: 'i10b' }), inShop), null);
+check('not grouped: never joins', C.productToJoin(Object.assign({}, d12, { condition_note: 'Missing belt' }), inShop), null);
+check('ignores itself', C.productToJoin(inShop[0], inShop), null);
+
+var v = C.sizeVariantInput(d12, 'gid://shopify/Location/1');
+check('new size: option', v.optionValues[0].optionName + '=' + v.optionValues[0].name, 'Size=12');
+check('new size: price', v.price, '76.00');
+check('new size: sku is the item', v.inventoryItem.sku, 'PKO-i12');
+check('new size: stock', v.inventoryQuantities[0].availableQuantity, 2);
+check('new size: never oversell', v.inventoryPolicy, 'DENY');
+
+check('product shows while any size is on sale', C.groupStatus([Object.assign({}, d10, { quantity: 0 }), d12]), 'ACTIVE');
+check('product hides when every size is gone', C.groupStatus([Object.assign({}, d10, { quantity: 0 }), Object.assign({}, d12, { status: 'withdrawn' })]), 'DRAFT');
+check('a taken-back size cannot be bought', C.shopQuantity(Object.assign({}, d12, { status: 'withdrawn' })), 0);
+check('a paused size cannot be bought', C.shopQuantity(Object.assign({}, d12, { status: 'paused' })), 0);
+check('a live size sells what is left', C.shopQuantity(d12), 2);
+check('size is the picker, not repeated in the wording', /Size:/.test(C.productInput(Object.assign({ id: ID, photos: [] }, d10), 'B', 'L').descriptionHtml), false);
+check('colour still in the wording', /Colour: Sage/.test(C.productInput(Object.assign({ id: ID, photos: [] }, d10), 'B', 'L').descriptionHtml), true);
+
+console.log('the brand sees which size sold');
+var sized = { id: 556, name: '#1008', shipping_address: order.shipping_address,
+  line_items: [{ id: 9003, sku: 'PKO-' + ID, title: 'Wrap dress, navy spot', variant_title: '12', quantity: 1, price: '45.00' }] };
+check('size in the order line', C.orderRows(sized, byId).rows[0].item_title, 'Wrap dress, navy spot (12)');
+check('no size: plain title', C.orderRows(order, byId).rows[0].item_title, 'Wrap dress, navy spot');
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

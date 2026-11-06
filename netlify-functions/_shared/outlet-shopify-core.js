@@ -59,8 +59,9 @@ function productInput(item, brandName, locationId) {
       if (para.trim()) parts.push('<p>' + esc(para.trim()).replace(/\n/g, '<br>') + '</p>');
     });
   }
+  // The size is the shop's size picker, so it is not repeated here: one
+  // product can carry several sizes (groupKey below).
   const facts = [];
-  if (item.size) facts.push('Size: ' + esc(item.size));
   if (item.colour) facts.push('Colour: ' + esc(item.colour));
   if (facts.length) parts.push('<p>' + facts.join('<br>') + '</p>');
   parts.push('<p>An Outlet piece from ' + esc(brandName) + ', sent to you direct from ' + esc(brandName) + '.</p>');
@@ -88,10 +89,93 @@ function productInput(item, brandName, locationId) {
       price: pounds(item.sale_minor),
       inventoryPolicy: 'DENY',
       inventoryItem: { sku: skuFor(item.id), tracked: true, requiresShipping: true },
-      inventoryQuantities: [{ locationId: locationId, name: 'available', quantity: Math.max(0, item.quantity | 0) }]
+      inventoryQuantities: [{ locationId: locationId, name: 'available', quantity: shopQuantity(item) }]
     }]
   };
 }
+
+// ── Sizes of one thing, as one product ──────────────────────────
+// A brand's "Linen wrap dress, Sage" in sizes 10 and 12 is two Outlet
+// items (each with its own stock and price) but ONE product in the shop,
+// with a size picker. Items join up when they are the same brand, title,
+// colour and condition, each has a size, and nothing about them needs a
+// note of its own. Anything worn, damaged or faulty, or with a note,
+// stays a listing on its own, so its note is never lost in a group.
+// admin/packet-outlet.js has the same rule for the brand's preview.
+const GROUPABLE = { new_with_tags: true, new_no_tags: true, returned_as_new: true };
+function groupKey(item) {
+  if (!item || !item.brand_id || !String(item.size || '').trim()) return null;
+  if (!GROUPABLE[item.condition] || String(item.condition_note || '').trim()) return null;
+  const n = function (v) { return String(v || '').toLowerCase().replace(/\s+/g, ' ').trim(); };
+  return [item.brand_id, n(item.title), n(item.colour), item.condition].join('|');
+}
+function sameSize(a, b) { return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase(); }
+
+// Of this brand's items already in the shop, the product a new size
+// should join: one in its group that has not already got that size.
+function productToJoin(item, inShop) {
+  const key = groupKey(item);
+  if (!key) return null;
+  const byProduct = {};
+  (inShop || []).forEach(function (r) {
+    if (r.id === item.id || !r.shopify_product_id || groupKey(r) !== key) return;
+    (byProduct[r.shopify_product_id] = byProduct[r.shopify_product_id] || []).push(r);
+  });
+  const ids = Object.keys(byProduct);
+  for (let k = 0; k < ids.length; k++) {
+    if (!byProduct[ids[k]].some(function (r) { return sameSize(r.size, item.size); })) return ids[k];
+  }
+  return null;
+}
+
+// 6, 8, 10 / XS, S, M, L / anything else as it came. Same as
+// admin/packet-outlet.js sizeOrder.
+const LETTER = ['xxxs', 'xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', '2xl', '3xl'];
+function sizeOrder(a, b) {
+  const x = String(a || '').trim().toLowerCase(), y = String(b || '').trim().toLowerCase();
+  const nx = parseFloat(x), ny = parseFloat(y);
+  if (!isNaN(nx) && !isNaN(ny) && nx !== ny) return nx - ny;
+  const lx = LETTER.indexOf(x), ly = LETTER.indexOf(y);
+  if (lx > -1 && ly > -1) return lx - ly;
+  return 0;
+}
+
+// The order to send a batch in: as it came, except that sizes of one
+// thing go together, smallest first, so the shop's picker reads 8, 10, 12.
+function orderForSync(items) {
+  const out = [], done = {};
+  (items || []).forEach(function (it, n) {
+    if (done[n]) return;
+    const key = groupKey(it);
+    if (!key) { out.push(it); done[n] = true; return; }
+    const group = [];
+    items.forEach(function (o, m) { if (!done[m] && groupKey(o) === key) { group.push(o); done[m] = true; } });
+    group.sort(function (a, b) { return sizeOrder(a.size, b.size); });
+    group.forEach(function (g) { out.push(g); });
+  });
+  return out;
+}
+
+// One more size on an existing product.
+function sizeVariantInput(item, locationId) {
+  return {
+    optionValues: [{ optionName: 'Size', name: String(item.size).trim().slice(0, 255) }],
+    price: pounds(item.sale_minor),
+    inventoryPolicy: 'DENY',
+    inventoryItem: { sku: skuFor(item.id), tracked: true, requiresShipping: true },
+    inventoryQuantities: [{ locationId: locationId, availableQuantity: shopQuantity(item) }]
+  };
+}
+
+// A product shows while any of its sizes is on sale with some left.
+function groupStatus(items) {
+  return (items || []).some(function (i) { return shopStatus(i) === 'ACTIVE'; }) ? 'ACTIVE' : 'DRAFT';
+}
+
+// What the shop may sell of one size: nothing unless it is on sale. With
+// sizes sharing a product, hiding the product is no longer enough to
+// stop a taken-back size being bought while its neighbours are live.
+function shopQuantity(item) { return shopStatus(item) === 'ACTIVE' ? Math.max(0, item.quantity | 0) : 0; }
 
 // Showing in the shop only while it is on sale and there is some left.
 // A sold-out one-off is hidden rather than left up saying "sold out".
@@ -145,7 +229,7 @@ function orderRows(order, itemsById) {
     rows.push({
       item_id: itemId,
       brand_id: item.brand_id,
-      item_title: li.title || item.title,
+      item_title: (li.title || item.title) + (li.variant_title && li.variant_title !== 'Default Title' ? ' (' + li.variant_title + ')' : ''),
       order_ref: order.name || ('#' + order.order_number),
       quantity: qty,
       sale_minor: each,
@@ -189,5 +273,6 @@ function brandCollectionInput(brandName, handle) {
 module.exports = {
   slug, brandCollectionInput,
   SKU_PREFIX, skuFor, itemIdFromSku, productInput, shopStatus, needsSync,
+  groupKey, productToJoin, sizeVariantInput, groupStatus, shopQuantity, sizeOrder, orderForSync,
   verifyHmac, orderRows, pounds, gid, CONDITION_LABELS
 };
