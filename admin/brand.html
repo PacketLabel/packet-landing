@@ -101,6 +101,28 @@
   .tag.dim{background:rgba(58,46,39,.07);color:var(--brown-soft)}
   .tag.test{background:#3A2E27;color:#F6EFE6}
   .thumb{width:48px;height:48px;object-fit:cover;border-radius:2px;border:1px solid var(--line);background:#eee;display:block}
+  .thumbw{position:relative;display:block;padding:0;border:0;background:none;cursor:pointer}
+  .thumbw .cnt{position:absolute;right:-4px;bottom:-4px;background:var(--brown);color:var(--cream);font-size:10px;line-height:1;padding:3px 5px;border-radius:8px}
+  .pv{position:fixed;inset:0;background:rgba(30,24,20,.55);display:none;align-items:flex-start;justify-content:center;z-index:50;overflow:auto;padding:24px 16px}
+  .pv.show{display:flex}
+  .pvc{background:#fff;max-width:920px;width:100%;border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden}
+  .pvtop{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px;background:var(--cream);border-bottom:1px solid var(--line);font-size:13px;color:var(--brown-soft)}
+  .pvb{display:grid;grid-template-columns:1.1fr 1fr;gap:28px;padding:24px}
+  @media (max-width:720px){.pvb{grid-template-columns:1fr;gap:18px;padding:16px}}
+  .pvmain{width:100%;aspect-ratio:4/5;object-fit:cover;background:#f2eee9;display:block;border-radius:2px}
+  .pvthumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .pvthumbs button{padding:0;border:2px solid transparent;background:none;cursor:pointer;border-radius:2px}
+  .pvthumbs button.on{border-color:var(--brown)}
+  .pvthumbs img{width:60px;height:75px;object-fit:cover;display:block}
+  .pvven{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-soft);margin:0 0 6px}
+  .pvt{font-family:Lora,Georgia,serif;font-size:28px;font-weight:400;margin:0 0 10px;line-height:1.2}
+  .pvp{font-size:20px;margin:0 0 4px}
+  .pvpn{font-size:12px;color:var(--brown-soft);margin:0 0 16px}
+  .pvopt{font-size:13px;margin:0 0 14px}
+  .pvopt span{display:inline-block;border:1px solid var(--brown);padding:6px 12px;border-radius:2px;margin:4px 6px 0 0}
+  .pvbuy{width:100%;background:var(--brown);color:var(--cream);border:0;padding:14px;font:inherit;font-size:15px;border-radius:2px;margin:6px 0 18px;cursor:default;opacity:.92}
+  .pvd{font-size:14px;line-height:1.6;color:var(--brown)}
+  .pvd p{margin:0 0 10px}
   .sub{font-size:12px;color:var(--brown-soft)}
   .pnote{font-size:12px;color:var(--warn);margin-top:4px}
 
@@ -506,6 +528,25 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="packet-outlet.js"></script>
+<div class="pv" id="pv" role="dialog" aria-modal="true" aria-label="Preview">
+  <div class="pvc">
+    <div class="pvtop"><span>Preview: roughly how shoppers will see this on Packet Outlet</span>
+      <button class="link" id="pvClose" style="font-size:14px">Close &times;</button></div>
+    <div class="pvb">
+      <div><img class="pvmain" id="pvMain" alt=""><div class="pvthumbs" id="pvThumbs"></div></div>
+      <div>
+        <p class="pvven" id="pvVen"></p>
+        <h2 class="pvt" id="pvT"></h2>
+        <p class="pvp" id="pvP"></p>
+        <p class="pvpn" id="pvPn"></p>
+        <div class="pvopt" id="pvOpt"></div>
+        <button class="pvbuy" tabindex="-1">Add to bag</button>
+        <div class="pvd" id="pvD"></div>
+        <p class="hint" style="margin-top:16px;font-size:12px">The real page uses the shop&rsquo;s own design, so fonts and layout differ a little. The photos, wording and price are what shoppers get.</p>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
 (function () {
   'use strict';
@@ -935,8 +976,8 @@
     var usual = state.brand && state.brand.brand_discount_pct;
     state.items.forEach(function (i) {
       var st = O.ITEM_STATUS[i.status] || { label: i.status, tag: 'dim' };
-      var ph = (i.photos || []).map(safeUrl).filter(Boolean)[0];
-      var acts = [];
+      var phs = (i.photos || []).map(safeUrl).filter(Boolean), ph = phs[0], nph = phs.length;
+      var acts = ['<button class="link" data-pv="' + esc(i.id) + '">Preview</button>'];
       if (['draft', 'submitted', 'rejected', 'withdrawn', 'live', 'paused'].indexOf(i.status) > -1)
         acts.push('<button class="link" data-edit="' + esc(i.id) + '">Edit</button>');
       if (['draft', 'withdrawn', 'rejected'].indexOf(i.status) > -1)
@@ -947,8 +988,9 @@
         acts.push('<button class="link danger" data-del="' + esc(i.id) + '">Delete</button>');
       var soldOut = i.status === 'live' && i.quantity === 0;
       html += '<tr>' +
-        '<td>' + (ph ? '<img class="thumb" src="' + esc(ph) + '" alt="" loading="lazy">' : '<div class="thumb"></div>') + '</td>' +
-        '<td><b>' + esc(i.title) + '</b><div class="sub">' +
+        '<td><button class="thumbw" data-pv="' + esc(i.id) + '" title="Preview">' + (ph ? '<img class="thumb" src="' + esc(ph) + '" alt="" loading="lazy">' : '<div class="thumb"></div>') +
+          (nph > 1 ? '<span class="cnt">' + nph + '</span>' : '') + '</button></td>' +
+        '<td><button class="link" data-pv="' + esc(i.id) + '" style="color:inherit;font-weight:600;text-align:left">' + esc(i.title) + '</button><div class="sub">' +
           esc([i.size, i.colour, O.conditionLabel(i.condition)].filter(Boolean).join(' · ')) +
           (i.brand_sku ? ' · ' + esc(i.brand_sku) : '') +
           (i.source === 'shopify' ? ' · <span style="color:var(--terracotta)">from your shop</span>' : '') + '</div>' +
@@ -963,6 +1005,9 @@
 
     t.querySelectorAll('[data-edit]').forEach(function (b) {
       b.addEventListener('click', function () { openForm(findItem(this.dataset.edit)); });
+    });
+    t.querySelectorAll('[data-pv]').forEach(function (b) {
+      b.addEventListener('click', function () { openPreview(findItem(this.dataset.pv)); });
     });
     t.querySelectorAll('[data-send]').forEach(function (b) {
       b.addEventListener('click', function () { setStatus(this.dataset.send, 'submitted', 'Sent to Packet. We will check it and put it on sale.'); });
@@ -985,6 +1030,46 @@
   }
 
   function card(n, l) { return '<div class="card"><div class="n">' + esc(n) + '</div><div class="l">' + esc(l) + '</div></div>'; }
+  // ------------------------------------------------------------ preview
+  // Built from the same facts the shop listing is made from
+  // (outlet-shopify-core.js productInput), so what's here is what goes up.
+  function openPreview(i) {
+    if (!i) return;
+    var phs = (i.photos || []).map(safeUrl).filter(Boolean).slice(0, 8);
+    var main = $('pvMain');
+    function pick(n) {
+      main.src = phs[n] || ''; main.style.visibility = phs[n] ? 'visible' : 'hidden';
+      $('pvThumbs').querySelectorAll('button').forEach(function (b, k) { b.classList.toggle('on', k === n); });
+    }
+    $('pvThumbs').innerHTML = phs.length > 1 ? phs.map(function (u, k) {
+      return '<button type="button" data-k="' + k + '" aria-label="Photo ' + (k + 1) + '"><img src="' + esc(u) + '" alt=""></button>';
+    }).join('') : '';
+    $('pvThumbs').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { pick(+this.dataset.k); }); });
+    pick(0);
+    var brand = (state.brand && state.brand.name) || '';
+    $('pvVen').textContent = brand;
+    $('pvT').textContent = i.title;
+    var live = i.sale_minor && (i.status === 'live' || i.status === 'paused');
+    var usual = state.brand && state.brand.brand_discount_pct;
+    var ask = i.brand_price_minor || (usual !== null && usual !== undefined && i.rrp_minor ? O.outletPrice(i.rrp_minor, i.floor_minor, usual) : null);
+    var price = live ? i.sale_minor : ask;
+    $('pvP').textContent = price ? O.money(price) : 'Price set by Packet';
+    $('pvPn').textContent = live ? 'On sale now.' : (price ? 'Your asking price. Packet confirms it before this goes on sale.' : 'Packet sets the price before this goes on sale.');
+    $('pvOpt').innerHTML = (i.size ? 'Size<br><span>' + esc(i.size) + '</span>' : '') + (i.colour ? (i.size ? '<br>' : '') + 'Colour: ' + esc(i.colour) : '');
+    var d = ['<p><strong>Condition:</strong> ' + esc(O.conditionLabel(i.condition)) + '</p>'];
+    if (i.condition_note) d.push('<p><strong>Please note:</strong> ' + esc(i.condition_note) + '</p>');
+    String(i.description || '').split(/\n{2,}/).forEach(function (para) { if (para.trim()) d.push('<p>' + esc(para.trim()).replace(/\n/g, '<br>') + '</p>'); });
+    d.push('<p>An Outlet piece from ' + esc(brand) + ', sent to you direct from ' + esc(brand) + '.</p>');
+    $('pvD').innerHTML = d.join('');
+    $('pv').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    $('pvClose').focus();
+  }
+  function closePreview() { $('pv').classList.remove('show'); document.body.style.overflow = ''; }
+  $('pvClose').addEventListener('click', closePreview);
+  $('pv').addEventListener('click', function (e) { if (e.target === this) closePreview(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && $('pv').classList.contains('show')) closePreview(); });
+
   function findItem(id) { for (var i = 0; i < state.items.length; i++) if (state.items[i].id === id) return state.items[i]; return null; }
 
   function setStatus(id, status, okText) {
